@@ -11,6 +11,14 @@ from . import forms, models, tables
 class AccessListView(generic.ObjectView):
     queryset = models.AccessList.objects.all()
 
+    def get_extra_context(self, request, instance):
+        table = tables.AccessListRuleTable(instance.rules.all())
+        table.configure(request)
+
+        return {
+            'rules_table': table,
+        }
+
 
 class AccessListListView(generic.ObjectListView):
     queryset = models.AccessList.objects.annotate(

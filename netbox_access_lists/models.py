@@ -1,5 +1,6 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
+from django.urls import reverse
 
 from netbox.models import NetBoxModel
 from utilities.choices import ChoiceSet
@@ -41,6 +42,10 @@ class AccessList(NetBoxModel):
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_access_lists:accesslist', args=[self.pk])
+
 
 class AccessListRule(NetBoxModel):
     access_list = models.ForeignKey(
@@ -93,4 +98,7 @@ class AccessListRule(NetBoxModel):
 
     def __str__(self):
         return f'{self.access_list}: Rule {self.index}'
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_access_lists:accesslistrule', args=[self.pk])
 

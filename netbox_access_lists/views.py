@@ -1,7 +1,7 @@
 from django.db.models import Count
 
 from netbox.views import generic
-from . import forms, models, tables
+from . import filtersets, forms, models, tables
 
 
 #
@@ -47,6 +47,8 @@ class AccessListRuleView(generic.ObjectView):
 class AccessListRuleListView(generic.ObjectListView):
     queryset = models.AccessListRule.objects.all()
     table = tables.AccessListRuleTable
+    filterset = filtersets.AccessListRuleFilterSet
+    filterset_form = forms.AccessListRuleFilterForm
 
 
 class AccessListRuleEditView(generic.ObjectEditView):
@@ -56,5 +58,4 @@ class AccessListRuleEditView(generic.ObjectEditView):
 
 class AccessListRuleDeleteView(generic.ObjectDeleteView):
     queryset = models.AccessListRule.objects.all()
-
 

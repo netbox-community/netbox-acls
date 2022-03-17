@@ -1,5 +1,3 @@
-import django_filters
-
 from netbox.filtersets import NetBoxModelFilterSet
 from .models import AccessListRule
 
@@ -12,4 +10,3 @@ class AccessListRuleFilterSet(NetBoxModelFilterSet):
 
     def search(self, queryset, name, value):
         return queryset.filter(description__icontains=value)
-

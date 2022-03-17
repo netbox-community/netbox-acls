@@ -10,4 +10,3 @@ class NetBoxAccessListsConfig(PluginConfig):
 
 
 config = NetBoxAccessListsConfig
-

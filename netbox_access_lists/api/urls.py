@@ -9,4 +9,3 @@ router.register('access-lists', views.AccessListViewSet)
 router.register('access-list-rules', views.AccessListRuleViewSet)
 
 urlpatterns = router.urls
-

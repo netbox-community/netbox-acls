@@ -19,4 +19,3 @@ class AccessListRuleViewSet(NetBoxModelViewSet):
     )
     serializer_class = AccessListRuleSerializer
     filterset_class = filtersets.AccessListRuleFilterSet
-

@@ -29,4 +29,3 @@ class AccessListRuleForm(NetBoxModelForm):
             'access_list', 'index', 'description', 'source_prefix', 'source_ports', 'destination_prefix',
             'destination_ports', 'protocol', 'action', 'tags',
         )
-

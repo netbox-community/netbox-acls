@@ -101,4 +101,3 @@ class AccessListRule(NetBoxModel):
 
     def get_absolute_url(self):
         return reverse('plugins:netbox_access_lists:accesslistrule', args=[self.pk])
-

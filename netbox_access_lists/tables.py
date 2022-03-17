@@ -34,4 +34,3 @@ class AccessListRuleTable(NetBoxTable):
             'access_list', 'index', 'source_prefix', 'source_ports', 'destination_prefix',
             'destination_ports', 'protocol', 'action', 'actions',
         )
-

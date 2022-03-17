@@ -5,7 +5,7 @@ from . import forms, models, tables
 
 
 #
-# Access lists
+# AccessList views
 #
 
 class AccessListView(generic.ObjectView):
@@ -29,7 +29,7 @@ class AccessListDeleteView(generic.ObjectDeleteView):
 
 
 #
-# Access list rules
+# AccessListRule views
 #
 
 class AccessListRuleView(generic.ObjectView):
@@ -48,5 +48,3 @@ class AccessListRuleEditView(generic.ObjectEditView):
 
 class AccessListRuleDeleteView(generic.ObjectDeleteView):
     queryset = models.AccessListRule.objects.all()
-
-

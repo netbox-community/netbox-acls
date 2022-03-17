@@ -10,7 +10,9 @@ from ..models import AccessList, AccessListRule
 #
 
 class NestedAccessListSerializer(WritableNestedSerializer):
-    url = serializers.HyperlinkedIdentityField(view_name='plugins-api:netbox_access_lists-api:accesslist-detail')
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_access_lists-api:accesslist-detail'
+    )
 
     class Meta:
         model = AccessList
@@ -18,7 +20,9 @@ class NestedAccessListSerializer(WritableNestedSerializer):
 
 
 class NestedAccessListRuleSerializer(WritableNestedSerializer):
-    url = serializers.HyperlinkedIdentityField(view_name='plugins-api:netbox_access_lists-api:accesslistrule-detail')
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_access_lists-api:accesslistrule-detail'
+    )
 
     class Meta:
         model = AccessListRule
@@ -44,7 +48,9 @@ class AccessListSerializer(NetBoxModelSerializer):
 
 
 class AccessListRuleSerializer(NetBoxModelSerializer):
-    url = serializers.HyperlinkedIdentityField(view_name='plugins-api:netbox_access_lists-api:accesslistrule-detail')
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_access_lists-api:accesslistrule-detail'
+    )
     access_list = NestedAccessListSerializer()
     source_prefix = NestedPrefixSerializer()
     destination_prefix = NestedPrefixSerializer()
@@ -53,6 +59,6 @@ class AccessListRuleSerializer(NetBoxModelSerializer):
         model = AccessListRule
         fields = (
             'id', 'url', 'display', 'access_list', 'index', 'protocol', 'source_prefix', 'source_ports',
-            'destination_prefix', 'destination_ports', 'action', 'tags', 'custom_fields', 'created', 'last_updated',
+            'destination_prefix', 'destination_ports', 'action', 'tags', 'custom_fields', 'created',
+            'last_updated',
         )
-

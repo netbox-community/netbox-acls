@@ -32,4 +32,3 @@ menu_items = (
         buttons=accesslistrule_butons
     ),
 )
-

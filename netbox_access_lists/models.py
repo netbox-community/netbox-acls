@@ -42,6 +42,9 @@ class AccessList(NetBoxModel):
     def __str__(self):
         return self.name
 
+    def get_default_action_color(self):
+        return ActionChoices.colors.get(self.default_action)
+
 
 class AccessListRule(NetBoxModel):
     access_list = models.ForeignKey(
@@ -94,3 +97,9 @@ class AccessListRule(NetBoxModel):
 
     def __str__(self):
         return f'{self.access_list}: Rule {self.index}'
+
+    def get_protocol_color(self):
+        return ProtocolChoices.colors.get(self.protocol)
+
+    def get_action_color(self):
+        return ActionChoices.colors.get(self.action)

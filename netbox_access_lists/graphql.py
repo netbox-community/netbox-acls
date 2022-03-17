@@ -5,7 +5,7 @@ from . import filtersets, models
 
 
 #
-# Types
+# Object types
 #
 
 class AccessListType(NetBoxObjectType):
@@ -36,4 +36,3 @@ class Query(ObjectType):
 
 
 schema = Query
-

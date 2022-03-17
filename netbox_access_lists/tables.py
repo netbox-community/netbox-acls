@@ -1,6 +1,6 @@
 import django_tables2 as tables
 
-from netbox.tables import NetBoxTable
+from netbox.tables import NetBoxTable, ChoiceFieldColumn
 from .models import AccessList, AccessListRule
 
 
@@ -8,6 +8,7 @@ class AccessListTable(NetBoxTable):
     name = tables.Column(
         linkify=True
     )
+    default_action = ChoiceFieldColumn()
     rule_count = tables.Column()
 
     class Meta(NetBoxTable.Meta):
@@ -23,6 +24,8 @@ class AccessListRuleTable(NetBoxTable):
     index = tables.Column(
         linkify=True
     )
+    protocol = ChoiceFieldColumn()
+    action = ChoiceFieldColumn()
 
     class Meta(NetBoxTable.Meta):
         model = AccessListRule

@@ -50,4 +50,3 @@ class AccessListRuleFilterForm(NetBoxModelFilterSetForm):
         choices=ActionChoices,
         required=False
     )
-

@@ -42,6 +42,7 @@ class AccessList(NetBoxModel):
     def __str__(self):
         return self.name
 
+
 class AccessListRule(NetBoxModel):
     access_list = models.ForeignKey(
         to=AccessList,
@@ -93,4 +94,3 @@ class AccessListRule(NetBoxModel):
 
     def __str__(self):
         return f'{self.access_list}: Rule {self.index}'
-

@@ -29,7 +29,7 @@ class AccessListListView(generic.ObjectListView):
 
 class AccessListEditView(generic.ObjectEditView):
     queryset = models.AccessList.objects.all()
-    model_form = forms.AccessListForm
+    form = forms.AccessListForm
 
 
 class AccessListDeleteView(generic.ObjectDeleteView):
@@ -51,7 +51,7 @@ class AccessListRuleListView(generic.ObjectListView):
 
 class AccessListRuleEditView(generic.ObjectEditView):
     queryset = models.AccessListRule.objects.all()
-    model_form = forms.AccessListRuleForm
+    form = forms.AccessListRuleForm
 
 
 class AccessListRuleDeleteView(generic.ObjectDeleteView):

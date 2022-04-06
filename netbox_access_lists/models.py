@@ -8,20 +8,20 @@ from utilities.choices import ChoiceSet
 class ActionChoices(ChoiceSet):
     key = 'AccessListRule.action'
 
-    CHOICES = (
+    CHOICES = [
         ('permit', 'Permit', 'green'),
         ('deny', 'Deny', 'red'),
         ('reject', 'Reject (Reset)', 'orange'),
-    )
+    ]
 
 
 class ProtocolChoices(ChoiceSet):
 
-    CHOICES = (
+    CHOICES = [
         ('tcp', 'TCP', 'blue'),
         ('udp', 'UDP', 'orange'),
         ('icmp', 'ICMP', 'purple'),
-    )
+    ]
 
 
 class AccessList(NetBoxModel):

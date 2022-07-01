@@ -1,0 +1,58 @@
+---
+name: 🐛 Bug Report
+description: Report a reproducible bug in the current release of this NetBox Plugin
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        **NOTE:** This form is only for reporting _reproducible bugs_ in a current NetBox plugin
+        installation.
+
+        - Check the release notes:
+          https://github.com/ryanmerolle/netbox-access-lists/releases
+        - Look through the issues already resolved:
+          https://github.com/ryanmerolle/netbox-access-lists/issues?q=is%3Aclosed
+        - Post to Github Discussions if you need setup or usage help that is not a bug:
+          https://github.com/ryanmerolle/netbox-access-lists/discussions
+        - Join the `#netbox` channel on our Slack:
+          https://join.slack.com/t/netdev-community/shared_invite/zt-mtts8g0n-Sm6Wutn62q_M4OdsaIycrQ
+
+  - type: input
+    attributes:
+      label: NetBox access-list plugin version
+      description: What version of the NetBox access-list plugin are you currently running?
+      placeholder: v0.1
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: NetBox version
+      description: What version of NetBox are you currently running?
+      placeholder: v3.2.5
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to Reproduce
+      description: >
+        Describe in detail the exact steps that someone else can take to
+        reproduce this bug using the current stable release of the NetBox access-list plugin.
+      #placeholder: |
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: A new widget should have been created with the specified attributes
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Observed Behavior
+      description: What happened instead?
+      placeholder: A TypeError exception was raised
+    validations:
+      required: true

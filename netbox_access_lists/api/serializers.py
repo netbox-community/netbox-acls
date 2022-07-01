@@ -42,7 +42,7 @@ class AccessListSerializer(NetBoxModelSerializer):
     class Meta:
         model = AccessList
         fields = (
-            'id', 'url', 'display', 'name', 'default_action', 'comments', 'tags', 'custom_fields', 'created',
+            'id', 'url', 'display', 'name', 'type', 'default_action', 'comments', 'tags', 'custom_fields', 'created',
             'last_updated', 'rule_count',
         )
 

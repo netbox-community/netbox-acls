@@ -8,13 +8,14 @@ class AccessListTable(NetBoxTable):
     name = tables.Column(
         linkify=True
     )
+    type = ChoiceFieldColumn()
     default_action = ChoiceFieldColumn()
     rule_count = tables.Column()
 
     class Meta(NetBoxTable.Meta):
         model = AccessList
-        fields = ('pk', 'id', 'name', 'rule_count', 'default_action', 'comments', 'actions')
-        default_columns = ('name', 'rule_count', 'default_action')
+        fields = ('pk', 'id', 'name', 'type', 'rule_count', 'default_action', 'comments', 'actions')
+        default_columns = ('name', 'type', 'rule_count', 'default_action')
 
 
 class AccessListRuleTable(NetBoxTable):

@@ -23,6 +23,7 @@ class Migration(migrations.Migration):
                 ('last_updated', models.DateTimeField(auto_now=True, null=True)),
                 ('custom_field_data', models.JSONField(blank=True, default=dict, encoder=django.core.serializers.json.DjangoJSONEncoder)),
                 ('name', models.CharField(max_length=100)),
+                ('type', models.CharField(max_length=100)),
                 ('default_action', models.CharField(max_length=30)),
                 ('comments', models.TextField(blank=True)),
                 ('tags', taggit.managers.TaggableManager(through='extras.TaggedItem', to='extras.Tag')),

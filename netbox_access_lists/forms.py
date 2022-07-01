@@ -11,7 +11,7 @@ class AccessListForm(NetBoxModelForm):
 
     class Meta:
         model = AccessList
-        fields = ('name', 'default_action', 'comments', 'tags')
+        fields = ('name', 'type', 'default_action', 'comments', 'tags')
 
 
 class AccessListRuleForm(NetBoxModelForm):

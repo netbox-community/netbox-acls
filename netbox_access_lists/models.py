@@ -16,6 +16,14 @@ class ActionChoices(ChoiceSet):
     ]
 
 
+class TypeChoices(ChoiceSet):
+
+    CHOICES = [
+        ('standard', 'Standard', 'blue'),
+        ('extended', 'Extended', 'purple'),
+    ]
+
+
 class ProtocolChoices(ChoiceSet):
 
     CHOICES = [
@@ -28,6 +36,10 @@ class ProtocolChoices(ChoiceSet):
 class AccessList(NetBoxModel):
     name = models.CharField(
         max_length=100
+    )
+    type = models.CharField(
+        max_length=30,
+        choices=TypeChoices
     )
     default_action = models.CharField(
         max_length=30,
@@ -48,6 +60,9 @@ class AccessList(NetBoxModel):
 
     def get_default_action_color(self):
         return ActionChoices.colors.get(self.default_action)
+
+    def get_type_color(self):
+        return TypeChoices.colors.get(self.type)
 
 
 class AccessListRule(NetBoxModel):

@@ -11,8 +11,8 @@ services:
     volumes:
       - ../:/opt/netbox/netbox/netbox-access-lists
       - ../plugins.py:/etc/netbox/plugins.py:z,ro
-      - ~/.gitconfig:/root/.gitconfig:z,ro
-      - ~/.ssh:/root/.ssh
+      - ~/.gitconfig:/home/vscode/.gitconfig:z,ro
+      - ~/.ssh:/home/vscode/.ssh
     # - /var/run/docker.sock:/var/run/docker.sock
     #  - ../:/opt/netbox/sample_plugin
     #  - ./.bashrc:/opt/netbox/sample_plugin/.bashrc

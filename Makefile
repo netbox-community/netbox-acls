@@ -1,77 +1,47 @@
-PYTHON_VER?=3.8
-NETBOX_VER?=v3.2.0
+.PHONY: help
+help: ## Display help message
+	@grep -E '^[0-9a-zA-Z_-]+\.*[0-9a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-NAME=netbox-bgp
+#################
+#     DOCKER    #
+#################
 
-COMPOSE_FILE=./develop/docker-compose.yml
-BUILD_NAME=netbox_access_lists
-VERFILE=./netbox_access_lists/version.py
+# Outside of Devcontainer
 
+.PHONY: cleanup
+cleanup: ## Clean associated docker resources.
+	-docker-compose -p netbox-access-lists_devcontainer rm -fv
 
-cbuild:
-	docker-compose -f ${COMPOSE_FILE} \
-		-p ${BUILD_NAME} build \
-		--build-arg netbox_ver=${NETBOX_VER} \
-		--build-arg python_ver=${PYTHON_VER}
+##################
+#   PLUGIN DEV   #
+##################
 
-debug:
-	@echo "Starting Netbox .. "
-	docker-compose -f ${COMPOSE_FILE} -p ${BUILD_NAME} up
+# in VS Code Devcontianer
 
-start:
-	@echo "Starting Netbox in detached mode.. "
-	docker-compose -f ${COMPOSE_FILE} -p ${BUILD_NAME} up -d
+.PHONY: setup
+setup: ## Copy plugin settings.  Setup NetBox plugin.
+	-cp /opt/netbox/netbox/netbox-access-lists/plugins.py /etc/netbox/config/plugins.py
+	-python3 setup.py develop
 
-stop:
-	docker-compose -f ${COMPOSE_FILE} -p ${BUILD_NAME} down
+.PHONY: makemigrations
+makemigrations: ## Run makemigrations
+	-python3 /opt/netbox/netbox/manage.py makemigrations netbox_access_lists
 
-destroy:
-	docker-compose -f ${COMPOSE_FILE} -p ${BUILD_NAME} down
-	docker volume rm -f ${BUILD_NAME}_pgdata_netbox_access_lists
+.PHONY: migrate
+migrate: ## Run migrate
+	-python3 /opt/netbox/netbox/manage.py migrate
 
-nbshell:
-	docker-compose -f ${COMPOSE_FILE} -p ${BUILD_NAME} run netbox python manage.py nbshell
+.PHONY: startup_scripts
+startup_scripts:
+	-echo "import runpy; runpy.run_path('/opt/netbox/startup_scripts')" | /opt/netbox/netbox/manage.py shell --interface python
 
-shell:
-	docker-compose -f ${COMPOSE_FILE} -p ${BUILD_NAME} run netbox python manage.py shell
-
-adduser:
-	docker-compose -f ${COMPOSE_FILE} -p ${BUILD_NAME} run netbox python manage.py createsuperuser
-
+.PHONY: collectstatic
 collectstatic:
-	docker-compose -f ${COMPOSE_FILE} -p ${BUILD_NAME} run netbox python manage.py collectstatic
+	-python3 /opt/netbox/netbox/manage.py collectstatic --no-input
 
-migrations:
-	docker-compose -f ${COMPOSE_FILE} -p ${BUILD_NAME} up -d postgres
-	docker-compose -f ${COMPOSE_FILE} -p ${BUILD_NAME} \
-	run netbox python manage.py makemigrations --name ${BUILD_NAME}
-	docker-compose -f ${COMPOSE_FILE} -p ${BUILD_NAME} down
+.PHONY: start
+start: ## Start NetBox
+	-python3 /opt/netbox/netbox/manage.py runserver
 
-pbuild:
-	python3 -m pip install --upgrade build
-	python3 -m build
-
-pypipub:
-	python3 -m pip install --upgrade twine
-	python3 -m twine upload dist/*
-
-relpatch:
-	$(eval GSTATUS := $(shell git status --porcelain))
-ifneq ($(GSTATUS),)
-	$(error Git status is not clean. $(GSTATUS))
-endif
-	git checkout develop
-	git remote update
-	git pull origin develop
-	$(eval CURVER := $(shell cat $(VERFILE) | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'))
-	$(eval NEWVER := $(shell pysemver bump patch $(CURVER)))
-	$(eval RDATE := $(shell date '+%Y-%m-%d'))
-	git checkout -b release-$(NEWVER) origin/develop
-	echo '__version__ = "$(NEWVER)"' > $(VERFILE)
-	git commit -am 'bump ver'
-	git push origin release-$(NEWVER)
-	git checkout develop
-
-
-test:
-	docker-compose -f ${COMPOSE_FILE} -p ${BUILD_NAME} run netbox python manage.py test ${BUILD_NAME}
+.PHONY: all
+all: setup makemigrations migrate collectstatic startup_scripts start ## Run all PLUGIN DEV targets

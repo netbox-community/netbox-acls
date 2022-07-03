@@ -1,7 +1,6 @@
 #!/bin/bash
 
 USER=vscode
-HOME_${USER}=/home/${USER}/
 
 # Reconfigure User id if set by user
 if [ ! -z "${USER_UID}" ] && [ "${USER_UID}" != "`id -u ${USER}`" ] ; then
@@ -29,7 +28,5 @@ fi
 #   fi
 #   eval `cat $HOME/.ssh/ssh-agent`
 #fi
-
-chown $USER:$USER /opt/netbox -R
 
 /bin/sh -c "while sleep 1000; do :; done"

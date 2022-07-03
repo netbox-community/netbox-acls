@@ -21,7 +21,8 @@ ARG USER_GID=$USER_UID
 RUN useradd -md /home/vscode -s /usr/bin/zsh -u $USER_UID $USERNAME \
     && usermod -aG sudo $USERNAME \
     && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
-    && mkdir /opt/netbox/netbox/netbox-access-lists
+    && mkdir /opt/netbox/netbox/netbox-access-lists \
+    && chown $USERNAME:$USERNAME /opt/netbox /etc/netbox -R
 
 USER $USERNAME
 

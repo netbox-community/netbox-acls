@@ -1,0 +1,10 @@
+autopep8
+bandit
+black
+flake8
+mypy
+pre-commit
+pycodestyle
+pydocstyle
+pylint
+yapf

@@ -36,7 +36,7 @@ WORKDIR /opt/netbox/netbox/netbox-access-lists
 
 USER root
 
-COPY entrypoint.sh /bin/entrypoint.sh
+COPY entrypoint-dev.sh /bin/entrypoint.sh
 RUN chmod +x /bin/entrypoint.sh
 
 CMD ["/bin/entrypoint.sh"]

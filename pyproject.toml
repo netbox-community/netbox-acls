@@ -1,0 +1,29 @@
+[tool.black]
+line-length = 100
+
+[tool.pylint]
+
+[tool.pylint.format]
+max-line-length = 100
+
+[tool.pylint.master]
+# pylint defaults + fh for with open .. as (f|fh)
+good-names = "i,j,k,ex,Run,_,f,fh"
+no-docstring-rgx = "__.*__"
+
+[tool.pylint.messages_control]
+# missing module docstring will be picked up by pydocstyle
+# could not do infile b/c older version of pylint didn't have it
+# and ansible-test sanity uses older version in earlier ansible
+# pointless-string-statement allows for attribute docstring in dataclasses
+disable = [
+  "duplicate-code",
+  "fixme",
+  "missing-module-docstring",
+  "pointless-string-statement",
+  "too-few-public-methods",
+  "unsubscriptable-object",
+]
+enable = [
+  "useless-suppression", # Identify unneeded pylint disable statements
+]

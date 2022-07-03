@@ -2,7 +2,7 @@
 version: '3.4'
 services:
   netbox:
-    image: new
+    image: netbox-plugin_dev
     build:
       dockerfile: Dockerfile-plugin_dev
     ports:

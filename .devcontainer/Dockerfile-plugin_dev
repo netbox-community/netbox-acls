@@ -28,6 +28,7 @@ USER $USERNAME
 # Add oh my zsh
 RUN wget --quiet https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true
 
+COPY .bashrc /home/vscode/.bashrc
 COPY .zshrc /home/vscode/.zshrc
 
 WORKDIR /opt/netbox/netbox/netbox-access-lists

@@ -1,4 +1,3 @@
----
 version: '3.4'
 services:
   netbox:
@@ -7,13 +6,7 @@ services:
       dockerfile: Dockerfile-plugin_dev
     ports:
       - 8000:8080
-    command: ["/bin/sh", "-c", "while true; do sleep 30; done;"]
     volumes:
       - ../:/opt/netbox/netbox/netbox-access-lists
-      - ../plugins.py:/etc/netbox/plugins.py:z,ro
       - ~/.gitconfig:/home/vscode/.gitconfig:z,ro
       - ~/.ssh:/home/vscode/.ssh
-    # - /var/run/docker.sock:/var/run/docker.sock
-    #  - ../:/opt/netbox/sample_plugin
-    #  - ./.bashrc:/opt/netbox/sample_plugin/.bashrc
-    #  - ./.bash_profile:/opt/netbox/sample_plugin/.bash_profile

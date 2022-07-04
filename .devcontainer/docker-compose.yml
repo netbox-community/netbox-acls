@@ -10,7 +10,7 @@ services:
       - netbox-worker
     env_file: env/netbox.env
     volumes:
-      - ./.devcontainer/initializers:/opt/netbox/initializers:z,ro
+      - ./initializers:/opt/netbox/initializers:z,ro
       - ../plugins.py:/etc/netbox/plugins.py:z,ro
       #- ./configuration/logging.py:/etc/netbox/logging:z,ro
       #- ./configuration/logging.py:/etc/netbox/logging:z,ro

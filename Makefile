@@ -26,7 +26,6 @@ cleanup: ## Clean associated docker resources.
 
 .PHONY: setup
 setup: ## Copy plugin settings.  Setup NetBox plugin.
-	-cp ${REPO_PATH}/.devcontainer/configuration/plugins.py /etc/netbox/config/plugins.py
 	-${VENV_PY_PATH} -m pip install --disable-pip-version-check --no-cache-dir -e ${REPO_PATH}
 #-python3 setup.py develop
 

@@ -5,7 +5,7 @@
 	"name": "NetBox Plugin Develoment",
 	"dockerComposeFile": [
 		"docker-compose.yml",
-		"docker-compose.override.yml",
+		"docker-compose.override.yml"
 	],
 	"service": "netbox",
 	//"workspaceMount": "source=${localWorkspaceFolder},target=/opt/netbox/netbox/netbox-access-lists,type=bind,consistency=cached",
@@ -19,6 +19,7 @@
 		"vscode": {
 			// Set *default* container specific settings.json values on container create.
 			"settings": {
+				"python.analysis.typeCheckingMode": "strict",
 				"python.autoComplete.extraPaths": [
 					"/opt/netbox/",
 					"/opt/netbox/netbox"
@@ -26,6 +27,7 @@
 				"python.defaultInterpreterPath": "/opt/netbox/venv/bin/python",
 				"python.formatting.autopep8Path": "/opt/netbox/venv/lib/python3.9/site-packages/autopep8",
 				"python.formatting.blackPath": "/opt/netbox/venv/lib/python3.9/site-packages/black",
+				"python.formatting.provider": "black",
 				"python.formatting.yapfPath": "/opt/netbox/venv/lib/python3.9/site-packages/yapf",
 				"python.linting.banditPath": "/opt/netbox/venv/lib/python3.9/site-packages/bandit",
 				"python.linting.enabled": true,

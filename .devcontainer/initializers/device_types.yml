@@ -1,0 +1,15 @@
+- model: Model 1
+  manufacturer: Manufacturer 1
+  slug: model-1
+  u_height: 2
+- model: Model 2
+  manufacturer: Manufacturer 1
+  slug: model-2
+- model: Model 3
+  manufacturer: Manufacturer 1
+  slug: model-3
+  is_full_depth: false
+  u_height: 0
+- model: Other
+  manufacturer: No Name
+  slug: other

@@ -1,0 +1,12 @@
+version: '3.4'
+services:
+  netbox:
+    image: netbox-plugin_dev
+    build:
+      dockerfile: Dockerfile-plugin_dev
+    ports:
+      - 8000:8080
+    volumes:
+      - ../:/opt/netbox/netbox/netbox-access-lists
+      - ~/.gitconfig:/home/vscode/.gitconfig:z,ro
+      - ~/.ssh:/home/vscode/.ssh

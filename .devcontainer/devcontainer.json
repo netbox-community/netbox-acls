@@ -19,6 +19,15 @@
 		"vscode": {
 			// Set *default* container specific settings.json values on container create.
 			"settings": {
+				//"[python]": {
+				//	"editor.codeActionsOnSave": {
+				//		"source.organizeImports": true
+				//	}
+				//},
+				//"python.sortImports.args": [
+				//	"--profile=black"
+				//],
+				//"python.sortImports.path": "/opt/netbox/venv/bin/isort",
 				"python.analysis.typeCheckingMode": "strict",
 				"python.analysis.extraPaths": [
 					"/opt/netbox/",

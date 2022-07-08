@@ -11,6 +11,7 @@ class AccessListViewSet(NetBoxModelViewSet):
         rule_count=Count('rules')
     )
     serializer_class = AccessListSerializer
+    filterset_class = filtersets.AccessListFilterSet
 
 
 class AccessListRuleViewSet(NetBoxModelViewSet):

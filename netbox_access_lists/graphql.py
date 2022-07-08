@@ -13,6 +13,7 @@ class AccessListType(NetBoxObjectType):
     class Meta:
         model = models.AccessList
         fields = '__all__'
+        filterset_class = filtersets.AccessListFilterSet
 
 
 class AccessListRuleType(NetBoxObjectType):

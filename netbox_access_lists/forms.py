@@ -3,7 +3,7 @@ from django import forms
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelForm, NetBoxModelFilterSetForm
 from utilities.forms.fields import CommentField, DynamicModelChoiceField
-from .models import AccessList, AccessListRule, ActionChoices, ProtocolChoices
+from .models import AccessList, AccessListRule, ActionChoices, ProtocolChoices, TypeChoices
 
 
 class AccessListForm(NetBoxModelForm):
@@ -12,6 +12,18 @@ class AccessListForm(NetBoxModelForm):
     class Meta:
         model = AccessList
         fields = ('name', 'type', 'default_action', 'comments', 'tags')
+
+
+class AccessListFilterForm(NetBoxModelFilterSetForm):
+    model = AccessList
+    type = forms.MultipleChoiceField(
+        choices=TypeChoices,
+        required=False
+    )
+    default_action = forms.MultipleChoiceField(
+        choices=ActionChoices,
+        required=False
+    )
 
 
 class AccessListRuleForm(NetBoxModelForm):

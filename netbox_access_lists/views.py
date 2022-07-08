@@ -25,6 +25,8 @@ class AccessListListView(generic.ObjectListView):
         rule_count=Count('rules')
     )
     table = tables.AccessListTable
+    filterset = filtersets.AccessListFilterSet
+    filterset_form = forms.AccessListFilterForm
 
 
 class AccessListEditView(generic.ObjectEditView):

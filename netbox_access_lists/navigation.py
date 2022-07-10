@@ -26,9 +26,10 @@ menu_items = (
         link_text='Access Lists',
         buttons=accesslist_buttons
     ),
-    PluginMenuItem(
-        link='plugins:netbox_access_lists:accesslistrule_list',
-        link_text='Access List Rules',
-        buttons=accesslistrule_butons
-    ),
+    # # Comment out Access List Rule to force creation in the ACL view
+    # PluginMenuItem(
+    #     link='plugins:netbox_access_lists:accesslistrule_list',
+    #     link_text='Access List Rules',
+    #     buttons=accesslistrule_butons
+    # ),
 )

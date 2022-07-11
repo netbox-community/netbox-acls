@@ -44,7 +44,7 @@ class Migration(migrations.Migration):
                 ('source_ports', django.contrib.postgres.fields.ArrayField(base_field=models.PositiveIntegerField(), blank=True, null=True, size=None)),
                 ('destination_ports', django.contrib.postgres.fields.ArrayField(base_field=models.PositiveIntegerField(), blank=True, null=True, size=None)),
                 ('action', models.CharField(max_length=30)),
-                ('description', models.CharField(blank=True, max_length=500)),
+                ('remark', models.CharField(blank=True, null=True, max_length=500)),
                 ('access_list', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='rules', to='netbox_access_lists.accesslist')),
                 ('destination_prefix', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='+', to='ipam.prefix')),
                 ('source_prefix', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='+', to='ipam.prefix')),

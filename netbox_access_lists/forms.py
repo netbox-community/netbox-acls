@@ -43,7 +43,7 @@ class AccessListRuleForm(NetBoxModelForm):
     class Meta:
         model = AccessListRule
         fields = (
-            'access_list', 'index', 'description', 'source_prefix', 'source_ports', 'destination_prefix',
+            'access_list', 'index', 'remark', 'source_prefix', 'source_ports', 'destination_prefix',
             'destination_ports', 'protocol', 'action', 'tags',
         )
 

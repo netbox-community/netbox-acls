@@ -105,9 +105,10 @@ class AccessListRule(NetBoxModel):
         max_length=30,
         choices=ActionChoices
     )
-    description = models.CharField(
-        max_length=500,
-        blank=True
+    remark = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True
     )
 
     class Meta:

@@ -15,7 +15,7 @@ class AccessListRuleFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = AccessListRule
-        fields = ('id', 'access_list', 'index', 'protocol', 'action')
+        fields = ('id', 'access_list', 'index', 'protocol', 'action', 'remark')
 
     def search(self, queryset, name, value):
         return queryset.filter(description__icontains=value)

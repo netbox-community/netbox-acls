@@ -6,30 +6,33 @@ from netbox.models import NetBoxModel
 from utilities.choices import ChoiceSet
 
 
-class ActionChoices(ChoiceSet):
+class AccessListActionChoices(ChoiceSet):
     key = 'AccessListRule.action'
+    ACTION_DENY = 'deny'
+    ACTION_PERMIT = 'permit'
+    ACTION_REJECT = 'reject'
 
     CHOICES = [
-        ('permit', 'Permit', 'green'),
-        ('deny', 'Deny', 'red'),
-        ('reject', 'Reject (Reset)', 'orange'),
+        (ACTION_DENY, 'Deny', 'red'),
+        (ACTION_PERMIT, 'Permit', 'green'),
+        (ACTION_REJECT, 'Reject (Reset)', 'orange'),
     ]
 
 
-class TypeChoices(ChoiceSet):
+class AccessListTypeChoices(ChoiceSet):
 
     CHOICES = [
-        ('standard', 'Standard', 'blue'),
         ('extended', 'Extended', 'purple'),
+        ('standard', 'Standard', 'blue'),
     ]
 
 
-class ProtocolChoices(ChoiceSet):
+class AccessListProtocolChoices(ChoiceSet):
 
     CHOICES = [
+        ('icmp', 'ICMP', 'purple'),
         ('tcp', 'TCP', 'blue'),
         ('udp', 'UDP', 'orange'),
-        ('icmp', 'ICMP', 'purple'),
     ]
 
 
@@ -39,11 +42,12 @@ class AccessList(NetBoxModel):
     )
     type = models.CharField(
         max_length=30,
-        choices=TypeChoices
+        choices=AccessListTypeChoices
     )
     default_action = models.CharField(
+        default=AccessListActionChoices.ACTION_DENY,
         max_length=30,
-        choices=ActionChoices
+        choices=AccessListActionChoices
     )
     comments = models.TextField(
         blank=True
@@ -59,51 +63,52 @@ class AccessList(NetBoxModel):
         return reverse('plugins:netbox_access_lists:accesslist', args=[self.pk])
 
     def get_default_action_color(self):
-        return ActionChoices.colors.get(self.default_action)
+        return AccessListActionChoices.colors.get(self.default_action)
 
     def get_type_color(self):
-        return TypeChoices.colors.get(self.type)
+        return AccessListTypeChoices.colors.get(self.type)
 
 
 class AccessListRule(NetBoxModel):
     access_list = models.ForeignKey(
-        to=AccessList,
         on_delete=models.CASCADE,
-        related_name='rules'
+        related_name='rules',
+        to=AccessList,
     )
     index = models.PositiveIntegerField()
     protocol = models.CharField(
+        blank=True,
+        choices=AccessListProtocolChoices,
         max_length=30,
-        choices=ProtocolChoices,
-        blank=True
     )
     source_prefix = models.ForeignKey(
-        to='ipam.Prefix',
+        blank=True,
+        null=True,
         on_delete=models.PROTECT,
         related_name='+',
-        blank=True,
-        null=True
+        to='ipam.Prefix',
     )
     source_ports = ArrayField(
         base_field=models.PositiveIntegerField(),
         blank=True,
-        null=True
+        null=True,
     )
     destination_prefix = models.ForeignKey(
-        to='ipam.Prefix',
+        blank=True,
+        null=True,
         on_delete=models.PROTECT,
         related_name='+',
-        blank=True,
-        null=True
+        to='ipam.Prefix',
     )
     destination_ports = ArrayField(
         base_field=models.PositiveIntegerField(),
         blank=True,
-        null=True
+        null=True,
     )
     action = models.CharField(
+        choices=AccessListActionChoices,
+        default=AccessListActionChoices.ACTION_PERMIT,
         max_length=30,
-        choices=ActionChoices
     )
     remark = models.CharField(
         max_length=200,
@@ -122,7 +127,7 @@ class AccessListRule(NetBoxModel):
         return reverse('plugins:netbox_access_lists:accesslistrule', args=[self.pk])
 
     def get_protocol_color(self):
-        return ProtocolChoices.colors.get(self.protocol)
+        return AccessListProtocolChoices.colors.get(self.protocol)
 
     def get_action_color(self):
-        return ActionChoices.colors.get(self.action)
+        return AccessListActionChoices.colors.get(self.action)

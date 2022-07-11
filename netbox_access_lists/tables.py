@@ -38,9 +38,9 @@ class AccessListRuleTable(NetBoxTable):
         model = AccessListRule
         fields = (
             'pk', 'id', 'access_list', 'index', 'source_prefix', 'source_ports', 'destination_prefix',
-            'destination_ports', 'protocol', 'action', 'description', 'actions', 'tags'
+            'destination_ports', 'protocol', 'action', 'remark', 'actions', 'tags'
         )
         default_columns = (
-            'access_list', 'index', 'source_prefix', 'source_ports', 'destination_prefix',
+            'access_list', 'index', 'remark', 'source_prefix', 'source_ports', 'destination_prefix',
             'destination_ports', 'protocol', 'action', 'actions', 'tags'
         )

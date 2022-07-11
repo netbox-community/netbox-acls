@@ -1,5 +1,6 @@
 from django import forms
 
+from extras.models import Tag
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelForm, NetBoxModelFilterSetForm
 from utilities.forms import CommentField, DynamicModelChoiceField, DynamicModelMultipleChoiceField, StaticSelectMultiple, TagFilterField
@@ -8,6 +9,10 @@ from .models import AccessList, AccessListRule, AccessListActionChoices, AccessL
 
 class AccessListForm(NetBoxModelForm):
     comments = CommentField()
+    tags = DynamicModelMultipleChoiceField(
+        queryset=Tag.objects.all(),
+        required=False
+    )
 
     class Meta:
         model = AccessList
@@ -38,6 +43,10 @@ class AccessListRuleForm(NetBoxModelForm):
     )
     destination_prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all()
+    )
+    tags = DynamicModelMultipleChoiceField(
+        queryset=Tag.objects.all(),
+        required=False
     )
 
     class Meta:

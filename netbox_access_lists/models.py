@@ -52,7 +52,8 @@ class AccessList(NetBoxModel):
     default_action = models.CharField(
         default=AccessListActionChoices.ACTION_DENY,
         max_length=30,
-        choices=AccessListActionChoices
+        choices=AccessListActionChoices,
+        verbose_name='Default Action'
     )
     comments = models.TextField(
         blank=True
@@ -79,6 +80,7 @@ class AccessListRule(NetBoxModel):
         on_delete=models.CASCADE,
         related_name='rules',
         to=AccessList,
+        verbose_name='Access List'
     )
     index = models.PositiveIntegerField()
     protocol = models.CharField(
@@ -92,11 +94,13 @@ class AccessListRule(NetBoxModel):
         on_delete=models.PROTECT,
         related_name='+',
         to='ipam.Prefix',
+        verbose_name='Source Prefix'
     )
     source_ports = ArrayField(
         base_field=models.PositiveIntegerField(),
         blank=True,
         null=True,
+        verbose_name='Soure Ports'
     )
     destination_prefix = models.ForeignKey(
         blank=True,
@@ -104,11 +108,13 @@ class AccessListRule(NetBoxModel):
         on_delete=models.PROTECT,
         related_name='+',
         to='ipam.Prefix',
+        verbose_name='Destination Prefix'
     )
     destination_ports = ArrayField(
         base_field=models.PositiveIntegerField(),
         blank=True,
         null=True,
+        verbose_name='Destination Ports'
     )
     action = models.CharField(
         choices=AccessListActionChoices,

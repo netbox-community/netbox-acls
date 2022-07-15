@@ -13,7 +13,9 @@ class AccessListTable(NetBoxTable):
     )
     type = ChoiceFieldColumn()
     default_action = ChoiceFieldColumn()
-    rule_count = tables.Column()
+    rule_count = tables.Column(
+        verbose_name='Rule Count'
+    )
     tags = columns.TagColumn(
         url_name='plugins:netbox_access_lists:accesslist_list'
     )

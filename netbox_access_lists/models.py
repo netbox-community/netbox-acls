@@ -75,6 +75,50 @@ class AccessList(NetBoxModel):
         return AccessListTypeChoices.colors.get(self.type)
 
 
+#class AccessListRule(NetBoxModel):
+
+
+class AccessListStandardRule(NetBoxModel):
+    access_list = models.ForeignKey(
+        on_delete=models.CASCADE,
+        related_name='standard_acl_rules',
+        to=AccessList,
+        verbose_name='Access List'
+    )
+    index = models.PositiveIntegerField()
+    remark = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True
+    )
+    action = models.CharField(
+        choices=AccessListActionChoices,
+        default=AccessListActionChoices.ACTION_PERMIT,
+        max_length=30,
+    )
+    source_prefix = models.ForeignKey(
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name='+',
+        to='ipam.Prefix',
+        verbose_name='Source Prefix'
+    )
+
+    class Meta:
+        ordering = ('access_list', 'index')
+        unique_together = ('access_list', 'index')
+
+    def __str__(self):
+        return f'{self.access_list}: Rule {self.index}'
+
+    def get_action_color(self):
+        return AccessListActionChoices.colors.get(self.action)
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_access_lists:accessliststandardrule', args=[self.pk])
+
+
 class AccessListExtendedRule(NetBoxModel):
     access_list = models.ForeignKey(
         on_delete=models.CASCADE,
@@ -83,9 +127,14 @@ class AccessListExtendedRule(NetBoxModel):
         verbose_name='Access List'
     )
     index = models.PositiveIntegerField()
-    protocol = models.CharField(
+    remark = models.CharField(
+        max_length=200,
         blank=True,
-        choices=AccessListProtocolChoices,
+        null=True
+    )
+    action = models.CharField(
+        choices=AccessListActionChoices,
+        default=AccessListActionChoices.ACTION_PERMIT,
         max_length=30,
     )
     source_prefix = models.ForeignKey(
@@ -116,15 +165,10 @@ class AccessListExtendedRule(NetBoxModel):
         null=True,
         verbose_name='Destination Ports'
     )
-    action = models.CharField(
-        choices=AccessListActionChoices,
-        default=AccessListActionChoices.ACTION_PERMIT,
-        max_length=30,
-    )
-    remark = models.CharField(
-        max_length=200,
+    protocol = models.CharField(
         blank=True,
-        null=True
+        choices=AccessListProtocolChoices,
+        max_length=30,
     )
 
     class Meta:
@@ -134,11 +178,11 @@ class AccessListExtendedRule(NetBoxModel):
     def __str__(self):
         return f'{self.access_list}: Rule {self.index}'
 
+    def get_action_color(self):
+        return AccessListActionChoices.colors.get(self.action)
+
     def get_absolute_url(self):
         return reverse('plugins:netbox_access_lists:accesslistextendedrule', args=[self.pk])
 
     def get_protocol_color(self):
         return AccessListProtocolChoices.colors.get(self.protocol)
-
-    def get_action_color(self):
-        return AccessListActionChoices.colors.get(self.action)

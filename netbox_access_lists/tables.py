@@ -1,7 +1,7 @@
 import django_tables2 as tables
 
 from netbox.tables import NetBoxTable, columns, ChoiceFieldColumn
-from .models import AccessList, AccessListExtendedRule
+from .models import AccessList, AccessListExtendedRule, AccessListStandardRule
 
 
 class AccessListTable(NetBoxTable):
@@ -25,6 +25,26 @@ class AccessListTable(NetBoxTable):
         fields = ('pk', 'id', 'name', 'device', 'type', 'rule_count', 'default_action', 'comments', 'actions', 'tags')
         default_columns = ('name', 'device', 'type', 'rule_count', 'default_action', 'tags')
 
+
+class AccessListStandardRuleTable(NetBoxTable):
+    access_list = tables.Column(
+        linkify=True
+    )
+    index = tables.Column(
+        linkify=True
+    )
+    action = ChoiceFieldColumn()
+    tags = columns.TagColumn(
+        url_name='plugins:netbox_access_lists:accessliststandardrule_list'
+    )
+    class Meta(NetBoxTable.Meta):
+        model = AccessListStandardRule
+        fields = (
+            'pk', 'id', 'access_list', 'index', 'source_prefix', 'action', 'remark', 'tags'
+        )
+        default_columns = (
+            'access_list', 'index', 'source_prefix', 'action', 'remark', 'tags'
+        )
 
 class AccessListExtendedRuleTable(NetBoxTable):
     access_list = tables.Column(

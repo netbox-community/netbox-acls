@@ -16,13 +16,23 @@ urlpatterns = (
         'model': models.AccessList
     }),
 
-    # Access list rules
-    path('rules/', views.AccessListExtendedRuleListView.as_view(), name='accesslistextendedrule_list'),
-    path('rules/add/', views.AccessListExtendedRuleEditView.as_view(), name='accesslistextendedrule_add'),
-    path('rules/<int:pk>/', views.AccessListExtendedRuleView.as_view(), name='accesslistextendedrule'),
-    path('rules/<int:pk>/edit/', views.AccessListExtendedRuleEditView.as_view(), name='accesslistextendedrule_edit'),
-    path('rules/<int:pk>/delete/', views.AccessListExtendedRuleDeleteView.as_view(), name='accesslistextendedrule_delete'),
-    path('rules/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='accesslistextendedrule_changelog', kwargs={
+    # Standard Access list rules
+    path('standard-rules/', views.AccessListStandardRuleListView.as_view(), name='accessliststandardrule_list'),
+    path('standard-rules/add/', views.AccessListStandardRuleEditView.as_view(), name='accessliststandardrule_add'),
+    path('standard-rules/<int:pk>/', views.AccessListStandardRuleView.as_view(), name='accessliststandardrule'),
+    path('standard-rules/<int:pk>/edit/', views.AccessListStandardRuleEditView.as_view(), name='accessliststandardrule_edit'),
+    path('standard-rules/<int:pk>/delete/', views.AccessListStandardRuleDeleteView.as_view(), name='accessliststandardrule_delete'),
+    path('standard-rules/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='accessliststandardrule_changelog', kwargs={
+        'model': models.AccessListStandardRule
+    }),
+
+    # Extended Access list rules
+    path('extended-rules/', views.AccessListExtendedRuleListView.as_view(), name='accesslistextendedrule_list'),
+    path('extended-rules/add/', views.AccessListExtendedRuleEditView.as_view(), name='accesslistextendedrule_add'),
+    path('extended-rules/<int:pk>/', views.AccessListExtendedRuleView.as_view(), name='accesslistextendedrule'),
+    path('extended-rules/<int:pk>/edit/', views.AccessListExtendedRuleEditView.as_view(), name='accesslistextendedrule_edit'),
+    path('extended-rules/<int:pk>/delete/', views.AccessListExtendedRuleDeleteView.as_view(), name='accesslistextendedrule_delete'),
+    path('extended-rules/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='accesslistextendedrule_changelog', kwargs={
         'model': models.AccessListExtendedRule
     }),
 

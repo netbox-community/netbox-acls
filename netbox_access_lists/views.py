@@ -12,17 +12,20 @@ class AccessListView(generic.ObjectView):
     queryset = models.AccessList.objects.all()
 
     def get_extra_context(self, request, instance):
-        table = tables.AccessListExtendedRuleTable(instance.rules.all())
+        if instance.type == 'extended':
+            table = tables.AccessListExtendedRuleTable(instance.rules.all())
+        elif instance.type == 'standard':
+            table = tables.AccessListStandardRuleTable(instance.standard_acl_rules.all())
         table.configure(request)
 
         return {
-            'rules_table': table,
+            'rules_table': table
         }
 
 
 class AccessListListView(generic.ObjectListView):
     queryset = models.AccessList.objects.annotate(
-        rule_count=Count('rules')
+        rule_count=Count('rules') + Count('standard_acl_rules')
     )
     table = tables.AccessListTable
     filterset = filtersets.AccessListFilterSet
@@ -36,6 +39,30 @@ class AccessListEditView(generic.ObjectEditView):
 
 class AccessListDeleteView(generic.ObjectDeleteView):
     queryset = models.AccessList.objects.all()
+
+
+#
+# AccessListStandardRule views
+#
+
+class AccessListStandardRuleView(generic.ObjectView):
+    queryset = models.AccessListStandardRule.objects.all()
+
+
+class AccessListStandardRuleListView(generic.ObjectListView):
+    queryset = models.AccessListStandardRule.objects.all()
+    table = tables.AccessListStandardRuleTable
+    filterset = filtersets.AccessListStandardRuleFilterSet
+    filterset_form = forms.AccessListStandardRuleFilterForm
+
+
+class AccessListStandardRuleEditView(generic.ObjectEditView):
+    queryset = models.AccessListStandardRule.objects.all()
+    form = forms.AccessListStandardRuleForm
+
+
+class AccessListStandardRuleDeleteView(generic.ObjectDeleteView):
+    queryset = models.AccessListStandardRule.objects.all()
 
 
 #

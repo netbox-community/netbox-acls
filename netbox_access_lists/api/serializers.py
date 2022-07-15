@@ -3,7 +3,7 @@ from rest_framework import serializers
 from ipam.api.serializers import NestedPrefixSerializer
 from dcim.api.serializers import NestedDeviceSerializer
 from netbox.api.serializers import NetBoxModelSerializer, WritableNestedSerializer
-from ..models import AccessList, AccessListExtendedRule
+from ..models import AccessList, AccessListExtendedRule, AccessListStandardRule
 
 
 #
@@ -18,6 +18,16 @@ class NestedAccessListSerializer(WritableNestedSerializer):
     class Meta:
         model = AccessList
         fields = ('id', 'url', 'display', 'name', 'device')
+
+
+class NestedAccessListStandardRuleSerializer(WritableNestedSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_access_lists-api:accessliststandardrule-detail'
+    )
+
+    class Meta:
+        model = AccessListStandardRule
+        fields = ('id', 'url', 'display', 'index')
 
 
 class NestedAccessListExtendedRuleSerializer(WritableNestedSerializer):
@@ -45,7 +55,22 @@ class AccessListSerializer(NetBoxModelSerializer):
         model = AccessList
         fields = (
             'id', 'url', 'display', 'name', 'device', 'type', 'default_action', 'comments', 'tags', 'custom_fields', 'created',
-            'last_updated', 'rule_count',
+            'last_updated', 'rule_count'
+        )
+
+
+class AccessListStandardRuleSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_access_lists-api:accessliststandardrule-detail'
+    )
+    access_list = NestedAccessListSerializer()
+    source_prefix = NestedPrefixSerializer()
+
+    class Meta:
+        model = AccessListStandardRule
+        fields = (
+            'id', 'url', 'display', 'access_list', 'index', 'source_prefix', 'action',
+            'tags', 'custom_fields', 'created', 'last_updated'
         )
 
 
@@ -62,5 +87,5 @@ class AccessListExtendedRuleSerializer(NetBoxModelSerializer):
         fields = (
             'id', 'url', 'display', 'access_list', 'index', 'protocol', 'source_prefix', 'source_ports',
             'destination_prefix', 'destination_ports', 'action', 'tags', 'custom_fields', 'created',
-            'last_updated',
+            'last_updated'
         )

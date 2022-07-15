@@ -42,10 +42,12 @@ class AccessListExtendedRuleForm(NetBoxModelForm):
         }
     )
     source_prefix = DynamicModelChoiceField(
-        queryset=Prefix.objects.all()
+        queryset=Prefix.objects.all(),
+        required=False
     )
     destination_prefix = DynamicModelChoiceField(
-        queryset=Prefix.objects.all()
+        queryset=Prefix.objects.all(),
+        required=False
     )
     tags = DynamicModelMultipleChoiceField(
         queryset=Tag.objects.all(),
@@ -91,7 +93,8 @@ class AccessListStandardRuleForm(NetBoxModelForm):
         }
     )
     source_prefix = DynamicModelChoiceField(
-        queryset=Prefix.objects.all()
+        queryset=Prefix.objects.all(),
+        required=False
     )
     tags = DynamicModelMultipleChoiceField(
         queryset=Tag.objects.all(),

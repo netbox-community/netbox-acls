@@ -92,6 +92,8 @@ class AccessListStandardRule(NetBoxModel):
         null=True
     )
     action = models.CharField(
+        blank=True,
+        null=True,
         choices=AccessListActionChoices,
         default=AccessListActionChoices.ACTION_PERMIT,
         max_length=30,
@@ -133,6 +135,8 @@ class AccessListExtendedRule(NetBoxModel):
         null=True
     )
     action = models.CharField(
+        blank=True,
+        null=True,
         choices=AccessListActionChoices,
         default=AccessListActionChoices.ACTION_PERMIT,
         max_length=30,

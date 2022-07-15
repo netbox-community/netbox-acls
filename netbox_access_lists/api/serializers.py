@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from ipam.api.serializers import NestedPrefixSerializer
+from dcim.api.serializers import NestedDeviceSerializer
 from netbox.api.serializers import NetBoxModelSerializer, WritableNestedSerializer
 from ..models import AccessList, AccessListRule
 
@@ -16,7 +17,7 @@ class NestedAccessListSerializer(WritableNestedSerializer):
 
     class Meta:
         model = AccessList
-        fields = ('id', 'url', 'display', 'name')
+        fields = ('id', 'url', 'display', 'name', 'device')
 
 
 class NestedAccessListRuleSerializer(WritableNestedSerializer):
@@ -38,11 +39,12 @@ class AccessListSerializer(NetBoxModelSerializer):
         view_name='plugins-api:netbox_access_lists-api:accesslist-detail'
     )
     rule_count = serializers.IntegerField(read_only=True)
+    device = NestedDeviceSerializer()
 
     class Meta:
         model = AccessList
         fields = (
-            'id', 'url', 'display', 'name', 'type', 'default_action', 'comments', 'tags', 'custom_fields', 'created',
+            'id', 'url', 'display', 'name', 'device', 'type', 'default_action', 'comments', 'tags', 'custom_fields', 'created',
             'last_updated', 'rule_count',
         )
 

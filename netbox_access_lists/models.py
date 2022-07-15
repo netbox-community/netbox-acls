@@ -40,6 +40,11 @@ class AccessList(NetBoxModel):
     name = models.CharField(
         max_length=100
     )
+    device = models.ForeignKey(
+        to='dcim.Device',
+        on_delete=models.CASCADE,
+        related_name='access_lists'
+    )
     type = models.CharField(
         max_length=30,
         choices=AccessListTypeChoices
@@ -54,7 +59,7 @@ class AccessList(NetBoxModel):
     )
 
     class Meta:
-        ordering = ('name',)
+        ordering = ('name', 'device')
 
     def __str__(self):
         return self.name

@@ -12,7 +12,7 @@ class AccessListView(generic.ObjectView):
     queryset = models.AccessList.objects.all()
 
     def get_extra_context(self, request, instance):
-        table = tables.AccessListRuleTable(instance.rules.all())
+        table = tables.AccessListExtendedRuleTable(instance.rules.all())
         table.configure(request)
 
         return {
@@ -39,24 +39,24 @@ class AccessListDeleteView(generic.ObjectDeleteView):
 
 
 #
-# AccessListRule views
+# AccessListExtendedRule views
 #
 
-class AccessListRuleView(generic.ObjectView):
-    queryset = models.AccessListRule.objects.all()
+class AccessListExtendedRuleView(generic.ObjectView):
+    queryset = models.AccessListExtendedRule.objects.all()
 
 
-class AccessListRuleListView(generic.ObjectListView):
-    queryset = models.AccessListRule.objects.all()
-    table = tables.AccessListRuleTable
-    filterset = filtersets.AccessListRuleFilterSet
-    filterset_form = forms.AccessListRuleFilterForm
+class AccessListExtendedRuleListView(generic.ObjectListView):
+    queryset = models.AccessListExtendedRule.objects.all()
+    table = tables.AccessListExtendedRuleTable
+    filterset = filtersets.AccessListExtendedRuleFilterSet
+    filterset_form = forms.AccessListExtendedRuleFilterForm
 
 
-class AccessListRuleEditView(generic.ObjectEditView):
-    queryset = models.AccessListRule.objects.all()
-    form = forms.AccessListRuleForm
+class AccessListExtendedRuleEditView(generic.ObjectEditView):
+    queryset = models.AccessListExtendedRule.objects.all()
+    form = forms.AccessListExtendedRuleForm
 
 
-class AccessListRuleDeleteView(generic.ObjectDeleteView):
-    queryset = models.AccessListRule.objects.all()
+class AccessListExtendedRuleDeleteView(generic.ObjectDeleteView):
+    queryset = models.AccessListExtendedRule.objects.all()

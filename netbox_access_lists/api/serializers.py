@@ -3,7 +3,7 @@ from rest_framework import serializers
 from ipam.api.serializers import NestedPrefixSerializer
 from dcim.api.serializers import NestedDeviceSerializer
 from netbox.api.serializers import NetBoxModelSerializer, WritableNestedSerializer
-from ..models import AccessList, AccessListRule
+from ..models import AccessList, AccessListExtendedRule
 
 
 #
@@ -20,13 +20,13 @@ class NestedAccessListSerializer(WritableNestedSerializer):
         fields = ('id', 'url', 'display', 'name', 'device')
 
 
-class NestedAccessListRuleSerializer(WritableNestedSerializer):
+class NestedAccessListExtendedRuleSerializer(WritableNestedSerializer):
     url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:netbox_access_lists-api:accesslistrule-detail'
+        view_name='plugins-api:netbox_access_lists-api:accesslistextendedrule-detail'
     )
 
     class Meta:
-        model = AccessListRule
+        model = AccessListExtendedRule
         fields = ('id', 'url', 'display', 'index')
 
 
@@ -49,16 +49,16 @@ class AccessListSerializer(NetBoxModelSerializer):
         )
 
 
-class AccessListRuleSerializer(NetBoxModelSerializer):
+class AccessListExtendedRuleSerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:netbox_access_lists-api:accesslistrule-detail'
+        view_name='plugins-api:netbox_access_lists-api:accesslistextendedrule-detail'
     )
     access_list = NestedAccessListSerializer()
     source_prefix = NestedPrefixSerializer()
     destination_prefix = NestedPrefixSerializer()
 
     class Meta:
-        model = AccessListRule
+        model = AccessListExtendedRule
         fields = (
             'id', 'url', 'display', 'access_list', 'index', 'protocol', 'source_prefix', 'source_ports',
             'destination_prefix', 'destination_ports', 'action', 'tags', 'custom_fields', 'created',

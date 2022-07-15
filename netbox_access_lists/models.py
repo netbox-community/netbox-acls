@@ -7,7 +7,7 @@ from utilities.choices import ChoiceSet
 
 
 class AccessListActionChoices(ChoiceSet):
-    key = 'AccessListRule.action'
+    key = 'AccessListExtendedRule.action'
     ACTION_DENY = 'deny'
     ACTION_PERMIT = 'permit'
     ACTION_REJECT = 'reject'
@@ -75,7 +75,7 @@ class AccessList(NetBoxModel):
         return AccessListTypeChoices.colors.get(self.type)
 
 
-class AccessListRule(NetBoxModel):
+class AccessListExtendedRule(NetBoxModel):
     access_list = models.ForeignKey(
         on_delete=models.CASCADE,
         related_name='rules',
@@ -135,7 +135,7 @@ class AccessListRule(NetBoxModel):
         return f'{self.access_list}: Rule {self.index}'
 
     def get_absolute_url(self):
-        return reverse('plugins:netbox_access_lists:accesslistrule', args=[self.pk])
+        return reverse('plugins:netbox_access_lists:accesslistextendedrule', args=[self.pk])
 
     def get_protocol_color(self):
         return AccessListProtocolChoices.colors.get(self.protocol)

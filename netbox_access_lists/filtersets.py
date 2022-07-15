@@ -1,5 +1,5 @@
 from netbox.filtersets import NetBoxModelFilterSet
-from .models import AccessList, AccessListRule
+from .models import AccessList, AccessListExtendedRule
 
 
 class AccessListFilterSet(NetBoxModelFilterSet):
@@ -11,10 +11,10 @@ class AccessListFilterSet(NetBoxModelFilterSet):
         return queryset.filter(description__icontains=value)
 
 
-class AccessListRuleFilterSet(NetBoxModelFilterSet):
+class AccessListExtendedRuleFilterSet(NetBoxModelFilterSet):
 
     class Meta:
-        model = AccessListRule
+        model = AccessListExtendedRule
         fields = ('id', 'access_list', 'index', 'protocol', 'action', 'remark')
 
     def search(self, queryset, name, value):

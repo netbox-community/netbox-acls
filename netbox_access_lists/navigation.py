@@ -11,9 +11,9 @@ accesslist_buttons = [
     )
 ]
 
-accesslistrule_butons = [
+accesslistextendedrule_butons = [
     PluginMenuButton(
-        link='plugins:netbox_access_lists:accesslistrule_add',
+        link='plugins:netbox_access_lists:accesslistextendedrule_add',
         title='Add',
         icon_class='mdi mdi-plus-thick',
         color=ButtonColorChoices.GREEN
@@ -28,8 +28,8 @@ menu_items = (
     ),
     # # Comment out Access List Rule to force creation in the ACL view
     # PluginMenuItem(
-    #     link='plugins:netbox_access_lists:accesslistrule_list',
+    #     link='plugins:netbox_access_lists:accesslistextendedrule_list',
     #     link_text='Access List Rules',
-    #     buttons=accesslistrule_butons
+    #     buttons=accesslistextendedrule_butons
     # ),
 )

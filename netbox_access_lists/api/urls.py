@@ -6,6 +6,6 @@ app_name = 'netbox_access_list'
 
 router = NetBoxRouter()
 router.register('access-lists', views.AccessListViewSet)
-router.register('access-list-rules', views.AccessListRuleViewSet)
+router.register('access-list-rules', views.AccessListExtendedRuleViewSet)
 
 urlpatterns = router.urls

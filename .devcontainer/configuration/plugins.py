@@ -6,7 +6,7 @@
 
 PLUGINS = [
     "netbox_access_lists",
-    "netbox_secretstore"
+    #"netbox_secretstore"
     ]
 
 PLUGINS_CONFIG = {

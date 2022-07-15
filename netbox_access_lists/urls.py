@@ -17,13 +17,13 @@ urlpatterns = (
     }),
 
     # Access list rules
-    path('rules/', views.AccessListRuleListView.as_view(), name='accesslistrule_list'),
-    path('rules/add/', views.AccessListRuleEditView.as_view(), name='accesslistrule_add'),
-    path('rules/<int:pk>/', views.AccessListRuleView.as_view(), name='accesslistrule'),
-    path('rules/<int:pk>/edit/', views.AccessListRuleEditView.as_view(), name='accesslistrule_edit'),
-    path('rules/<int:pk>/delete/', views.AccessListRuleDeleteView.as_view(), name='accesslistrule_delete'),
-    path('rules/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='accesslistrule_changelog', kwargs={
-        'model': models.AccessListRule
+    path('rules/', views.AccessListExtendedRuleListView.as_view(), name='accesslistextendedrule_list'),
+    path('rules/add/', views.AccessListExtendedRuleEditView.as_view(), name='accesslistextendedrule_add'),
+    path('rules/<int:pk>/', views.AccessListExtendedRuleView.as_view(), name='accesslistextendedrule'),
+    path('rules/<int:pk>/edit/', views.AccessListExtendedRuleEditView.as_view(), name='accesslistextendedrule_edit'),
+    path('rules/<int:pk>/delete/', views.AccessListExtendedRuleDeleteView.as_view(), name='accesslistextendedrule_delete'),
+    path('rules/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='accesslistextendedrule_changelog', kwargs={
+        'model': models.AccessListExtendedRule
     }),
 
 )

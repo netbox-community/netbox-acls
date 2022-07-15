@@ -16,12 +16,12 @@ class AccessListType(NetBoxObjectType):
         filterset_class = filtersets.AccessListFilterSet
 
 
-class AccessListRuleType(NetBoxObjectType):
+class AccessListExtendedRuleType(NetBoxObjectType):
 
     class Meta:
-        model = models.AccessListRule
+        model = models.AccessListExtendedRule
         fields = '__all__'
-        filterset_class = filtersets.AccessListRuleFilterSet
+        filterset_class = filtersets.AccessListExtendedRuleFilterSet
 
 
 #
@@ -32,8 +32,8 @@ class Query(ObjectType):
     access_list = ObjectField(AccessListType)
     access_list_list = ObjectListField(AccessListType)
 
-    access_list_rule = ObjectField(AccessListRuleType)
-    access_list_rule_list = ObjectListField(AccessListRuleType)
+    access_list_rule = ObjectField(AccessListExtendedRuleType)
+    access_list_rule_list = ObjectListField(AccessListExtendedRuleType)
 
 
 schema = Query

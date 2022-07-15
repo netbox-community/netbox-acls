@@ -4,7 +4,7 @@ from extras.models import Tag
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelForm, NetBoxModelFilterSetForm
 from utilities.forms import CommentField, DynamicModelChoiceField, DynamicModelMultipleChoiceField, StaticSelectMultiple, TagFilterField
-from .models import AccessList, AccessListRule, AccessListActionChoices, AccessListProtocolChoices, AccessListTypeChoices
+from .models import AccessList, AccessListExtendedRule, AccessListActionChoices, AccessListProtocolChoices, AccessListTypeChoices
 
 
 class AccessListForm(NetBoxModelForm):
@@ -34,7 +34,7 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
     tag = TagFilterField(model)
 
 
-class AccessListRuleForm(NetBoxModelForm):
+class AccessListExtendedRuleForm(NetBoxModelForm):
     access_list = DynamicModelChoiceField(
         queryset=AccessList.objects.all()
     )
@@ -50,15 +50,15 @@ class AccessListRuleForm(NetBoxModelForm):
     )
 
     class Meta:
-        model = AccessListRule
+        model = AccessListExtendedRule
         fields = (
             'access_list', 'index', 'remark', 'source_prefix', 'source_ports', 'destination_prefix',
             'destination_ports', 'protocol', 'action', 'tags',
         )
 
 
-class AccessListRuleFilterForm(NetBoxModelFilterSetForm):
-    model = AccessListRule
+class AccessListExtendedRuleFilterForm(NetBoxModelFilterSetForm):
+    model = AccessListExtendedRule
     access_list = forms.ModelMultipleChoiceField(
         queryset=AccessList.objects.all(),
         required=False,

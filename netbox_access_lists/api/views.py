@@ -3,7 +3,7 @@ from django.db.models import Count
 from netbox.api.viewsets import NetBoxModelViewSet
 
 from .. import filtersets, models
-from .serializers import AccessListSerializer, AccessListRuleSerializer
+from .serializers import AccessListSerializer, AccessListExtendedRuleSerializer
 
 
 class AccessListViewSet(NetBoxModelViewSet):
@@ -16,9 +16,9 @@ class AccessListViewSet(NetBoxModelViewSet):
     filterset_class = filtersets.AccessListFilterSet
 
 
-class AccessListRuleViewSet(NetBoxModelViewSet):
-    queryset = models.AccessListRule.objects.prefetch_related(
+class AccessListExtendedRuleViewSet(NetBoxModelViewSet):
+    queryset = models.AccessListExtendedRule.objects.prefetch_related(
         'access_list', 'source_prefix', 'destination_prefix', 'tags'
     )
-    serializer_class = AccessListRuleSerializer
-    filterset_class = filtersets.AccessListRuleFilterSet
+    serializer_class = AccessListExtendedRuleSerializer
+    filterset_class = filtersets.AccessListExtendedRuleFilterSet

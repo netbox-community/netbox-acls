@@ -124,7 +124,7 @@ class AccessListStandardRule(NetBoxModel):
 class AccessListExtendedRule(NetBoxModel):
     access_list = models.ForeignKey(
         on_delete=models.CASCADE,
-        related_name='rules',
+        related_name='extended_acl_rules',
         to=AccessList,
         verbose_name='Access List'
     )

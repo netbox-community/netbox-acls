@@ -10,7 +10,7 @@ class AccessListViewSet(NetBoxModelViewSet):
     queryset = models.AccessList.objects.prefetch_related(
         'device', 'tags'
     ).annotate(
-        rule_count=Count('rules')
+        rule_count=Count('extended_acl_rules') + Count('standard_acl_rules')
     )
     serializer_class = AccessListSerializer
     filterset_class = filtersets.AccessListFilterSet

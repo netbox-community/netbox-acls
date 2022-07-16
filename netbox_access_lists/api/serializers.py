@@ -69,8 +69,8 @@ class AccessListStandardRuleSerializer(NetBoxModelSerializer):
     class Meta:
         model = AccessListStandardRule
         fields = (
-            'id', 'url', 'display', 'access_list', 'index', 'source_prefix', 'action',
-            'tags', 'custom_fields', 'created', 'last_updated'
+            'id', 'url', 'display', 'access_list', 'index', 'action', 'tags',
+            'created', 'custom_fields', 'last_updated', 'source_prefix'
         )
 
 
@@ -85,7 +85,7 @@ class AccessListExtendedRuleSerializer(NetBoxModelSerializer):
     class Meta:
         model = AccessListExtendedRule
         fields = (
-            'id', 'url', 'display', 'access_list', 'index', 'protocol', 'source_prefix', 'source_ports',
-            'destination_prefix', 'destination_ports', 'action', 'tags', 'custom_fields', 'created',
-            'last_updated'
+            'id', 'url', 'display', 'access_list', 'index', 'action', 'tags',
+            'created', 'custom_fields', 'last_updated', 'source_prefix', 'source_ports',
+            'destination_prefix', 'destination_ports', 'protocol'
         )

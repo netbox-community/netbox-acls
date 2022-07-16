@@ -11,21 +11,21 @@ class AccessListFilterSet(NetBoxModelFilterSet):
         return queryset.filter(description__icontains=value)
 
 
-class AccessListExtendedRuleFilterSet(NetBoxModelFilterSet):
-
-    class Meta:
-        model = AccessListExtendedRule
-        fields = ('id', 'access_list', 'index', 'protocol', 'action', 'remark')
-
-    def search(self, queryset, name, value):
-        return queryset.filter(description__icontains=value)
-
-
 class AccessListStandardRuleFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = AccessListStandardRule
         fields = ('id', 'access_list', 'index', 'action', 'remark')
+
+    def search(self, queryset, name, value):
+        return queryset.filter(description__icontains=value)
+
+
+class AccessListExtendedRuleFilterSet(NetBoxModelFilterSet):
+
+    class Meta:
+        model = AccessListExtendedRule
+        fields = ('id', 'access_list', 'index', 'action', 'remark', 'protocol')
 
     def search(self, queryset, name, value):
         return queryset.filter(description__icontains=value)

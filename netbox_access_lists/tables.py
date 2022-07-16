@@ -40,11 +40,12 @@ class AccessListStandardRuleTable(NetBoxTable):
     class Meta(NetBoxTable.Meta):
         model = AccessListStandardRule
         fields = (
-            'pk', 'id', 'access_list', 'index', 'source_prefix', 'action', 'remark', 'tags'
+            'pk', 'id', 'access_list', 'index', 'action', 'actions', 'remark', 'tags'
         )
         default_columns = (
-            'access_list', 'index', 'source_prefix', 'action', 'remark', 'tags'
+            'access_list', 'index', 'action', 'actions', 'remark', 'tags'
         )
+
 
 class AccessListExtendedRuleTable(NetBoxTable):
     access_list = tables.Column(
@@ -53,19 +54,19 @@ class AccessListExtendedRuleTable(NetBoxTable):
     index = tables.Column(
         linkify=True
     )
-    protocol = ChoiceFieldColumn()
     action = ChoiceFieldColumn()
     tags = columns.TagColumn(
         url_name='plugins:netbox_access_lists:accesslistextendedrule_list'
     )
+    protocol = ChoiceFieldColumn()
 
     class Meta(NetBoxTable.Meta):
         model = AccessListExtendedRule
         fields = (
-            'pk', 'id', 'access_list', 'index', 'source_prefix', 'source_ports', 'destination_prefix',
-            'destination_ports', 'protocol', 'action', 'remark', 'actions', 'tags'
+            'pk', 'id', 'access_list', 'index', 'action', 'actions', 'remark', 'tags',
+            'source_prefix', 'source_ports', 'destination_prefix', 'destination_ports', 'protocol'
         )
         default_columns = (
-            'access_list', 'index', 'remark', 'source_prefix', 'source_ports', 'destination_prefix',
-            'destination_ports', 'protocol', 'action', 'actions', 'tags'
+            'access_list', 'index', 'action', 'actions', 'remark', 'tags',
+            'source_prefix', 'source_ports', 'destination_prefix', 'destination_ports', 'protocol'
         )

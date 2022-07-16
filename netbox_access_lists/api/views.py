@@ -18,7 +18,7 @@ class AccessListViewSet(NetBoxModelViewSet):
 
 class AccessListStandardRuleViewSet(NetBoxModelViewSet):
     queryset = models.AccessListStandardRule.objects.prefetch_related(
-        'access_list', 'source_prefix', 'tags'
+        'access_list', 'tags', 'source_prefix'
     )
     serializer_class = AccessListStandardRuleSerializer
     filterset_class = filtersets.AccessListStandardRuleFilterSet
@@ -26,7 +26,7 @@ class AccessListStandardRuleViewSet(NetBoxModelViewSet):
 
 class AccessListExtendedRuleViewSet(NetBoxModelViewSet):
     queryset = models.AccessListExtendedRule.objects.prefetch_related(
-        'access_list', 'source_prefix', 'destination_prefix', 'tags'
+        'access_list', 'tags', 'source_prefix', 'destination_prefix',
     )
     serializer_class = AccessListExtendedRuleSerializer
     filterset_class = filtersets.AccessListExtendedRuleFilterSet

@@ -65,7 +65,9 @@
 				"aaron-bond.better-comments",
 				"GitHub.codespaces",
 				"codezombiech.gitignore",
-				"Tyriar.sort-lines"
+				"Tyriar.sort-lines",
+				"GitHub.vscode-pull-request-github",
+				"sourcery.sourcery"
 			]
 		}
 	},

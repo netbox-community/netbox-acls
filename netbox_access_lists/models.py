@@ -95,7 +95,6 @@ class AccessListStandardRule(NetBoxModel):
         blank=True,
         null=True,
         choices=AccessListActionChoices,
-        default=AccessListActionChoices.ACTION_PERMIT,
         max_length=30,
     )
     source_prefix = models.ForeignKey(
@@ -138,7 +137,6 @@ class AccessListExtendedRule(NetBoxModel):
         blank=True,
         null=True,
         choices=AccessListActionChoices,
-        default=AccessListActionChoices.ACTION_PERMIT,
         max_length=30,
     )
     source_prefix = models.ForeignKey(

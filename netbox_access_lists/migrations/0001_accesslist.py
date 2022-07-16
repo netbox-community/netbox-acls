@@ -45,7 +45,7 @@ class Migration(migrations.Migration):
                 ('index', models.PositiveIntegerField()),
                 ('access_list', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='standard_acl_rules', to='netbox_access_lists.accesslist')),
                 ('remark', models.CharField(blank=True, null=True, max_length=500)),
-                ('action', models.CharField(max_length=30)),
+                ('action', models.CharField(blank=True, null=True, max_length=30)),
                 ('source_prefix', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='+', to='ipam.prefix')),
             ],
             options={
@@ -64,7 +64,7 @@ class Migration(migrations.Migration):
                 ('index', models.PositiveIntegerField()),
                 ('access_list', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='extended_acl_rules', to='netbox_access_lists.accesslist')),
                 ('remark', models.CharField(blank=True, null=True, max_length=500)),
-                ('action', models.CharField(max_length=30)),
+                ('action', models.CharField(blank=True, null=True, max_length=30)),
                 ('source_prefix', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='+', to='ipam.prefix')),
                 ('source_ports', django.contrib.postgres.fields.ArrayField(base_field=models.PositiveIntegerField(), blank=True, null=True, size=None)),
                 ('destination_prefix', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='+', to='ipam.prefix')),

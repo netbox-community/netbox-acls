@@ -19,13 +19,6 @@ class AccessListForm(NetBoxModelForm):
         model = AccessList
         fields = ('name', 'device', 'type', 'default_action', 'comments', 'tags')
 
-    #def validate_unique(self, value):
-    #    accesslists = AccessList.objects.exclude(pk=self.pk)
-    #    if accesslists.filter(name=self.name, device=self.device).exists():
-    #        raise ValidationError({
-    #            "name": f"An Access List with this name on device {self.device} already exists."
-    #        })
-
     def clean(self):
         cleaned_data = super().clean()
         if self.errors.get('name'):
@@ -33,7 +26,7 @@ class AccessListForm(NetBoxModelForm):
         name = cleaned_data.get('name')
         device = cleaned_data.get('device')
         if ('name' in self.changed_data or 'device' in self.changed_data) and AccessList.objects.filter(name__iexact=name, device=device).exists():
-            raise forms.ValidationError('An Access-List with this name on this device already exists.')
+            raise forms.ValidationError('An Access-List with this name is already associated to this device.')
         return cleaned_data
 
 class AccessListFilterForm(NetBoxModelFilterSetForm):

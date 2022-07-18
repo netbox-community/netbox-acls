@@ -63,7 +63,15 @@
             </tr>
             <tr>
               <th scope="row">Rules</th>
-              <td>{{ object.rules.count }}</td>
+              {% if object.type == 'standard' %}
+              <td>{{ object.aclstandardrules.count|placeholder }}</td>
+              {% elif object.type == 'extended' %}
+              <td>{{ object.aclextendedrules.count|placeholder }}</td>
+              {% endif %}
+              <tr>
+                <th scope="row">Device</th>
+                <td>{{ object.device|linkify }}</td>
+              </tr>
             </tr>
           </table>
         </div>

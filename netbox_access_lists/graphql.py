@@ -24,12 +24,12 @@ class ACLExtendedRuleType(NetBoxObjectType):
         filterset_class = filtersets.ACLExtendedRuleFilterSet
 
 
-#class ACLStandardRuleType(NetBoxObjectType):
-#
-#    class Meta:
-#        model = models.ACLStandardRule
-#        fields = '__all__'
-#        filterset_class = filtersets.ACLStandardRuleFilterSet
+class ACLStandardRuleType(NetBoxObjectType):
+
+    class Meta:
+        model = models.ACLStandardRule
+        fields = '__all__'
+        filterset_class = filtersets.ACLStandardRuleFilterSet
 
 #
 # Queries

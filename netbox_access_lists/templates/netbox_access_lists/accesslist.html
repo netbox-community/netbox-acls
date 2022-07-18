@@ -8,9 +8,9 @@
 <div class="pull-right noprint">
     {% if perms.netbox_access_lists.change_policy %}
     {%     if object.type == 'extended' %}
-    <a href="{% url 'plugins:netbox_access_lists:accesslistextendedrule_add' %}?access_list={{ object.pk }}" class="btn btn-success">
+    <a href="{% url 'plugins:netbox_access_lists:aclextendedrule_add' %}?access_list={{ object.pk }}" class="btn btn-success">
     {%     elif object.type == 'standard' %}
-    <a href="{% url 'plugins:netbox_access_lists:accessliststandardrule_add' %}?access_list={{ object.pk }}" class="btn btn-success">
+    <a href="{% url 'plugins:netbox_access_lists:aclstandardrule_add' %}?access_list={{ object.pk }}" class="btn btn-success">
     {%     endif %}
         <span class="mdi mdi-plus-thick" aria-hidden="true"></span> Rule
     </a>

@@ -75,13 +75,12 @@ class AccessList(NetBoxModel):
         return ACLTypeChoices.colors.get(self.type)
 
 
-#class ACLRule(NetBoxModel):
-
-
-class ACLStandardRule(NetBoxModel):
+class ACLRule(NetBoxModel):
+    """
+    Abstract model for ACL Rules.
+    """
     access_list = models.ForeignKey(
         on_delete=models.CASCADE,
-        related_name='standard_acl_rules',
         to=AccessList,
         verbose_name='Access-List',
     )
@@ -105,10 +104,6 @@ class ACLStandardRule(NetBoxModel):
         to='ipam.Prefix',
         verbose_name='Source Prefix'
     )
-
-    class Meta:
-        ordering = ('access_list', 'index')
-        unique_together = ('access_list', 'index')
 
     def __str__(self):
         return f'{self.access_list}: Rule {self.index}'
@@ -116,37 +111,21 @@ class ACLStandardRule(NetBoxModel):
     def get_action_color(self):
         return ACLActionChoices.colors.get(self.action)
 
+
+    class Meta:
+        abstract = True
+        default_related_name='%(class)ss'
+        ordering = ('access_list', 'index')
+        unique_together = ('access_list', 'index')
+
+
+class ACLStandardRule(ACLRule):
+
     def get_absolute_url(self):
         return reverse('plugins:netbox_access_lists:aclstandardrule', args=[self.pk])
 
 
-class ACLExtendedRule(NetBoxModel):
-    access_list = models.ForeignKey(
-        on_delete=models.CASCADE,
-        related_name='extended_acl_rules',
-        to=AccessList,
-        verbose_name='Access-List',
-    )
-    index = models.PositiveIntegerField()
-    remark = models.CharField(
-        max_length=200,
-        blank=True,
-        null=True
-    )
-    action = models.CharField(
-        blank=True,
-        null=True,
-        choices=ACLActionChoices,
-        max_length=30,
-    )
-    source_prefix = models.ForeignKey(
-        blank=True,
-        null=True,
-        on_delete=models.PROTECT,
-        related_name='+',
-        to='ipam.Prefix',
-        verbose_name='Source Prefix'
-    )
+class ACLExtendedRule(ACLRule):
     source_ports = ArrayField(
         base_field=models.PositiveIntegerField(),
         blank=True,
@@ -172,16 +151,6 @@ class ACLExtendedRule(NetBoxModel):
         choices=ACLProtocolChoices,
         max_length=30,
     )
-
-    class Meta:
-        ordering = ('access_list', 'index')
-        unique_together = ('access_list', 'index')
-
-    def __str__(self):
-        return f'{self.access_list}: Rule {self.index}'
-
-    def get_action_color(self):
-        return ACLActionChoices.colors.get(self.action)
 
     def get_absolute_url(self):
         return reverse('plugins:netbox_access_lists:aclextendedrule', args=[self.pk])

@@ -13,9 +13,9 @@ class AccessListView(generic.ObjectView):
 
     def get_extra_context(self, request, instance):
         if instance.type == 'extended':
-            table = tables.ACLExtendedRuleTable(instance.extended_acl_rules.all())
+            table = tables.ACLExtendedRuleTable(instance.aclextendedrules.all())
         elif instance.type == 'standard':
-            table = tables.ACLStandardRuleTable(instance.standard_acl_rules.all())
+            table = tables.ACLStandardRuleTable(instance.aclstandardrules.all())
         table.configure(request)
 
         return {
@@ -25,7 +25,7 @@ class AccessListView(generic.ObjectView):
 
 class AccessListListView(generic.ObjectListView):
     queryset = models.AccessList.objects.annotate(
-        rule_count=Count('extended_acl_rules') + Count('standard_acl_rules')
+        rule_count=Count('aclextendedrules') + Count('aclstandardrules')
     )
     table = tables.AccessListTable
     filterset = filtersets.AccessListFilterSet

@@ -51,7 +51,7 @@ class AccessListForm(NetBoxModelForm):
         help_texts = {
             'default_action': 'The default behavior of the ACL.',
             'name': 'The name uniqueness per device is case insensitive.',
-            'type': 'Sets the type of the ACL & its rules.',
+            'type': mark_safe('<b>*Note:</b> CANNOT be changed if ACL Rules are assoicated to this Access-List.'),
         }
 
     def clean(self):
@@ -60,8 +60,13 @@ class AccessListForm(NetBoxModelForm):
             return cleaned_data
         name = cleaned_data.get('name')
         device = cleaned_data.get('device')
+        type =  cleaned_data.get('type')
         if ('name' in self.changed_data or 'device' in self.changed_data) and AccessList.objects.filter(name__iexact=name, device=device).exists():
             raise forms.ValidationError('An ACL with this name (case insensitive) is already associated to this device.')
+        if type == 'extended' and self.instance.aclstandardrules.exists():
+            raise forms.ValidationError('This ACL has Standard ACL rules already associated, CANNOT change ACL type!!')
+        elif type == 'standard' and self.instance.aclextendedrules.exists():
+            raise forms.ValidationError('This ACL has Extended ACL rules already associated, CANNOT change ACL type!!')
         return cleaned_data
 
 class AccessListFilterForm(NetBoxModelFilterSetForm):

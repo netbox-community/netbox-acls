@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.utils.safestring import mark_safe
 
 from extras.models import Tag
+from dcim.models import Device, Region, Site, SiteGroup
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelForm, NetBoxModelFilterSetForm
 from utilities.forms import CommentField, DynamicModelChoiceField, DynamicModelMultipleChoiceField, StaticSelectMultiple, TagFilterField
@@ -12,6 +13,27 @@ from .models import AccessList, ACLExtendedRule, ACLActionChoices, ACLProtocolCh
 acl_rule_logic_help = mark_safe('<b>*Note:</b> CANNOT be set if remark is set.')
 
 class AccessListForm(NetBoxModelForm):
+    region = DynamicModelMultipleChoiceField(
+        queryset=Region.objects.all(),
+        required=False,
+    )
+    site_group = DynamicModelMultipleChoiceField(
+        queryset=SiteGroup.objects.all(),
+        required=False,
+        label='Site Group'
+    )
+    site = DynamicModelChoiceField(
+        queryset=Site.objects.all(),
+        required=False
+    )
+    device = DynamicModelChoiceField(
+        queryset=Device.objects.all(),
+        query_params={
+            'region': '$region',
+            'group_id': '$site_group',
+            'site_id': '$site',
+        },
+    )
     comments = CommentField()
     tags = DynamicModelMultipleChoiceField(
         queryset=Tag.objects.all(),
@@ -19,12 +41,13 @@ class AccessListForm(NetBoxModelForm):
     )
 
     fieldsets = [
-        ('Access-List Details', ('name', 'device', 'type', 'default_action', 'tags')),
+        ('Host Details', ('region', 'site_group', 'site', 'device')),
+        ('Access-List Details', ('name', 'type', 'default_action', 'tags')),
     ]
 
     class Meta:
         model = AccessList
-        fields = ('name', 'device', 'type', 'default_action', 'comments', 'tags')
+        fields = ('region', 'site_group', 'site', 'device', 'name', 'type', 'default_action', 'comments', 'tags')
         help_texts = {
             'default_action': 'The default behavior of the ACL.',
             'name': 'The name uniqueness per device is case insensitive.',
@@ -43,6 +66,28 @@ class AccessListForm(NetBoxModelForm):
 
 class AccessListFilterForm(NetBoxModelFilterSetForm):
     model = AccessList
+    region = DynamicModelMultipleChoiceField(
+        queryset=Region.objects.all(),
+        required=False,
+    )
+    site_group = DynamicModelMultipleChoiceField(
+        queryset=SiteGroup.objects.all(),
+        required=False,
+        label='Site Group'
+    )
+    site = DynamicModelChoiceField(
+        queryset=Site.objects.all(),
+        required=False
+    )
+    device = DynamicModelChoiceField(
+        queryset=Device.objects.all(),
+        query_params={
+            'region': '$region',
+            'group_id': '$site_group',
+            'site_id': '$site',
+        },
+        required=False
+    )
     type = forms.MultipleChoiceField(
         choices=ACLTypeChoices,
         required=False,
@@ -58,6 +103,7 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
 
     fieldsets = (
         (None, ('q', 'tag')),
+        ('Host Details', ('region', 'site_group', 'site', 'device')),
         ('ACL Details', ('type', 'default_action')),
     )
 

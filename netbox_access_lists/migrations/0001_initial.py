@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='AccessListStandardRule',
+            name='ACLStandardRule',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False)),
                 ('created', models.DateTimeField(auto_now_add=True, null=True)),
@@ -54,7 +54,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='AccessListExtendedRule',
+            name='ACLExtendedRule',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False)),
                 ('created', models.DateTimeField(auto_now_add=True, null=True)),

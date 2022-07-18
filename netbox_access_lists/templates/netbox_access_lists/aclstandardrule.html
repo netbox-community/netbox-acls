@@ -47,24 +47,6 @@
               </td>
             </tr>
             <tr>
-              <th scope="row">Source Ports</th>
-              <td>{{ object.source_ports|join:", "|placeholder }}</td>
-            </tr>
-            <tr>
-              <th scope="row">Destination Prefix</th>
-              <td>
-                {% if object.destination_prefix %}
-                  <a href="{{ object.destination_prefix.get_absolute_url }}">{{ object.destination_prefix }}</a>
-                {% else %}
-                  {{ ''|placeholder }}
-                {% endif %}
-              </td>
-            </tr>
-            <tr>
-              <th scope="row">Destination Ports</th>
-              <td>{{ object.destination_ports|join:", "|placeholder }}</td>
-            </tr>
-            <tr>
               <th scope="row">Action</th>
               <td>{{ object.get_action_display }}</td>
             </tr>

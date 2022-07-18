@@ -11,18 +11,18 @@ accesslist_buttons = [
     )
 ]
 
-accessliststandardrule_butons = [
+aclstandardrule_butons = [
     PluginMenuButton(
-        link='plugins:netbox_access_lists:accessliststandardrule_add',
+        link='plugins:netbox_access_lists:aclstandardrule_add',
         title='Add',
         icon_class='mdi mdi-plus-thick',
         color=ButtonColorChoices.GREEN
     )
 ]
 
-accesslistextendedrule_butons = [
+aclextendedrule_butons = [
     PluginMenuButton(
-        link='plugins:netbox_access_lists:accesslistextendedrule_add',
+        link='plugins:netbox_access_lists:aclextendedrule_add',
         title='Add',
         icon_class='mdi mdi-plus-thick',
         color=ButtonColorChoices.GREEN
@@ -37,14 +37,14 @@ menu_items = (
     ),
     # Comment out Standard Access List Rule to force creation in the ACL view
     PluginMenuItem(
-        link='plugins:netbox_access_lists:accessliststandardrule_list',
+        link='plugins:netbox_access_lists:aclstandardrule_list',
         link_text='Standard Access List Rules',
-        buttons=accessliststandardrule_butons
+        buttons=aclstandardrule_butons
     ),
     # Comment out Extended Access List Rule to force creation in the ACL view
     PluginMenuItem(
-        link='plugins:netbox_access_lists:accesslistextendedrule_list',
+        link='plugins:netbox_access_lists:aclextendedrule_list',
         link_text='Extended Access List Rules',
-        buttons=accesslistextendedrule_butons
+        buttons=aclextendedrule_butons
     ),
 )

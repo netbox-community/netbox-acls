@@ -1,5 +1,5 @@
 from netbox.filtersets import NetBoxModelFilterSet
-from .models import AccessList, AccessListExtendedRule, AccessListStandardRule
+from .models import AccessList, ACLExtendedRule, ACLStandardRule
 
 
 class AccessListFilterSet(NetBoxModelFilterSet):
@@ -11,20 +11,20 @@ class AccessListFilterSet(NetBoxModelFilterSet):
         return queryset.filter(description__icontains=value)
 
 
-class AccessListStandardRuleFilterSet(NetBoxModelFilterSet):
+class ACLStandardRuleFilterSet(NetBoxModelFilterSet):
 
     class Meta:
-        model = AccessListStandardRule
+        model = ACLStandardRule
         fields = ('id', 'access_list', 'index', 'action', 'remark')
 
     def search(self, queryset, name, value):
         return queryset.filter(description__icontains=value)
 
 
-class AccessListExtendedRuleFilterSet(NetBoxModelFilterSet):
+class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
 
     class Meta:
-        model = AccessListExtendedRule
+        model = ACLExtendedRule
         fields = ('id', 'access_list', 'index', 'action', 'remark', 'protocol')
 
     def search(self, queryset, name, value):

@@ -1,7 +1,7 @@
 import django_tables2 as tables
 
 from netbox.tables import NetBoxTable, columns, ChoiceFieldColumn
-from .models import AccessList, AccessListExtendedRule, AccessListStandardRule
+from .models import AccessList, ACLExtendedRule, ACLStandardRule
 
 
 class AccessListTable(NetBoxTable):
@@ -26,7 +26,7 @@ class AccessListTable(NetBoxTable):
         default_columns = ('name', 'device', 'type', 'rule_count', 'default_action', 'tags')
 
 
-class AccessListStandardRuleTable(NetBoxTable):
+class ACLStandardRuleTable(NetBoxTable):
     access_list = tables.Column(
         linkify=True
     )
@@ -35,10 +35,10 @@ class AccessListStandardRuleTable(NetBoxTable):
     )
     action = ChoiceFieldColumn()
     tags = columns.TagColumn(
-        url_name='plugins:netbox_access_lists:accessliststandardrule_list'
+        url_name='plugins:netbox_access_lists:aclstandardrule_list'
     )
     class Meta(NetBoxTable.Meta):
-        model = AccessListStandardRule
+        model = ACLStandardRule
         fields = (
             'pk', 'id', 'access_list', 'index', 'action', 'actions', 'remark', 'tags'
         )
@@ -47,7 +47,7 @@ class AccessListStandardRuleTable(NetBoxTable):
         )
 
 
-class AccessListExtendedRuleTable(NetBoxTable):
+class ACLExtendedRuleTable(NetBoxTable):
     access_list = tables.Column(
         linkify=True
     )
@@ -56,12 +56,12 @@ class AccessListExtendedRuleTable(NetBoxTable):
     )
     action = ChoiceFieldColumn()
     tags = columns.TagColumn(
-        url_name='plugins:netbox_access_lists:accesslistextendedrule_list'
+        url_name='plugins:netbox_access_lists:aclextendedrule_list'
     )
     protocol = ChoiceFieldColumn()
 
     class Meta(NetBoxTable.Meta):
-        model = AccessListExtendedRule
+        model = ACLExtendedRule
         fields = (
             'pk', 'id', 'access_list', 'index', 'action', 'actions', 'remark', 'tags',
             'source_prefix', 'source_ports', 'destination_prefix', 'destination_ports', 'protocol'

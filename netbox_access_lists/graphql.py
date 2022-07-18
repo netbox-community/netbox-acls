@@ -16,20 +16,20 @@ class AccessListType(NetBoxObjectType):
         filterset_class = filtersets.AccessListFilterSet
 
 
-class AccessListExtendedRuleType(NetBoxObjectType):
+class ACLExtendedRuleType(NetBoxObjectType):
 
     class Meta:
-        model = models.AccessListExtendedRule
+        model = models.ACLExtendedRule
         fields = '__all__'
-        filterset_class = filtersets.AccessListExtendedRuleFilterSet
+        filterset_class = filtersets.ACLExtendedRuleFilterSet
 
 
-#class AccessListStandardRuleType(NetBoxObjectType):
+#class ACLStandardRuleType(NetBoxObjectType):
 #
 #    class Meta:
-#        model = models.AccessListStandardRule
+#        model = models.ACLStandardRule
 #        fields = '__all__'
-#        filterset_class = filtersets.AccessListStandardRuleFilterSet
+#        filterset_class = filtersets.ACLStandardRuleFilterSet
 
 #
 # Queries
@@ -39,15 +39,15 @@ class Query(ObjectType):
     access_list = ObjectField(AccessListType)
     access_list_list = ObjectListField(AccessListType)
 
-    access_list_rule = ObjectField(AccessListExtendedRuleType)
-    access_list_rule_list = ObjectListField(AccessListExtendedRuleType)
+    access_list_rule = ObjectField(ACLExtendedRuleType)
+    access_list_rule_list = ObjectListField(ACLExtendedRuleType)
 
 
 #class Query(ObjectType):
 #    access_list = ObjectField(AccessListType)
 #    access_list_list = ObjectListField(AccessListType)
 #
-#    access_list_rule = ObjectField(AccessListStandardRuleType)
-#    access_list_rule_list = ObjectListField(AccessListStandardRuleType)
+#    access_list_rule = ObjectField(ACLStandardRuleType)
+#    access_list_rule_list = ObjectListField(ACLStandardRuleType)
 
 schema = Query

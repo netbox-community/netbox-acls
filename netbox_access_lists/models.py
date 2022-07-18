@@ -6,8 +6,8 @@ from netbox.models import NetBoxModel
 from utilities.choices import ChoiceSet
 
 
-class AccessListActionChoices(ChoiceSet):
-    key = 'AccessListExtendedRule.action'
+class ACLActionChoices(ChoiceSet):
+    key = 'ACLExtendedRule.action'
     ACTION_DENY = 'deny'
     ACTION_PERMIT = 'permit'
     ACTION_REJECT = 'reject'
@@ -19,7 +19,7 @@ class AccessListActionChoices(ChoiceSet):
     ]
 
 
-class AccessListTypeChoices(ChoiceSet):
+class ACLTypeChoices(ChoiceSet):
 
     CHOICES = [
         ('extended', 'Extended', 'purple'),
@@ -27,7 +27,7 @@ class AccessListTypeChoices(ChoiceSet):
     ]
 
 
-class AccessListProtocolChoices(ChoiceSet):
+class ACLProtocolChoices(ChoiceSet):
 
     CHOICES = [
         ('icmp', 'ICMP', 'purple'),
@@ -47,12 +47,12 @@ class AccessList(NetBoxModel):
     )
     type = models.CharField(
         max_length=30,
-        choices=AccessListTypeChoices
+        choices=ACLTypeChoices
     )
     default_action = models.CharField(
-        default=AccessListActionChoices.ACTION_DENY,
+        default=ACLActionChoices.ACTION_DENY,
         max_length=30,
-        choices=AccessListActionChoices,
+        choices=ACLActionChoices,
         verbose_name='Default Action'
     )
     comments = models.TextField(
@@ -69,21 +69,21 @@ class AccessList(NetBoxModel):
         return reverse('plugins:netbox_access_lists:accesslist', args=[self.pk])
 
     def get_default_action_color(self):
-        return AccessListActionChoices.colors.get(self.default_action)
+        return ACLActionChoices.colors.get(self.default_action)
 
     def get_type_color(self):
-        return AccessListTypeChoices.colors.get(self.type)
+        return ACLTypeChoices.colors.get(self.type)
 
 
-#class AccessListRule(NetBoxModel):
+#class ACLRule(NetBoxModel):
 
 
-class AccessListStandardRule(NetBoxModel):
+class ACLStandardRule(NetBoxModel):
     access_list = models.ForeignKey(
         on_delete=models.CASCADE,
         related_name='standard_acl_rules',
         to=AccessList,
-        verbose_name='Access List'
+        verbose_name='Access-List',
     )
     index = models.PositiveIntegerField()
     remark = models.CharField(
@@ -94,7 +94,7 @@ class AccessListStandardRule(NetBoxModel):
     action = models.CharField(
         blank=True,
         null=True,
-        choices=AccessListActionChoices,
+        choices=ACLActionChoices,
         max_length=30,
     )
     source_prefix = models.ForeignKey(
@@ -114,18 +114,18 @@ class AccessListStandardRule(NetBoxModel):
         return f'{self.access_list}: Rule {self.index}'
 
     def get_action_color(self):
-        return AccessListActionChoices.colors.get(self.action)
+        return ACLActionChoices.colors.get(self.action)
 
     def get_absolute_url(self):
-        return reverse('plugins:netbox_access_lists:accessliststandardrule', args=[self.pk])
+        return reverse('plugins:netbox_access_lists:aclstandardrule', args=[self.pk])
 
 
-class AccessListExtendedRule(NetBoxModel):
+class ACLExtendedRule(NetBoxModel):
     access_list = models.ForeignKey(
         on_delete=models.CASCADE,
         related_name='extended_acl_rules',
         to=AccessList,
-        verbose_name='Access List'
+        verbose_name='Access-List',
     )
     index = models.PositiveIntegerField()
     remark = models.CharField(
@@ -136,7 +136,7 @@ class AccessListExtendedRule(NetBoxModel):
     action = models.CharField(
         blank=True,
         null=True,
-        choices=AccessListActionChoices,
+        choices=ACLActionChoices,
         max_length=30,
     )
     source_prefix = models.ForeignKey(
@@ -169,7 +169,7 @@ class AccessListExtendedRule(NetBoxModel):
     )
     protocol = models.CharField(
         blank=True,
-        choices=AccessListProtocolChoices,
+        choices=ACLProtocolChoices,
         max_length=30,
     )
 
@@ -181,10 +181,10 @@ class AccessListExtendedRule(NetBoxModel):
         return f'{self.access_list}: Rule {self.index}'
 
     def get_action_color(self):
-        return AccessListActionChoices.colors.get(self.action)
+        return ACLActionChoices.colors.get(self.action)
 
     def get_absolute_url(self):
-        return reverse('plugins:netbox_access_lists:accesslistextendedrule', args=[self.pk])
+        return reverse('plugins:netbox_access_lists:aclextendedrule', args=[self.pk])
 
     def get_protocol_color(self):
-        return AccessListProtocolChoices.colors.get(self.protocol)
+        return ACLProtocolChoices.colors.get(self.protocol)

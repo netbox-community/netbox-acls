@@ -6,7 +6,7 @@ from extras.models import Tag
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelForm, NetBoxModelFilterSetForm
 from utilities.forms import CommentField, DynamicModelChoiceField, DynamicModelMultipleChoiceField, StaticSelectMultiple, TagFilterField
-from .models import AccessList, AccessListExtendedRule, AccessListActionChoices, AccessListProtocolChoices, AccessListTypeChoices, AccessListStandardRule
+from .models import AccessList, ACLExtendedRule, ACLActionChoices, ACLProtocolChoices, ACLTypeChoices, ACLStandardRule
 
 
 acl_rule_logic_help = mark_safe('<b>*Note:</b> CANNOT be set if remark is set.')
@@ -44,14 +44,15 @@ class AccessListForm(NetBoxModelForm):
 class AccessListFilterForm(NetBoxModelFilterSetForm):
     model = AccessList
     type = forms.MultipleChoiceField(
-        choices=AccessListTypeChoices,
+        choices=ACLTypeChoices,
         required=False,
         widget=StaticSelectMultiple(),
     )
     default_action = forms.MultipleChoiceField(
-        choices=AccessListActionChoices,
+        choices=ACLActionChoices,
         required=False,
-        widget=StaticSelectMultiple()
+        widget=StaticSelectMultiple(),
+        label='Default Action',
     )
     tag = TagFilterField(model)
 
@@ -61,18 +62,20 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
     )
 
 
-class AccessListStandardRuleForm(NetBoxModelForm):
+class ACLStandardRuleForm(NetBoxModelForm):
     access_list = DynamicModelChoiceField(
         queryset=AccessList.objects.all(),
         query_params={
             'type': 'standard'
         },
         help_text=mark_safe('<b>*Note:</b> This field will only display Standard ACLs.'),
+        label='Access-List',
     )
     source_prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
         help_text=acl_rule_logic_help,
+        label='Source Prefix',
     )
     tags = DynamicModelMultipleChoiceField(
         queryset=Tag.objects.all(),
@@ -85,7 +88,7 @@ class AccessListStandardRuleForm(NetBoxModelForm):
     )
 
     class Meta:
-        model = AccessListStandardRule
+        model = ACLStandardRule
         fields = (
             'access_list', 'index', 'remark', 'action', 'source_prefix',
             'tags',
@@ -108,36 +111,39 @@ class AccessListStandardRuleForm(NetBoxModelForm):
         return cleaned_data
 
 
-class AccessListStandardRuleFilterForm(NetBoxModelFilterSetForm):
-    model = AccessListStandardRule
+class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
+    model = ACLStandardRule
     access_list = forms.ModelMultipleChoiceField(
         queryset=AccessList.objects.all(),
         required=False,
-        widget=StaticSelectMultiple()
+        widget=StaticSelectMultiple(),
+        label='Access-List',
     )
     tag = TagFilterField(model)
     source_prefix = forms.ModelMultipleChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
-        widget=StaticSelectMultiple()
+        widget=StaticSelectMultiple(),
+        label='Source Prefix',
     )
     action = forms.MultipleChoiceField(
-        choices=AccessListActionChoices,
+        choices=ACLActionChoices,
         required=False,
-        widget=StaticSelectMultiple()
+        widget=StaticSelectMultiple(),
     )
     fieldsets = (
         (None, ('q', 'tag')),
         ('Rule Details', ('access_list', 'action', 'source_prefix',)),
     )
 
-class AccessListExtendedRuleForm(NetBoxModelForm):
+class ACLExtendedRuleForm(NetBoxModelForm):
     access_list = DynamicModelChoiceField(
         queryset=AccessList.objects.all(),
         query_params={
             'type': 'extended'
         },
         help_text=mark_safe('<b>*Note:</b> This field will only display Extended ACLs.'),
+        label='Access-List',
     )
     tags = DynamicModelMultipleChoiceField(
         queryset=Tag.objects.all(),
@@ -147,11 +153,13 @@ class AccessListExtendedRuleForm(NetBoxModelForm):
         queryset=Prefix.objects.all(),
         required=False,
         help_text=acl_rule_logic_help,
+        label='Source Prefix',
     )
     destination_prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
         help_text=acl_rule_logic_help,
+        label='Destination Prefix',
     )
     fieldsets = (
         ('Access-List Details', ('access_list', 'index', 'tags')),
@@ -159,7 +167,7 @@ class AccessListExtendedRuleForm(NetBoxModelForm):
     )
 
     class Meta:
-        model = AccessListExtendedRule
+        model = ACLExtendedRule
         fields = (
             'access_list', 'index', 'remark', 'action', 'source_prefix',
             'source_ports', 'destination_prefix', 'destination_ports', 'protocol',
@@ -194,34 +202,37 @@ class AccessListExtendedRuleForm(NetBoxModelForm):
         return cleaned_data
 
 
-class AccessListExtendedRuleFilterForm(NetBoxModelFilterSetForm):
-    model = AccessListExtendedRule
+class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
+    model = ACLExtendedRule
     access_list = forms.ModelMultipleChoiceField(
         queryset=AccessList.objects.all(),
         required=False,
-        widget=StaticSelectMultiple()
+        widget=StaticSelectMultiple(),
+        label='Access-List',
     )
     index = forms.IntegerField(
         required=False
     )
     tag = TagFilterField(model)
     action = forms.MultipleChoiceField(
-        choices=AccessListActionChoices,
+        choices=ACLActionChoices,
         required=False,
         widget=StaticSelectMultiple()
     )
     source_prefix = forms.ModelMultipleChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
-        widget=StaticSelectMultiple()
+        widget=StaticSelectMultiple(),
+        label='Source Prefix',
     )
     desintation_prefix = forms.ModelMultipleChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
-        widget=StaticSelectMultiple()
+        widget=StaticSelectMultiple(),
+        label='Destination Prefix',
     )
     protocol = forms.MultipleChoiceField(
-        choices=AccessListProtocolChoices,
+        choices=ACLProtocolChoices,
         required=False,
         widget=StaticSelectMultiple()
     )

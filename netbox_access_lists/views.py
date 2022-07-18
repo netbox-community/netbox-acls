@@ -13,9 +13,9 @@ class AccessListView(generic.ObjectView):
 
     def get_extra_context(self, request, instance):
         if instance.type == 'extended':
-            table = tables.AccessListExtendedRuleTable(instance.extended_acl_rules.all())
+            table = tables.ACLExtendedRuleTable(instance.extended_acl_rules.all())
         elif instance.type == 'standard':
-            table = tables.AccessListStandardRuleTable(instance.standard_acl_rules.all())
+            table = tables.ACLStandardRuleTable(instance.standard_acl_rules.all())
         table.configure(request)
 
         return {
@@ -42,48 +42,48 @@ class AccessListDeleteView(generic.ObjectDeleteView):
 
 
 #
-# AccessListStandardRule views
+# ACLStandardRule views
 #
 
-class AccessListStandardRuleView(generic.ObjectView):
-    queryset = models.AccessListStandardRule.objects.all()
+class ACLStandardRuleView(generic.ObjectView):
+    queryset = models.ACLStandardRule.objects.all()
 
 
-class AccessListStandardRuleListView(generic.ObjectListView):
-    queryset = models.AccessListStandardRule.objects.all()
-    table = tables.AccessListStandardRuleTable
-    filterset = filtersets.AccessListStandardRuleFilterSet
-    filterset_form = forms.AccessListStandardRuleFilterForm
+class ACLStandardRuleListView(generic.ObjectListView):
+    queryset = models.ACLStandardRule.objects.all()
+    table = tables.ACLStandardRuleTable
+    filterset = filtersets.ACLStandardRuleFilterSet
+    filterset_form = forms.ACLStandardRuleFilterForm
 
 
-class AccessListStandardRuleEditView(generic.ObjectEditView):
-    queryset = models.AccessListStandardRule.objects.all()
-    form = forms.AccessListStandardRuleForm
+class ACLStandardRuleEditView(generic.ObjectEditView):
+    queryset = models.ACLStandardRule.objects.all()
+    form = forms.ACLStandardRuleForm
 
 
-class AccessListStandardRuleDeleteView(generic.ObjectDeleteView):
-    queryset = models.AccessListStandardRule.objects.all()
+class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
+    queryset = models.ACLStandardRule.objects.all()
 
 
 #
-# AccessListExtendedRule views
+# ACLExtendedRule views
 #
 
-class AccessListExtendedRuleView(generic.ObjectView):
-    queryset = models.AccessListExtendedRule.objects.all()
+class ACLExtendedRuleView(generic.ObjectView):
+    queryset = models.ACLExtendedRule.objects.all()
 
 
-class AccessListExtendedRuleListView(generic.ObjectListView):
-    queryset = models.AccessListExtendedRule.objects.all()
-    table = tables.AccessListExtendedRuleTable
-    filterset = filtersets.AccessListExtendedRuleFilterSet
-    filterset_form = forms.AccessListExtendedRuleFilterForm
+class ACLExtendedRuleListView(generic.ObjectListView):
+    queryset = models.ACLExtendedRule.objects.all()
+    table = tables.ACLExtendedRuleTable
+    filterset = filtersets.ACLExtendedRuleFilterSet
+    filterset_form = forms.ACLExtendedRuleFilterForm
 
 
-class AccessListExtendedRuleEditView(generic.ObjectEditView):
-    queryset = models.AccessListExtendedRule.objects.all()
-    form = forms.AccessListExtendedRuleForm
+class ACLExtendedRuleEditView(generic.ObjectEditView):
+    queryset = models.ACLExtendedRule.objects.all()
+    form = forms.ACLExtendedRuleForm
 
 
-class AccessListExtendedRuleDeleteView(generic.ObjectDeleteView):
-    queryset = models.AccessListExtendedRule.objects.all()
+class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
+    queryset = models.ACLExtendedRule.objects.all()

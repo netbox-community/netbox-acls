@@ -3,7 +3,7 @@ from django.db.models import Count
 from netbox.api.viewsets import NetBoxModelViewSet
 
 from .. import filtersets, models
-from .serializers import AccessListSerializer, AccessListExtendedRuleSerializer, AccessListStandardRuleSerializer
+from .serializers import AccessListSerializer, ACLExtendedRuleSerializer, ACLStandardRuleSerializer
 
 
 class AccessListViewSet(NetBoxModelViewSet):
@@ -16,17 +16,17 @@ class AccessListViewSet(NetBoxModelViewSet):
     filterset_class = filtersets.AccessListFilterSet
 
 
-class AccessListStandardRuleViewSet(NetBoxModelViewSet):
-    queryset = models.AccessListStandardRule.objects.prefetch_related(
+class ACLStandardRuleViewSet(NetBoxModelViewSet):
+    queryset = models.ACLStandardRule.objects.prefetch_related(
         'access_list', 'tags', 'source_prefix'
     )
-    serializer_class = AccessListStandardRuleSerializer
-    filterset_class = filtersets.AccessListStandardRuleFilterSet
+    serializer_class = ACLStandardRuleSerializer
+    filterset_class = filtersets.ACLStandardRuleFilterSet
 
 
-class AccessListExtendedRuleViewSet(NetBoxModelViewSet):
-    queryset = models.AccessListExtendedRule.objects.prefetch_related(
+class ACLExtendedRuleViewSet(NetBoxModelViewSet):
+    queryset = models.ACLExtendedRule.objects.prefetch_related(
         'access_list', 'tags', 'source_prefix', 'destination_prefix',
     )
-    serializer_class = AccessListExtendedRuleSerializer
-    filterset_class = filtersets.AccessListExtendedRuleFilterSet
+    serializer_class = ACLExtendedRuleSerializer
+    filterset_class = filtersets.ACLExtendedRuleFilterSet

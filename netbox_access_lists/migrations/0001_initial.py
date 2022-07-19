@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=100)),
                 ('device', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='access_lists', to='dcim.device')),
                 ('type', models.CharField(max_length=100)),
-                ('default_action', models.CharField(max_length=30)),
+                ('default_action', models.CharField(default='deny', max_length=30)),
                 ('comments', models.TextField(blank=True)),
                 ('tags', taggit.managers.TaggableManager(through='extras.TaggedItem', to='extras.Tag')),
             ],

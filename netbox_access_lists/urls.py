@@ -6,7 +6,7 @@ from . import models, views
 
 urlpatterns = (
 
-    # Access lists
+    # Access-Lists
     path('access-lists/', views.AccessListListView.as_view(), name='accesslist_list'),
     path('access-lists/add/', views.AccessListEditView.as_view(), name='accesslist_add'),
     path('access-lists/<int:pk>/', views.AccessListView.as_view(), name='accesslist'),
@@ -16,7 +16,7 @@ urlpatterns = (
         'model': models.AccessList
     }),
 
-    # Standard Access list rules
+    # Standard Access-List rules
     path('standard-rules/', views.ACLStandardRuleListView.as_view(), name='aclstandardrule_list'),
     path('standard-rules/add/', views.ACLStandardRuleEditView.as_view(), name='aclstandardrule_add'),
     path('standard-rules/<int:pk>/', views.ACLStandardRuleView.as_view(), name='aclstandardrule'),
@@ -26,7 +26,7 @@ urlpatterns = (
         'model': models.ACLStandardRule
     }),
 
-    # Extended Access list rules
+    # Extended Access-List rules
     path('extended-rules/', views.ACLExtendedRuleListView.as_view(), name='aclextendedrule_list'),
     path('extended-rules/add/', views.ACLExtendedRuleEditView.as_view(), name='aclextendedrule_add'),
     path('extended-rules/<int:pk>/', views.ACLExtendedRuleView.as_view(), name='aclextendedrule'),

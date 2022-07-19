@@ -1,23 +1,37 @@
+from dcim.models import Device, Region, Site, SiteGroup
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.safestring import mark_safe
-
 from extras.models import Tag
-from dcim.models import Device, Region, Site, SiteGroup
 from ipam.models import Prefix
-from netbox.forms import NetBoxModelForm, NetBoxModelFilterSetForm
-from utilities.forms import CommentField, DynamicModelChoiceField, DynamicModelMultipleChoiceField, StaticSelectMultiple, TagFilterField
-from .models import AccessList, ACLExtendedRule, ACLActionChoices, ACLRuleActionChoices, ACLProtocolChoices, ACLTypeChoices, ACLStandardRule
+from netbox.forms import (NetBoxModelBulkEditForm, NetBoxModelFilterSetForm,
+                          NetBoxModelForm)
+from utilities.forms import (ChoiceField, CommentField,
+                             DynamicModelChoiceField,
+                             DynamicModelMultipleChoiceField,
+                             MultipleChoiceField, StaticSelect,
+                             StaticSelectMultiple, TagFilterField,
+                             add_blank_choice)
 
+from netbox_access_lists.models import (AccessList, ACLActionChoices, ACLExtendedRule,
+                     ACLProtocolChoices, ACLRuleActionChoices, ACLStandardRule,
+                     ACLTypeChoices)
+
+__all__ = (
+    'AccessListForm',
+    'ACLStandardRuleForm',
+    'ACLExtendedRuleForm',
+)
 
 acl_rule_logic_help = mark_safe('<b>*Note:</b> CANNOT be set if action is set to remark.')
 
+
 class AccessListForm(NetBoxModelForm):
-    region = DynamicModelMultipleChoiceField(
+    region = DynamicModelChoiceField(
         queryset=Region.objects.all(),
         required=False,
     )
-    site_group = DynamicModelMultipleChoiceField(
+    site_group = DynamicModelChoiceField(
         queryset=SiteGroup.objects.all(),
         required=False,
         label='Site Group'
@@ -68,49 +82,6 @@ class AccessListForm(NetBoxModelForm):
         elif type == 'standard' and self.instance.aclextendedrules.exists():
             raise forms.ValidationError('This ACL has Extended ACL rules already associated, CANNOT change ACL type!!')
         return cleaned_data
-
-class AccessListFilterForm(NetBoxModelFilterSetForm):
-    model = AccessList
-    region = DynamicModelMultipleChoiceField(
-        queryset=Region.objects.all(),
-        required=False,
-    )
-    site_group = DynamicModelMultipleChoiceField(
-        queryset=SiteGroup.objects.all(),
-        required=False,
-        label='Site Group'
-    )
-    site = DynamicModelChoiceField(
-        queryset=Site.objects.all(),
-        required=False
-    )
-    device = DynamicModelChoiceField(
-        queryset=Device.objects.all(),
-        query_params={
-            'region': '$region',
-            'group_id': '$site_group',
-            'site_id': '$site',
-        },
-        required=False
-    )
-    type = forms.MultipleChoiceField(
-        choices=ACLTypeChoices,
-        required=False,
-        widget=StaticSelectMultiple(),
-    )
-    default_action = forms.MultipleChoiceField(
-        choices=ACLActionChoices,
-        required=False,
-        widget=StaticSelectMultiple(),
-        label='Default Action',
-    )
-    tag = TagFilterField(model)
-
-    fieldsets = (
-        (None, ('q', 'tag')),
-        ('Host Details', ('region', 'site_group', 'site', 'device')),
-        ('ACL Details', ('type', 'default_action')),
-    )
 
 
 class ACLStandardRuleForm(NetBoxModelForm):
@@ -163,31 +134,6 @@ class ACLStandardRuleForm(NetBoxModelForm):
         #    raise forms.ValidationError('Standard Access-Lists only allow a source_prefix or remark')
         return cleaned_data
 
-
-class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
-    model = ACLStandardRule
-    access_list = forms.ModelMultipleChoiceField(
-        queryset=AccessList.objects.all(),
-        required=False,
-        widget=StaticSelectMultiple(),
-        label='Access-List',
-    )
-    tag = TagFilterField(model)
-    source_prefix = forms.ModelMultipleChoiceField(
-        queryset=Prefix.objects.all(),
-        required=False,
-        widget=StaticSelectMultiple(),
-        label='Source Prefix',
-    )
-    action = forms.MultipleChoiceField(
-        choices=ACLRuleActionChoices,
-        required=False,
-        widget=StaticSelectMultiple(),
-    )
-    fieldsets = (
-        (None, ('q', 'tag')),
-        ('Rule Details', ('access_list', 'action', 'source_prefix',)),
-    )
 
 class ACLExtendedRuleForm(NetBoxModelForm):
     access_list = DynamicModelChoiceField(
@@ -257,42 +203,72 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         return cleaned_data
 
 
-class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
-    model = ACLExtendedRule
-    access_list = forms.ModelMultipleChoiceField(
-        queryset=AccessList.objects.all(),
-        required=False,
-        widget=StaticSelectMultiple(),
-        label='Access-List',
-    )
-    index = forms.IntegerField(
-        required=False
-    )
-    tag = TagFilterField(model)
-    action = forms.MultipleChoiceField(
-        choices=ACLRuleActionChoices,
-        required=False,
-        widget=StaticSelectMultiple()
-    )
-    source_prefix = forms.ModelMultipleChoiceField(
-        queryset=Prefix.objects.all(),
-        required=False,
-        widget=StaticSelectMultiple(),
-        label='Source Prefix',
-    )
-    desintation_prefix = forms.ModelMultipleChoiceField(
-        queryset=Prefix.objects.all(),
-        required=False,
-        widget=StaticSelectMultiple(),
-        label='Destination Prefix',
-    )
-    protocol = forms.MultipleChoiceField(
-        choices=ACLProtocolChoices,
-        required=False,
-        widget=StaticSelectMultiple()
-    )
+#
+# Bulk Edit Forms
+#
 
-    fieldsets = (
-        (None, ('q', 'tag')),
-        ('Rule Details', ('access_list', 'action', 'source_prefix', 'desintation_prefix', 'protocol')),
-    )
+#class AccessListBulkEditForm(NetBoxModelBulkEditForm):
+#    model = AccessList
+#
+#    region = DynamicModelChoiceField(
+#        queryset=Region.objects.all(),
+#        required=False,
+#    )
+#    site_group = DynamicModelChoiceField(
+#        queryset=SiteGroup.objects.all(),
+#        required=False,
+#        label='Site Group'
+#    )
+#    site = DynamicModelChoiceField(
+#        queryset=Site.objects.all(),
+#        required=False
+#    )
+#    device = DynamicModelChoiceField(
+#        queryset=Device.objects.all(),
+#        query_params={
+#            'region': '$region',
+#            'group_id': '$site_group',
+#            'site_id': '$site',
+#        },
+#        required=False,
+#    )
+#    type = ChoiceField(
+#        choices=add_blank_choice(ACLTypeChoices),
+#        required=False,
+#        widget=StaticSelect(),
+#    )
+#    default_action = ChoiceField(
+#        choices=add_blank_choice(ACLActionChoices),
+#        required=False,
+#        widget=StaticSelect(),
+#        label='Default Action',
+#    )
+#
+#    fieldsets = [
+#        ('Host Details', ('region', 'site_group', 'site', 'device')),
+#        ('Access-List Details', ('type', 'default_action', 'add_tags', 'remove_tags')),
+#    ]
+#
+#    class Meta:
+#        model = AccessList
+#        fields = ('region', 'site_group', 'site', 'device', 'type', 'default_action', 'add_tags', 'remove_tags')
+#        help_texts = {
+#            'default_action': 'The default behavior of the ACL.',
+#            'name': 'The name uniqueness per device is case insensitive.',
+#            'type': mark_safe('<b>*Note:</b> CANNOT be changed if ACL Rules are assoicated to this Access-List.'),
+#        }
+#
+#    def clean(self): # Not working given you are bulkd editing multiple forms
+#        cleaned_data = super().clean()
+#        if self.errors.get('name'):
+#            return cleaned_data
+#        name = cleaned_data.get('name')
+#        device = cleaned_data.get('device')
+#        type =  cleaned_data.get('type')
+#        if ('name' in self.changed_data or 'device' in self.changed_data) and AccessList.objects.filter(name__iexact=name, device=device).exists():
+#            raise forms.ValidationError('An ACL with this name (case insensitive) is already associated to this device.')
+#        if type == 'extended' and self.cleaned_data['aclstandardrules'].exists():
+#            raise forms.ValidationError('This ACL has Standard ACL rules already associated, CANNOT change ACL type!!')
+#        elif type == 'standard' and self.cleaned_data['aclextendedrules'].exists():
+#            raise forms.ValidationError('This ACL has Extended ACL rules already associated, CANNOT change ACL type!!')
+#        return cleaned_data

@@ -27,15 +27,17 @@
 				//"python.sortImports.args": [
 				//	"--profile=black"
 				//],
-				//"python.sortImports.path": "/opt/netbox/venv/bin/isort",
+				"python.sortImports.path": "/opt/netbox/venv/bin/isort",
 				"python.analysis.typeCheckingMode": "strict",
 				"python.analysis.extraPaths": [
 					"/opt/netbox/",
 					"/opt/netbox/netbox"
 				],
 				"python.autoComplete.extraPaths": [
-					"/opt/netbox/",
-					"/opt/netbox/netbox"
+					"/opt/netbox/netbox/",
+					"/opt/netbox/netbox/**",
+					"/opt/netbox/netbox/**/**"
+
 				],
 				"python.defaultInterpreterPath": "/opt/netbox/venv/bin/python3",
 				"python.formatting.autopep8Path": "/opt/netbox/venv/bin/autopep8",
@@ -49,7 +51,9 @@
 				"python.linting.pycodestylePath": "/opt/netbox/venv/bin/pycodestyle",
 				"python.linting.pydocstylePath": "/opt/netbox/venv/bin/pydocstyle",
 				"python.linting.pylintArgs": [
-					"--enable=W0614"
+					"--django-settings-module=/opt/netbox/netbox/netbox/netbox.settings",
+					"--enable=W0602,W0611,W0612,W0613,W0614",
+					"--load-plugins=pylint_django"
 				],
 				"python.linting.pylintEnabled": true,
 				"python.linting.pylintPath": "/opt/netbox/venv/bin/pylint",

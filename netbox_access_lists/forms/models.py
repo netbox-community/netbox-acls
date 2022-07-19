@@ -1,21 +1,12 @@
 from dcim.models import Device, Region, Site, SiteGroup
 from django import forms
-from django.core.exceptions import ValidationError
 from django.utils.safestring import mark_safe
 from extras.models import Tag
 from ipam.models import Prefix
-from netbox.forms import (NetBoxModelBulkEditForm, NetBoxModelFilterSetForm,
-                          NetBoxModelForm)
-from utilities.forms import (ChoiceField, CommentField,
-                             DynamicModelChoiceField,
-                             DynamicModelMultipleChoiceField,
-                             MultipleChoiceField, StaticSelect,
-                             StaticSelectMultiple, TagFilterField,
-                             add_blank_choice)
+from netbox.forms import NetBoxModelForm
+from utilities.forms import (CommentField, DynamicModelChoiceField, DynamicModelMultipleChoiceField)
 
-from netbox_access_lists.models import (AccessList, ACLActionChoices, ACLExtendedRule,
-                     ACLProtocolChoices, ACLRuleActionChoices, ACLStandardRule,
-                     ACLTypeChoices)
+from netbox_access_lists.models import (AccessList, ACLExtendedRule, ACLStandardRule)
 
 __all__ = (
     'AccessListForm',
@@ -76,11 +67,16 @@ class AccessListForm(NetBoxModelForm):
         device = cleaned_data.get('device')
         type =  cleaned_data.get('type')
         if ('name' in self.changed_data or 'device' in self.changed_data) and AccessList.objects.filter(name__iexact=name, device=device).exists():
-            raise forms.ValidationError('An ACL with this name (case insensitive) is already associated to this device.')
+            raise forms.ValidationError(
+                {
+                    'device': ['An ACL with this name (case insensitive) is already associated to this device.'],
+                    'name': ['An ACL with this name (case insensitive) is already associated to this device.'],
+                }
+                )
         if type == 'extended' and self.instance.aclstandardrules.exists():
-            raise forms.ValidationError('This ACL has Standard ACL rules already associated, CANNOT change ACL type!!')
+            raise forms.ValidationError({'type': ['This ACL has Standard ACL rules already associated, CANNOT change ACL type!!']})
         elif type == 'standard' and self.instance.aclextendedrules.exists():
-            raise forms.ValidationError('This ACL has Extended ACL rules already associated, CANNOT change ACL type!!')
+            raise forms.ValidationError({'type': ['This ACL has Extended ACL rules already associated, CANNOT change ACL type!!']})
         return cleaned_data
 
 
@@ -124,7 +120,12 @@ class ACLStandardRuleForm(NetBoxModelForm):
         cleaned_data = super().clean()
         if cleaned_data.get('action') == 'remark':
             if cleaned_data.get('remark') is None:
-                raise forms.ValidationError('Action Remark is set, MUST set a remark')
+                raise forms.ValidationError(
+                    {
+                        'action': ['Action Remark is set, MUST add a remark.'],
+                        'remark': ['Action Remark is set, MUST add a remark.'],
+                    }
+                    )
             if cleaned_data.get('source_prefix'):
                 raise forms.ValidationError('Cannot input a remark AND a source prefix. Remove one.')
         else:
@@ -184,6 +185,13 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         cleaned_data = super().clean()
         if cleaned_data.get('action') == 'remark':
             if cleaned_data.get('remark') is None:
+                raise forms.ValidationError(
+                    {
+                        'action': ['Action Remark is set, MUST add a remark.'],
+                        'remark': ['Action Remark is set, MUST add a remark.'],
+                    }
+                    )
+            if cleaned_data.get('remark') is None:
                 raise forms.ValidationError('Action Remark is set, MUST set a remark')
             if cleaned_data.get('source_prefix'):
                 raise forms.ValidationError('CANNOT set an action of remark AND a source prefix.')
@@ -195,80 +203,6 @@ class ACLExtendedRuleForm(NetBoxModelForm):
                 raise forms.ValidationError('CANNOT set an action of remark AND destination ports.')
             if cleaned_data.get('protocol'):
                 raise forms.ValidationError('CANNOT set an action of remark AND a protocol.')
-        else:
-            if cleaned_data.get('remark'):
-                raise forms.ValidationError('CANNOT set a remark without the action set to remark also.')
-        #if cleaned_data.get('access_list_type') == 'standard' and (source_ports or destination_prefix or destination_ports):
-        #    raise forms.ValidationError('Standard Access-Lists only allow a source_prefix or remark')
+        elif cleaned_data.get('remark'):
+            raise forms.ValidationError('CANNOT set a remark without the action set to remark also.')
         return cleaned_data
-
-
-#
-# Bulk Edit Forms
-#
-
-#class AccessListBulkEditForm(NetBoxModelBulkEditForm):
-#    model = AccessList
-#
-#    region = DynamicModelChoiceField(
-#        queryset=Region.objects.all(),
-#        required=False,
-#    )
-#    site_group = DynamicModelChoiceField(
-#        queryset=SiteGroup.objects.all(),
-#        required=False,
-#        label='Site Group'
-#    )
-#    site = DynamicModelChoiceField(
-#        queryset=Site.objects.all(),
-#        required=False
-#    )
-#    device = DynamicModelChoiceField(
-#        queryset=Device.objects.all(),
-#        query_params={
-#            'region': '$region',
-#            'group_id': '$site_group',
-#            'site_id': '$site',
-#        },
-#        required=False,
-#    )
-#    type = ChoiceField(
-#        choices=add_blank_choice(ACLTypeChoices),
-#        required=False,
-#        widget=StaticSelect(),
-#    )
-#    default_action = ChoiceField(
-#        choices=add_blank_choice(ACLActionChoices),
-#        required=False,
-#        widget=StaticSelect(),
-#        label='Default Action',
-#    )
-#
-#    fieldsets = [
-#        ('Host Details', ('region', 'site_group', 'site', 'device')),
-#        ('Access-List Details', ('type', 'default_action', 'add_tags', 'remove_tags')),
-#    ]
-#
-#    class Meta:
-#        model = AccessList
-#        fields = ('region', 'site_group', 'site', 'device', 'type', 'default_action', 'add_tags', 'remove_tags')
-#        help_texts = {
-#            'default_action': 'The default behavior of the ACL.',
-#            'name': 'The name uniqueness per device is case insensitive.',
-#            'type': mark_safe('<b>*Note:</b> CANNOT be changed if ACL Rules are assoicated to this Access-List.'),
-#        }
-#
-#    def clean(self): # Not working given you are bulkd editing multiple forms
-#        cleaned_data = super().clean()
-#        if self.errors.get('name'):
-#            return cleaned_data
-#        name = cleaned_data.get('name')
-#        device = cleaned_data.get('device')
-#        type =  cleaned_data.get('type')
-#        if ('name' in self.changed_data or 'device' in self.changed_data) and AccessList.objects.filter(name__iexact=name, device=device).exists():
-#            raise forms.ValidationError('An ACL with this name (case insensitive) is already associated to this device.')
-#        if type == 'extended' and self.cleaned_data['aclstandardrules'].exists():
-#            raise forms.ValidationError('This ACL has Standard ACL rules already associated, CANNOT change ACL type!!')
-#        elif type == 'standard' and self.cleaned_data['aclextendedrules'].exists():
-#            raise forms.ValidationError('This ACL has Extended ACL rules already associated, CANNOT change ACL type!!')
-#        return cleaned_data

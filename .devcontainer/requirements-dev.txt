@@ -8,4 +8,5 @@ pre-commit
 pycodestyle
 pydocstyle
 pylint
+pylint-django
 yapf

@@ -1,21 +1,15 @@
 from dcim.models import Device, Region, Site, SiteGroup
 from django import forms
-from django.core.exceptions import ValidationError
-from django.utils.safestring import mark_safe
-from extras.models import Tag
 from ipam.models import Prefix
-from netbox.forms import (NetBoxModelBulkEditForm, NetBoxModelFilterSetForm,
-                          NetBoxModelForm)
-from utilities.forms import (ChoiceField, CommentField,
-                             DynamicModelChoiceField,
-                             DynamicModelMultipleChoiceField,
-                             MultipleChoiceField, StaticSelect,
-                             StaticSelectMultiple, TagFilterField,
-                             add_blank_choice)
+from netbox.forms import NetBoxModelFilterSetForm
+from utilities.forms import (ChoiceField, DynamicModelChoiceField,
+                             StaticSelect, StaticSelectMultiple,
+                             TagFilterField, add_blank_choice)
 
-from netbox_access_lists.models import (AccessList, ACLActionChoices, ACLExtendedRule,
-                     ACLProtocolChoices, ACLRuleActionChoices, ACLStandardRule,
-                     ACLTypeChoices)
+from netbox_access_lists.models import (AccessList, ACLActionChoices,
+                                        ACLExtendedRule, ACLProtocolChoices,
+                                        ACLRuleActionChoices, ACLStandardRule,
+                                        ACLTypeChoices)
 
 __all__ = (
     'AccessListFilterForm',

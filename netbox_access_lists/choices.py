@@ -11,6 +11,16 @@ class ACLActionChoices(ChoiceSet):
         (ACTION_REJECT, 'Reject (Reset)', 'orange'),
     ]
 
+class ACLRuleActionChoices(ChoiceSet):
+    ACTION_DENY = 'deny'
+    ACTION_PERMIT = 'permit'
+    ACTION_REMARK = 'remark'
+
+    CHOICES = [
+        (ACTION_DENY, 'Deny', 'red'),
+        (ACTION_PERMIT, 'Permit', 'green'),
+        (ACTION_REMARK, 'Remark', 'blue'),
+    ]
 
 class ACLTypeChoices(ChoiceSet):
 

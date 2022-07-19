@@ -61,9 +61,7 @@ class ACLRule(NetBoxModel):
         null=True
     )
     action = models.CharField(
-        blank=True,
-        null=True,
-        choices=ACLActionChoices,
+        choices=ACLRuleActionChoices,
         max_length=30,
     )
     source_prefix = models.ForeignKey(
@@ -79,7 +77,7 @@ class ACLRule(NetBoxModel):
         return f'{self.access_list}: Rule {self.index}'
 
     def get_action_color(self):
-        return ACLActionChoices.colors.get(self.action)
+        return ACLRuleActionChoices.colors.get(self.action)
 
 
     class Meta:

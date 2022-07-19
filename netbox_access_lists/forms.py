@@ -7,10 +7,10 @@ from dcim.models import Device, Region, Site, SiteGroup
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelForm, NetBoxModelFilterSetForm
 from utilities.forms import CommentField, DynamicModelChoiceField, DynamicModelMultipleChoiceField, StaticSelectMultiple, TagFilterField
-from .models import AccessList, ACLExtendedRule, ACLActionChoices, ACLProtocolChoices, ACLTypeChoices, ACLStandardRule
+from .models import AccessList, ACLExtendedRule, ACLActionChoices, ACLRuleActionChoices, ACLProtocolChoices, ACLTypeChoices, ACLStandardRule
 
 
-acl_rule_logic_help = mark_safe('<b>*Note:</b> CANNOT be set if remark is set.')
+acl_rule_logic_help = mark_safe('<b>*Note:</b> CANNOT be set if action is set to remark.')
 
 class AccessListForm(NetBoxModelForm):
     region = DynamicModelMultipleChoiceField(
@@ -134,29 +134,31 @@ class ACLStandardRuleForm(NetBoxModelForm):
     )
 
     fieldsets = (
-        ('Access-List Details', ('access_list', 'index', 'tags')),
-        ('Rule Logic', ('remark', 'action', 'source_prefix')),
+        ('Access-List Details', ('access_list', 'tags')),
+        ('Rule Definition', ('index', 'action', 'remark', 'source_prefix')),
     )
 
     class Meta:
         model = ACLStandardRule
         fields = (
-            'access_list', 'index', 'remark', 'action', 'source_prefix',
+            'access_list', 'index', 'action', 'remark', 'source_prefix',
             'tags',
         )
         help_texts = {
-            'action': acl_rule_logic_help,
             'index': 'Determines the order of the rule in the ACL processing.',
             'remark': mark_safe('<b>*Note:</b> CANNOT be set if source prefix OR action is set.'),
         }
 
     def clean(self):
         cleaned_data = super().clean()
-        if cleaned_data.get('remark'):
-            if cleaned_data.get('action'):
-                raise forms.ValidationError('Cannot input a remark AND an action. Remove one.')
+        if cleaned_data.get('action') == 'remark':
+            if cleaned_data.get('remark') is None:
+                raise forms.ValidationError('Action Remark is set, MUST set a remark')
             if cleaned_data.get('source_prefix'):
                 raise forms.ValidationError('Cannot input a remark AND a source prefix. Remove one.')
+        else:
+            if cleaned_data.get('remark'):
+                raise forms.ValidationError('CANNOT set a remark without the action set to remark also.')
         #if cleaned_data.get('access_list_type') == 'standard' and (source_ports or destination_prefix or destination_ports):
         #    raise forms.ValidationError('Standard Access-Lists only allow a source_prefix or remark')
         return cleaned_data
@@ -178,7 +180,7 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
         label='Source Prefix',
     )
     action = forms.MultipleChoiceField(
-        choices=ACLActionChoices,
+        choices=ACLRuleActionChoices,
         required=False,
         widget=StaticSelectMultiple(),
     )
@@ -213,41 +215,43 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         label='Destination Prefix',
     )
     fieldsets = (
-        ('Access-List Details', ('access_list', 'index', 'tags')),
-        ('Rule Details', ('remark', 'action', 'source_prefix', 'source_ports', 'destination_prefix', 'destination_ports', 'protocol',)),
+        ('Access-List Details', ('access_list', 'tags')),
+        ('Rule Definition', ('index', 'action', 'remark', 'source_prefix', 'source_ports', 'destination_prefix', 'destination_ports', 'protocol',)),
     )
 
     class Meta:
         model = ACLExtendedRule
         fields = (
-            'access_list', 'index', 'remark', 'action', 'source_prefix',
+            'access_list', 'index', 'action', 'remark', 'source_prefix',
             'source_ports', 'destination_prefix', 'destination_ports', 'protocol',
             'tags'
         )
         help_texts = {
-            'action': acl_rule_logic_help,
             'destination_ports': acl_rule_logic_help,
             'index': 'Determines the order of the rule in the ACL processing.',
             'protocol': acl_rule_logic_help,
-            'remark': mark_safe('<b>*Note:</b> CANNOT be set if a prefix, port, OR action is set.'),
+            'remark': mark_safe('<b>*Note:</b> CANNOT be set if action is not set to remark.'),
             'source_ports': acl_rule_logic_help,
         }
 
     def clean(self):
         cleaned_data = super().clean()
-        if cleaned_data.get('remark'):
-            if cleaned_data.get('action'):
-                raise forms.ValidationError('Cannot input a remark AND an action. Remove one.')
+        if cleaned_data.get('action') == 'remark':
+            if cleaned_data.get('remark') is None:
+                raise forms.ValidationError('Action Remark is set, MUST set a remark')
             if cleaned_data.get('source_prefix'):
-                raise forms.ValidationError('Cannot input a remark AND a source prefix. Remove one.')
+                raise forms.ValidationError('CANNOT set an action of remark AND a source prefix.')
             if cleaned_data.get('source_ports'):
-                raise forms.ValidationError('Cannot input a remark AND source ports. Remove one.')
+                raise forms.ValidationError('CANNOT set an action of remark AND source ports.')
             if cleaned_data.get('destination_prefix'):
-                raise forms.ValidationError('Cannot input a remark AND a destination prefix. Remove one.')
+                raise forms.ValidationError('CANNOT set an action of remark AND a destination prefix.')
             if cleaned_data.get('destination_ports'):
-                raise forms.ValidationError('Cannot input a remark AND destination ports. Remove one.')
+                raise forms.ValidationError('CANNOT set an action of remark AND destination ports.')
             if cleaned_data.get('protocol'):
-                raise forms.ValidationError('Cannot input a remark AND a protocol. Remove one.')
+                raise forms.ValidationError('CANNOT set an action of remark AND a protocol.')
+        else:
+            if cleaned_data.get('remark'):
+                raise forms.ValidationError('CANNOT set a remark without the action set to remark also.')
         #if cleaned_data.get('access_list_type') == 'standard' and (source_ports or destination_prefix or destination_ports):
         #    raise forms.ValidationError('Standard Access-Lists only allow a source_prefix or remark')
         return cleaned_data
@@ -266,7 +270,7 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
     )
     tag = TagFilterField(model)
     action = forms.MultipleChoiceField(
-        choices=ACLActionChoices,
+        choices=ACLRuleActionChoices,
         required=False,
         widget=StaticSelectMultiple()
     )

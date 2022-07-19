@@ -15,7 +15,7 @@ class ACLStandardRuleFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = ACLStandardRule
-        fields = ('id', 'access_list', 'index', 'action', 'remark')
+        fields = ('id', 'access_list', 'index', 'action')
 
     def search(self, queryset, name, value):
         return queryset.filter(description__icontains=value)
@@ -25,7 +25,7 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         model = ACLExtendedRule
-        fields = ('id', 'access_list', 'index', 'action', 'remark', 'protocol')
+        fields = ('id', 'access_list', 'index', 'action', 'protocol')
 
     def search(self, queryset, name, value):
         return queryset.filter(description__icontains=value)

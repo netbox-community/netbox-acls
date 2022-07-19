@@ -58,6 +58,15 @@ class AccessListSerializer(NetBoxModelSerializer):
             'last_updated', 'rule_count'
         )
 
+    def validate(self, data):
+
+        if self.instance.rule_count > 0:
+            raise serializers.ValidationError({
+                'type': 'This ACL has ACL rules already associated, CANNOT change ACL type!!'
+            })
+
+        return super().validate(data)
+
 
 class ACLStandardRuleSerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
@@ -72,6 +81,16 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
             'id', 'url', 'display', 'access_list', 'index', 'action', 'tags',
             'created', 'custom_fields', 'last_updated', 'source_prefix'
         )
+
+    def validate(self, data):
+
+        access_list = data.get('access_list')
+        if access_list.type == 'extended':
+            raise serializers.ValidationError({
+                'access_list': 'CANNOT associated standard ACL rules to an extended ACL!!'
+            })
+
+        return super().validate(data)
 
 
 class ACLExtendedRuleSerializer(NetBoxModelSerializer):
@@ -89,3 +108,13 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
             'created', 'custom_fields', 'last_updated', 'source_prefix', 'source_ports',
             'destination_prefix', 'destination_ports', 'protocol'
         )
+
+    def validate(self, data):
+
+        access_list = data.get('access_list')
+        if access_list.type == 'standard':
+            raise serializers.ValidationError({
+                'access_list': 'CANNOT associated extended ACL rules to a standard ACL!!'
+            })
+
+        return super().validate(data)

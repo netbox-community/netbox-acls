@@ -3,37 +3,7 @@ from django.db import models
 from django.urls import reverse
 
 from netbox.models import NetBoxModel
-from utilities.choices import ChoiceSet
-
-
-class ACLActionChoices(ChoiceSet):
-    key = 'ACLExtendedRule.action'
-    ACTION_DENY = 'deny'
-    ACTION_PERMIT = 'permit'
-    ACTION_REJECT = 'reject'
-
-    CHOICES = [
-        (ACTION_DENY, 'Deny', 'red'),
-        (ACTION_PERMIT, 'Permit', 'green'),
-        (ACTION_REJECT, 'Reject (Reset)', 'orange'),
-    ]
-
-
-class ACLTypeChoices(ChoiceSet):
-
-    CHOICES = [
-        ('extended', 'Extended', 'purple'),
-        ('standard', 'Standard', 'blue'),
-    ]
-
-
-class ACLProtocolChoices(ChoiceSet):
-
-    CHOICES = [
-        ('icmp', 'ICMP', 'purple'),
-        ('tcp', 'TCP', 'blue'),
-        ('udp', 'UDP', 'orange'),
-    ]
+from netbox_access_lists.choices import *
 
 
 class AccessList(NetBoxModel):

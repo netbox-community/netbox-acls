@@ -9,6 +9,7 @@ urlpatterns = (
     # Access-Lists
     path('access-lists/', views.AccessListListView.as_view(), name='accesslist_list'),
     path('access-lists/add/', views.AccessListEditView.as_view(), name='accesslist_add'),
+    #path('access-lists/edit/', views.AccessListBulkEditView.as_view(), name='accesslist_bulk_edit'),
     path('access-lists/<int:pk>/', views.AccessListView.as_view(), name='accesslist'),
     path('access-lists/<int:pk>/edit/', views.AccessListEditView.as_view(), name='accesslist_edit'),
     path('access-lists/<int:pk>/delete/', views.AccessListDeleteView.as_view(), name='accesslist_delete'),

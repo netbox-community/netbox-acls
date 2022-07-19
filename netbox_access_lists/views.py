@@ -87,3 +87,12 @@ class ACLExtendedRuleEditView(generic.ObjectEditView):
 
 class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
     queryset = models.ACLExtendedRule.objects.all()
+
+
+#class AccessListBulkEditView(generic.BulkEditView):
+#    queryset = models.AccessList.objects.annotate(
+#        rule_count=Count('aclextendedrules') + Count('aclstandardrules')
+#    )
+#    table = tables.AccessListTable
+#    filterset = filtersets.AccessListFilterSet
+#    form = forms.AccessListBulkEditForm

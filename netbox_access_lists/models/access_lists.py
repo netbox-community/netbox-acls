@@ -41,6 +41,7 @@ class AccessList(NetBoxModel):
 
     class Meta:
         ordering = ('name', 'device')
+        unique_together = ('name', 'device')
 
     def __str__(self):
         return self.name

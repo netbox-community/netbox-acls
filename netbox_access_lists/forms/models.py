@@ -77,16 +77,7 @@ class AccessListForm(NetBoxModelForm):
         error_message = {}
         if self.errors.get('name'):
             return cleaned_data
-        name = cleaned_data.get('name')
-        device = cleaned_data.get('device')
         type =  cleaned_data.get('type')
-        if ('name' in self.changed_data or 'device' in self.changed_data) and AccessList.objects.filter(name__iexact=name, device=device).exists():
-            error_message.update(
-                {
-                    'device': ['An ACL with this name (case insensitive) is already associated to this device.'],
-                    'name': ['An ACL with this name (case insensitive) is already associated to this device.']
-                }
-                )
         if type == 'extended' and self.instance.aclstandardrules.exists():
             error_message.update({'type': ['This ACL has Standard ACL rules already associated, CANNOT change ACL type!!']})
         elif type == 'standard' and self.instance.aclextendedrules.exists():

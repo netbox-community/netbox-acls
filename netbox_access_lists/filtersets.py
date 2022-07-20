@@ -4,7 +4,8 @@ when filtering the sites list by status or region, for instance.
 """
 
 from netbox.filtersets import NetBoxModelFilterSet
-from .models import AccessList, ACLExtendedRule, ACLStandardRule
+
+from .models import *
 
 __all__ = (
     'AccessListFilterSet',
@@ -20,9 +21,8 @@ class AccessListFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         """
-        Associates the django model ACLStandardRule & fields to the filter set.
+        Associates the django model AccessList & fields to the filter set.
         """
-        model = ACLStandardRule
         model = AccessList
         fields = ('id', 'name', 'device', 'type', 'default_action', 'comments')
 

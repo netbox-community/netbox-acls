@@ -3,8 +3,8 @@ Creates API endpoint URLs for the plugin.
 """
 
 from netbox.api.routers import NetBoxRouter
-from . import views
 
+from . import views
 
 app_name = 'netbox_access_list'
 

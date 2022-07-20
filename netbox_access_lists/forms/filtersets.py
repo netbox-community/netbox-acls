@@ -10,10 +10,9 @@ from utilities.forms import (ChoiceField, DynamicModelChoiceField,
                              StaticSelect, StaticSelectMultiple,
                              TagFilterField, add_blank_choice)
 
-from netbox_access_lists.models import (AccessList, ACLActionChoices,
-                                        ACLExtendedRule, ACLProtocolChoices,
-                                        ACLRuleActionChoices, ACLStandardRule,
-                                        ACLTypeChoices)
+from ..choices import (ACLActionChoices, ACLProtocolChoices,
+                       ACLRuleActionChoices, ACLTypeChoices)
+from ..models import AccessList, ACLExtendedRule, ACLStandardRule
 
 __all__ = (
     'AccessListFilterForm',

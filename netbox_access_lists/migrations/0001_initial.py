@@ -4,9 +4,9 @@ Defines the migrations for propogating django models into the database schemea.
 
 import django.contrib.postgres.fields
 import django.core.serializers.json
-from django.db import migrations, models
 import django.db.models.deletion
 import taggit.managers
+from django.db import migrations, models
 
 __all__ = (
     'Migration',

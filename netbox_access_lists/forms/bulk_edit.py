@@ -7,12 +7,11 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.safestring import mark_safe
 from netbox.forms import NetBoxModelBulkEditForm
-from utilities.forms import (ChoiceField,
-                             DynamicModelChoiceField, StaticSelect,
-                              add_blank_choice)
+from utilities.forms import (ChoiceField, DynamicModelChoiceField,
+                             StaticSelect, add_blank_choice)
 
-from netbox_access_lists.models import (AccessList, ACLActionChoices,
-                                        ACLTypeChoices)
+from ..choices import ACLActionChoices, ACLTypeChoices
+from ..models import AccessList
 
 #__all__ = (
 #    'AccessListBulkEditForm',

@@ -8,9 +8,10 @@ from django.utils.safestring import mark_safe
 from extras.models import Tag
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelForm
-from utilities.forms import (CommentField, DynamicModelChoiceField, DynamicModelMultipleChoiceField)
+from utilities.forms import (CommentField, DynamicModelChoiceField,
+                             DynamicModelMultipleChoiceField)
 
-from netbox_access_lists.models import (AccessList, ACLExtendedRule, ACLStandardRule)
+from ..models import AccessList, ACLExtendedRule, ACLStandardRule
 
 __all__ = (
     'AccessListForm',

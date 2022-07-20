@@ -5,11 +5,11 @@ and delete operations which each require dedicated views under the UI.
 """
 
 from django.db.models import Count
-
 from netbox.api.viewsets import NetBoxModelViewSet
 
 from .. import filtersets, models
-from .serializers import AccessListSerializer, ACLExtendedRuleSerializer, ACLStandardRuleSerializer
+from .serializers import (AccessListSerializer, ACLExtendedRuleSerializer,
+                          ACLStandardRuleSerializer)
 
 
 class AccessListViewSet(NetBoxModelViewSet):

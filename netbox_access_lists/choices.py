@@ -8,6 +8,7 @@ __all__ = (
     'ACLActionChoices',
     'ACLRuleActionChoices',
     'ACLTypeChoices',
+    'ACLProtocolChoices',
 )
 
 

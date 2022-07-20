@@ -1,7 +1,7 @@
 
 from django.contrib.contenttypes.models import ContentType
-
 from extras.plugins import PluginTemplateExtension
+
 from .models import AccessList
 
 __all__ = (

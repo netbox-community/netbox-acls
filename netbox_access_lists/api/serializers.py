@@ -3,11 +3,12 @@ Serializers control the translation of client data to and from Python objects,
 while Django itself handles the database abstraction.
 """
 
-from rest_framework import serializers
-
 from dcim.api.nested_serializers import NestedDeviceSerializer
 from ipam.api.serializers import NestedPrefixSerializer
-from netbox.api.serializers import NetBoxModelSerializer, WritableNestedSerializer
+from netbox.api.serializers import (NetBoxModelSerializer,
+                                    WritableNestedSerializer)
+from rest_framework import serializers
+
 from ..models import AccessList, ACLExtendedRule, ACLStandardRule
 
 #

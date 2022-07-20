@@ -51,9 +51,12 @@
 				"python.linting.pycodestylePath": "/opt/netbox/venv/bin/pycodestyle",
 				"python.linting.pydocstylePath": "/opt/netbox/venv/bin/pydocstyle",
 				"python.linting.pylintArgs": [
+					"--load-plugins",
+					"pylint_django",
+					"--errors-only",
+					"--load-plugins=pylint_django",
 					"--django-settings-module=/opt/netbox/netbox/netbox/netbox.settings",
-					"--enable=W0602,W0611,W0612,W0613,W0614",
-					"--load-plugins=pylint_django"
+					"--enable=W0602,W0611,W0612,W0613,W0614"
 				],
 				"python.linting.pylintEnabled": true,
 				"python.linting.pylintPath": "/opt/netbox/venv/bin/pylint",

@@ -35,7 +35,7 @@ class AccessListView(generic.ObjectView):
 
     def get_extra_context(self, request, instance):
         """
-        Depending on the Access-List type, the list view will return the required ACL Rule using the previous defined tables in tables.py.
+        Depending on the Access List type, the list view will return the required ACL Rule using the previous defined tables in tables.py.
         """
         if instance.type == 'extended':
             table = tables.ACLExtendedRuleTable(instance.aclextendedrules.all())

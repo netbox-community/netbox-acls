@@ -14,7 +14,7 @@ __all__ = (
 
 class ACLActionChoices(ChoiceSet):
     """
-    Defines the choices availble for the Access-List plugin specific to ACL default_action.
+    Defines the choices availble for the Access Lists plugin specific to ACL default_action.
     """
     ACTION_DENY = 'deny'
     ACTION_PERMIT = 'permit'
@@ -29,7 +29,7 @@ class ACLActionChoices(ChoiceSet):
 
 class ACLRuleActionChoices(ChoiceSet):
     """
-    Defines the choices availble for the Access-List plugin specific to ACL rule actions.
+    Defines the choices availble for the Access Lists plugin specific to ACL rule actions.
     """
     ACTION_DENY = 'deny'
     ACTION_PERMIT = 'permit'
@@ -44,7 +44,7 @@ class ACLRuleActionChoices(ChoiceSet):
 
 class ACLTypeChoices(ChoiceSet):
     """
-    Defines the choices availble for the Access-List plugin specific to ACL type.
+    Defines the choices availble for the Access Lists plugin specific to ACL type.
     """
     CHOICES = [
         ('extended', 'Extended', 'purple'),
@@ -54,7 +54,7 @@ class ACLTypeChoices(ChoiceSet):
 
 class ACLProtocolChoices(ChoiceSet):
     """
-    Defines the choices availble for the Access-List plugin specific to ACL Rule protocol.
+    Defines the choices availble for the Access Lists plugin specific to ACL Rule protocol.
     """
     CHOICES = [
         ('icmp', 'ICMP', 'purple'),

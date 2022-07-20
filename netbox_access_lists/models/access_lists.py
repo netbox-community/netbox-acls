@@ -15,7 +15,7 @@ __all__ = (
 
 class AccessList(NetBoxModel):
     """
-    Model defintion for Access-Lists.
+    Model defintion for Access Lists.
     """
     name = models.CharField(
         max_length=100
@@ -42,6 +42,9 @@ class AccessList(NetBoxModel):
     class Meta:
         ordering = ('name', 'device')
         unique_together = ('name', 'device')
+        default_related_name='accesslists'
+        verbose_name='Access List'
+        verbose_name_plural='Access Lists'
 
     def __str__(self):
         return self.name

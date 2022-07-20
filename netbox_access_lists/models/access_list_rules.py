@@ -25,7 +25,7 @@ class ACLRule(NetBoxModel):
     access_list = models.ForeignKey(
         on_delete=models.CASCADE,
         to=AccessList,
-        verbose_name='Access-List',
+        verbose_name='Access List',
     )
     index = models.PositiveIntegerField()
     remark = models.CharField(
@@ -57,8 +57,13 @@ class ACLRule(NetBoxModel):
         return ACLRuleActionChoices.colors.get(self.action)
 
     class Meta:
+        """
+        Define the common model properties:
+          - as an abstract model
+          - ordering
+          - unique together
+        """
         abstract = True
-        default_related_name='%(class)ss'
         ordering = ('access_list', 'index')
         unique_together = ('access_list', 'index')
 
@@ -75,6 +80,16 @@ class ACLStandardRule(ACLRule):
         """
         return reverse('plugins:netbox_access_lists:aclstandardrule', args=[self.pk])
 
+    class Meta(ACLRule.Meta):
+        """
+        Define the model properties adding to or overriding the inherited class:
+          - default_related_name for any FK relationships
+          - verbose name (for displaying in the GUI)
+          - verbose name plural (for displaying in the GUI)
+        """
+        default_related_name='aclstandardrules'
+        verbose_name='ACL Standard Rule'
+        verbose_name_plural='ACL Standard Rules'
 
 class ACLExtendedRule(ACLRule):
     """
@@ -116,3 +131,14 @@ class ACLExtendedRule(ACLRule):
 
     def get_protocol_color(self):
         return ACLProtocolChoices.colors.get(self.protocol)
+
+    class Meta(ACLRule.Meta):
+        """
+        Define the model properties adding to or overriding the inherited class:
+          - default_related_name for any FK relationships
+          - verbose name (for displaying in the GUI)
+          - verbose name plural (for displaying in the GUI)
+        """
+        default_related_name='aclextendedrules'
+        verbose_name='ACL Extended Rule'
+        verbose_name_plural='ACL Extended Rules'

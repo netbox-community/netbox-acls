@@ -57,7 +57,7 @@ from ..models import AccessList
 #
 #    fieldsets = [
 #        ('Host Details', ('region', 'site_group', 'site', 'device')),
-#        ('Access-List Details', ('type', 'default_action', 'add_tags', 'remove_tags')),
+#        ('Access List Details', ('type', 'default_action', 'add_tags', 'remove_tags')),
 #    ]
 #
 #
@@ -67,7 +67,7 @@ from ..models import AccessList
 #        help_texts = {
 #            'default_action': 'The default behavior of the ACL.',
 #            'name': 'The name uniqueness per device is case insensitive.',
-#            'type': mark_safe('<b>*Note:</b> CANNOT be changed if ACL Rules are assoicated to this Access-List.'),
+#            'type': mark_safe('<b>*Note:</b> CANNOT be changed if ACL Rules are assoicated to this Access List.'),
 #        }
 #
 #    def clean(self): # Not working given you are bulkd editing multiple forms

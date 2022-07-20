@@ -14,7 +14,7 @@ __all__ = (
 
 class Migration(migrations.Migration):
     """
-    Defines the migrations required for the initial setup of the access-list plugin and its associated django models.
+    Defines the migrations required for the initial setup of the access lists plugin and its associated django models.
     """
 
     initial = True
@@ -42,6 +42,7 @@ class Migration(migrations.Migration):
             options={
                 'ordering': ('name', 'device'),
                 'unique_together': {('name', 'device')},
+                'verbose_name': 'Access List',
             },
         ),
         migrations.CreateModel(
@@ -62,6 +63,7 @@ class Migration(migrations.Migration):
             options={
                 'ordering': ('access_list', 'index'),
                 'unique_together': {('access_list', 'index')},
+                'verbose_name': 'ACL Standard Rule',
             },
         ),
         migrations.CreateModel(
@@ -86,6 +88,7 @@ class Migration(migrations.Migration):
             options={
                 'ordering': ('access_list', 'index'),
                 'unique_together': {('access_list', 'index')},
+                'verbose_name': 'ACL Extended Rule',
             },
         ),
     ]

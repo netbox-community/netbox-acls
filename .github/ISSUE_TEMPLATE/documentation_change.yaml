@@ -1,6 +1,6 @@
 ---
 name: 📖 Documentation Change
-description: Suggest an addition or modification to the NetBox access-list plugin documentation
+description: Suggest an addition or modification to the NetBox Access Lists plugin documentation
 title: "[Docs]: "
 labels: ["documentation"]
 body:

@@ -57,7 +57,7 @@ class AccessListForm(NetBoxModelForm):
 
     fieldsets = [
         ('Host Details', ('region', 'site_group', 'site', 'device')),
-        ('Access-List Details', ('name', 'type', 'default_action', 'tags')),
+        ('Access List Details', ('name', 'type', 'default_action', 'tags')),
     ]
 
     class Meta:
@@ -66,7 +66,7 @@ class AccessListForm(NetBoxModelForm):
         help_texts = {
             'default_action': 'The default behavior of the ACL.',
             'name': 'The name uniqueness per device is case insensitive.',
-            'type': mark_safe('<b>*Note:</b> CANNOT be changed if ACL Rules are assoicated to this Access-List.'),
+            'type': mark_safe('<b>*Note:</b> CANNOT be changed if ACL Rules are assoicated to this Access List.'),
         }
 
     def clean(self):
@@ -90,7 +90,7 @@ class AccessListForm(NetBoxModelForm):
 
 class ACLStandardRuleForm(NetBoxModelForm):
     """
-    GUI form to add or edit Standard Access-List.
+    GUI form to add or edit Standard Access List.
     Requires an access_list, an index, and ACL rule type.
     See the clean function for logic on other field requirements.
     """
@@ -100,7 +100,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
             'type': 'standard'
         },
         help_text=mark_safe('<b>*Note:</b> This field will only display Standard ACLs.'),
-        label='Access-List',
+        label='Access List',
     )
     source_prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
@@ -114,7 +114,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
     )
 
     fieldsets = (
-        ('Access-List Details', ('access_list', 'description', 'tags')),
+        ('Access List Details', ('access_list', 'description', 'tags')),
         ('Rule Definition', ('index', 'action', 'remark', 'source_prefix')),
     )
 
@@ -152,7 +152,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
 
 class ACLExtendedRuleForm(NetBoxModelForm):
     """
-    GUI form to add or edit Extended Access-List.
+    GUI form to add or edit Extended Access List.
     Requires an access_list, an index, and ACL rule type.
     See the clean function for logic on other field requirements.
     """
@@ -162,7 +162,7 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             'type': 'extended'
         },
         help_text=mark_safe('<b>*Note:</b> This field will only display Extended ACLs.'),
-        label='Access-List',
+        label='Access List',
     )
     tags = DynamicModelMultipleChoiceField(
         queryset=Tag.objects.all(),
@@ -181,7 +181,7 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         label='Destination Prefix',
     )
     fieldsets = (
-        ('Access-List Details', ('access_list', 'description', 'tags')),
+        ('Access List Details', ('access_list', 'description', 'tags')),
         ('Rule Definition', ('index', 'action', 'remark', 'source_prefix', 'source_ports', 'destination_prefix', 'destination_ports', 'protocol',)),
     )
 

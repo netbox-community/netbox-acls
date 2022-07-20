@@ -5,11 +5,9 @@ while Django itself handles the database abstraction.
 
 from rest_framework import serializers
 
+from dcim.api.nested_serializers import NestedDeviceSerializer
 from ipam.api.serializers import NestedPrefixSerializer
-from dcim.api.serializers import NestedDeviceSerializer
-from netbox.api.# A module that is part of the Django REST Framework.
-# A module that is part of the Django REST Framework.
-serializers import NetBoxModelSerializer, WritableNestedSerializer
+from netbox.api.serializers import NetBoxModelSerializer, WritableNestedSerializer
 from ..models import AccessList, ACLExtendedRule, ACLStandardRule
 
 #

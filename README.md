@@ -1,6 +1,6 @@
 # netbox-access-lists
 
-A NetBox plugin for Access-List management
+A NetBox plugin for Access List management
 
 ## Origin
 

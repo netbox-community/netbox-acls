@@ -2,7 +2,7 @@
 #import os.path
 #
 from setuptools import find_packages, setup
-#
+
 #
 #with open("README.md", "r") as fh:
 #    long_description = fh.read()
@@ -27,7 +27,7 @@ setup(
     name='netbox-access-lists',
     version='0.1.0',
     #version=get_version('netbox_access_lists/version.py'),
-    description='A NetBox plugin for Access-List management',
+    description='A NetBox plugin for Access List management',
     #long_description=long_description,
     long_description_content_type="text/markdown",
     url='https://github.com/ryanmerolle/netbox-access-lists',

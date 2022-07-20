@@ -1,8 +1,13 @@
 
 from django.contrib.contenttypes.models import ContentType
-
 from extras.plugins import PluginTemplateExtension
+
 from .models import AccessList
+
+__all__ = (
+    'AccessLists',
+    'DeviceAccessLists',
+)
 
 
 class AccessLists(PluginTemplateExtension):
@@ -17,7 +22,7 @@ class AccessLists(PluginTemplateExtension):
         #elif ctype.model == 'virtualmachine':
         #    access_lists = AccessList.objects.filter(device=obj.pk)
 
-        return self.render('inc/device_access_lists.html', extra_context={
+        return self.render('inc/device/access_lists.html', extra_context={
             'access_lists': access_lists,
             'type': ctype.model if ctype.model == 'device' else ctype.name.replace(' ', '_'),
         })

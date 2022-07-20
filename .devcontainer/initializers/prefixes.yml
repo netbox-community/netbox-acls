@@ -27,3 +27,11 @@
   status: active
   tenant: tenant2
   vlan: vlan2
+- description: prefix3
+  prefix: 192.168.1.0/24
+  site: AMS 1
+  status: active
+- description: prefix4
+  prefix: 192.168.11.0/24
+  site: AMS 2
+  status: active

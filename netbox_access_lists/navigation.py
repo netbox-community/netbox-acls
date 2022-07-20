@@ -1,6 +1,13 @@
+"""
+Define the plugin menu buttons & the plugin navigation bar enteries.
+"""
+
 from extras.plugins import PluginMenuButton, PluginMenuItem
 from utilities.choices import ButtonColorChoices
 
+#
+# Define plugin menu buttons
+#
 
 accesslist_buttons = [
     PluginMenuButton(
@@ -11,14 +18,27 @@ accesslist_buttons = [
     )
 ]
 
-accesslistrule_butons = [
+aclstandardrule_butons = [
     PluginMenuButton(
-        link='plugins:netbox_access_lists:accesslistrule_add',
+        link='plugins:netbox_access_lists:aclstandardrule_add',
         title='Add',
         icon_class='mdi mdi-plus-thick',
         color=ButtonColorChoices.GREEN
     )
 ]
+
+aclextendedrule_butons = [
+    PluginMenuButton(
+        link='plugins:netbox_access_lists:aclextendedrule_add',
+        title='Add',
+        icon_class='mdi mdi-plus-thick',
+        color=ButtonColorChoices.GREEN
+    )
+]
+
+#
+# Define navigation bar links including the above buttons defined.
+#
 
 menu_items = (
     PluginMenuItem(
@@ -26,10 +46,16 @@ menu_items = (
         link_text='Access Lists',
         buttons=accesslist_buttons
     ),
-    # # Comment out Access List Rule to force creation in the ACL view
-    # PluginMenuItem(
-    #     link='plugins:netbox_access_lists:accesslistrule_list',
-    #     link_text='Access List Rules',
-    #     buttons=accesslistrule_butons
-    # ),
+    # Comment out Standard Access List rule to force creation in the ACL view
+    PluginMenuItem(
+        link='plugins:netbox_access_lists:aclstandardrule_list',
+        link_text='ACL Standard Rule',
+        buttons=aclstandardrule_butons
+    ),
+    # Comment out Extended Access List rule to force creation in the ACL view
+    PluginMenuItem(
+        link='plugins:netbox_access_lists:aclextendedrule_list',
+        link_text='ACL Extended Rules',
+        buttons=aclextendedrule_butons
+    ),
 )

@@ -7,7 +7,11 @@
 {% block controls %}
 <div class="pull-right noprint">
     {% if perms.netbox_access_lists.change_policy %}
-    <a href="{% url 'plugins:netbox_access_lists:accesslistrule_add' %}?access_list={{ object.pk }}" class="btn btn-success">
+    {%     if object.type == 'extended' %}
+    <a href="{% url 'plugins:netbox_access_lists:aclextendedrule_add' %}?access_list={{ object.pk }}" class="btn btn-success">
+    {%     elif object.type == 'standard' %}
+    <a href="{% url 'plugins:netbox_access_lists:aclstandardrule_add' %}?access_list={{ object.pk }}" class="btn btn-success">
+    {%     endif %}
         <span class="mdi mdi-plus-thick" aria-hidden="true"></span> Rule
     </a>
     {% endif %}
@@ -46,10 +50,6 @@
         <div class="card-body">
           <table class="table table-hover attr-table">
             <tr>
-              <th scope="row">Name</th>
-              <td>{{ object.name }}</td>
-            </tr>
-            <tr>
               <th scope="row">Type</th>
               <td>{{ object.get_type_display }}</td>
             </tr>
@@ -59,7 +59,15 @@
             </tr>
             <tr>
               <th scope="row">Rules</th>
-              <td>{{ object.rules.count }}</td>
+              {% if object.type == 'standard' %}
+              <td>{{ object.aclstandardrules.count|placeholder }}</td>
+              {% elif object.type == 'extended' %}
+              <td>{{ object.aclextendedrules.count|placeholder }}</td>
+              {% endif %}
+              <tr>
+                <th scope="row">Device</th>
+                <td>{{ object.device|linkify }}</td>
+              </tr>
             </tr>
           </table>
         </div>
@@ -74,7 +82,7 @@
   <div class="row">
     <div class="col col-md-12">
       <div class="card">
-        <h5 class="card-header">Rules</h5>
+        <h5 class="card-header">{{ object.get_type_display }} Rules</h5>
         <div class="card-body table-responsive">
           {% render_table rules_table %}
         </div>

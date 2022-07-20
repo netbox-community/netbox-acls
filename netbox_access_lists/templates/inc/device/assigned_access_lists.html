@@ -12,7 +12,11 @@
             <td>{{ access_list|linkify }}</td>
             <td>{{ access_list.type|title }}</td>
             <td>{{ access_list.default_action|title }}</td>
-            <td>{{ access_list.rules.count }}</td>
+            {% if access_list.type == 'standard' %}
+            <td>{{ access_list.aclstandardrules.count|placeholder }}</td>
+            {% elif access_list.type == 'extended' %}
+            <td>{{ access_list.aclextendedrules.count|placeholder }}</td>
+            {% endif %}
         </tr>
     {% endfor %}
 </table>

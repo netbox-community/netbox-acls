@@ -1,11 +1,16 @@
-from netbox.api.routers import NetBoxRouter
-from . import views
+"""
+Creates API endpoint URLs for the plugin.
+"""
 
+from netbox.api.routers import NetBoxRouter
+
+from . import views
 
 app_name = 'netbox_access_list'
 
 router = NetBoxRouter()
 router.register('access-lists', views.AccessListViewSet)
-router.register('access-list-rules', views.AccessListRuleViewSet)
+router.register('standard-acl-rules', views.ACLStandardRuleViewSet)
+router.register('extended-acl-rules', views.ACLExtendedRuleViewSet)
 
 urlpatterns = router.urls

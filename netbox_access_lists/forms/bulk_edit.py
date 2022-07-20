@@ -2,13 +2,14 @@
 Draft for a possible BulkEditForm, but may not be worth wile.
 """
 
-from dcim.models import Device, Region, Site, SiteGroup
+from dcim.models import Device, Region, Site, SiteGroup, VirtualChassis
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.safestring import mark_safe
 from netbox.forms import NetBoxModelBulkEditForm
 from utilities.forms import (ChoiceField, DynamicModelChoiceField,
                              StaticSelect, add_blank_choice)
+from virtualization.models import VirtualMachine
 
 from ..choices import ACLActionChoices, ACLTypeChoices
 from ..models import AccessList

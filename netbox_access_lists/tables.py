@@ -18,6 +18,15 @@ class AccessListTable(NetBoxTable):
     """
     Defines the table view for the AccessList model.
     """
+    pk = columns.ToggleColumn()
+    id = tables.Column(  # Provides a link to the secret
+        linkify=True
+    )
+    assigned_object = tables.Column(
+        linkify=True,
+        orderable=False,
+        verbose_name='Assigned Host'
+    )
     name = tables.Column(
         linkify=True
     )
@@ -35,8 +44,8 @@ class AccessListTable(NetBoxTable):
 
     class Meta(NetBoxTable.Meta):
         model = AccessList
-        fields = ('pk', 'id', 'name', 'device', 'type', 'rule_count', 'default_action', 'comments', 'actions', 'tags')
-        default_columns = ('name', 'device', 'type', 'rule_count', 'default_action', 'tags')
+        fields = ('pk', 'id', 'name', 'assigned_object', 'type', 'rule_count', 'default_action', 'comments', 'actions', 'tags')
+        default_columns = ('name', 'assigned_object', 'type', 'rule_count', 'default_action', 'tags')
 
 
 class ACLStandardRuleTable(NetBoxTable):

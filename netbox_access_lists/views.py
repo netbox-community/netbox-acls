@@ -66,6 +66,7 @@ class AccessListEditView(generic.ObjectEditView):
     """
     queryset = models.AccessList.objects.all()
     form = forms.AccessListForm
+    template_name = 'netbox_access_lists/accesslist_edit.html'
 
 
 class AccessListDeleteView(generic.ObjectDeleteView):

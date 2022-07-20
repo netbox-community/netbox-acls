@@ -2,11 +2,17 @@
 Define the django models for this plugin.
 """
 
+from dcim.models import Device, VirtualChassis
+from django.contrib.contenttypes.fields import (GenericForeignKey,
+                                                GenericRelation)
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.urls import reverse
 from netbox.models import NetBoxModel
+from virtualization.models import VirtualMachine
 
 from ..choices import *
+from ..constants import ACL_HOST_ASSIGNMENT_MODELS
 
 __all__ = (
     'AccessList',
@@ -20,10 +26,15 @@ class AccessList(NetBoxModel):
     name = models.CharField(
         max_length=100
     )
-    device = models.ForeignKey(
-        to='dcim.Device',
-        on_delete=models.CASCADE,
-        related_name='access_lists'
+    assigned_object_type = models.ForeignKey(
+        to=ContentType,
+        limit_choices_to=ACL_HOST_ASSIGNMENT_MODELS,
+        on_delete=models.PROTECT
+    )
+    assigned_object_id = models.PositiveBigIntegerField()
+    assigned_object = GenericForeignKey(
+        ct_field='assigned_object_type',
+        fk_field='assigned_object_id'
     )
     type = models.CharField(
         max_length=30,
@@ -40,11 +51,9 @@ class AccessList(NetBoxModel):
     )
 
     class Meta:
-        ordering = ('name', 'device')
-        unique_together = ('name', 'device')
-        default_related_name='accesslists'
-        verbose_name='Access List'
-        verbose_name_plural='Access Lists'
+        unique_together = ('assigned_object_type', 'assigned_object_id', 'name')
+        ordering = ('assigned_object_type', 'assigned_object_id', 'name')
+        verbose_name = "Access List"
 
     def __str__(self):
         return self.name
@@ -61,3 +70,25 @@ class AccessList(NetBoxModel):
 
     def get_type_color(self):
         return ACLTypeChoices.colors.get(self.type)
+
+
+GenericRelation(
+    to=AccessList,
+    content_type_field='assigned_object_type',
+    object_id_field='assigned_object_id',
+    related_query_name='device'
+).contribute_to_class(Device, 'accesslists')
+
+GenericRelation(
+    to=AccessList,
+    content_type_field='assigned_object_type',
+    object_id_field='assigned_object_id',
+    related_query_name='virtual_chassis'
+).contribute_to_class(VirtualChassis, 'accesslists')
+
+GenericRelation(
+    to=AccessList,
+    content_type_field='assigned_object_type',
+    object_id_field='assigned_object_id',
+    related_query_name='virtual_machine'
+).contribute_to_class(VirtualMachine, 'accesslists')

@@ -6,10 +6,8 @@
 
 PLUGINS = [
     "netbox_access_lists",
-    "netbox_secretstore"
     ]
 
 PLUGINS_CONFIG = {
     "netbox_access_lists": {},
-    "netbox_secretstore": {}
 }

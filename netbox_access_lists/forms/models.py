@@ -122,7 +122,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
     )
 
     fieldsets = (
-        ('Access-List Details', ('access_list', 'tags')),
+        ('Access-List Details', ('access_list', 'description', 'tags')),
         ('Rule Definition', ('index', 'action', 'remark', 'source_prefix')),
     )
 
@@ -130,7 +130,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
         model = ACLStandardRule
         fields = (
             'access_list', 'index', 'action', 'remark', 'source_prefix',
-            'tags',
+            'tags', 'description'
         )
         help_texts = {
             'index': 'Determines the order of the rule in the ACL processing.',
@@ -189,7 +189,7 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         label='Destination Prefix',
     )
     fieldsets = (
-        ('Access-List Details', ('access_list', 'tags')),
+        ('Access-List Details', ('access_list', 'description', 'tags')),
         ('Rule Definition', ('index', 'action', 'remark', 'source_prefix', 'source_ports', 'destination_prefix', 'destination_ports', 'protocol',)),
     )
 
@@ -198,7 +198,7 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         fields = (
             'access_list', 'index', 'action', 'remark', 'source_prefix',
             'source_ports', 'destination_prefix', 'destination_ports', 'protocol',
-            'tags'
+            'tags', 'description'
         )
         help_texts = {
             'destination_ports': acl_rule_logic_help,

@@ -115,7 +115,7 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
         """
         model = ACLStandardRule
         fields = (
-            'id', 'url', 'display', 'access_list', 'index', 'action', 'tags',
+            'id', 'url', 'display', 'access_list', 'index', 'action', 'tags', 'description',
             'created', 'custom_fields', 'last_updated', 'source_prefix'
         )
 
@@ -149,7 +149,7 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
         """
         model = ACLExtendedRule
         fields = (
-            'id', 'url', 'display', 'access_list', 'index', 'action', 'tags',
+            'id', 'url', 'display', 'access_list', 'index', 'action', 'tags', 'description',
             'created', 'custom_fields', 'last_updated', 'source_prefix', 'source_ports',
             'destination_prefix', 'destination_ports', 'protocol'
         )

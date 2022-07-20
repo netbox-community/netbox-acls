@@ -78,6 +78,10 @@ class ACLRule(NetBoxModel):
         blank=True,
         null=True
     )
+    description = models.CharField(
+        max_length=500,
+        blank=True
+    )
     action = models.CharField(
         choices=ACLRuleActionChoices,
         max_length=30,

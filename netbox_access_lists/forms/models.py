@@ -1,5 +1,5 @@
 """
-Defines each django model's GUI form to add or edit objects for each django model
+Defines each django model's GUI form to add or edit objects for each django model.
 """
 
 from dcim.models import Device, Region, Site, SiteGroup
@@ -24,7 +24,7 @@ acl_rule_logic_help = mark_safe('<b>*Note:</b> CANNOT be set if action is set to
 
 class AccessListForm(NetBoxModelForm):
     """
-    GUI form to add or edit an Access-List.
+    GUI form to add or edit an AccessList.
     Requires a device, a name, a type, and a default_action.
     """
     region = DynamicModelChoiceField(

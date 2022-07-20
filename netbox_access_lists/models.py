@@ -11,6 +11,7 @@ from netbox_access_lists.choices import *
 
 __all__ = (
     'AccessList',
+    'ACLRule',
     'ACLStandardRule',
     'ACLExtendedRule',
 )

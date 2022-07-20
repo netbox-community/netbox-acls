@@ -7,6 +7,12 @@ from netbox.graphql.types import NetBoxObjectType
 from netbox.graphql.fields import ObjectField, ObjectListField
 from . import filtersets, models
 
+__all__ = (
+    'AccessListType',
+    'ACLExtendedRuleType',
+    'ACLStandardRuleType',
+)
+
 #
 # Object types
 #

@@ -8,6 +8,9 @@ from django.db import migrations, models
 import django.db.models.deletion
 import taggit.managers
 
+__all__ = (
+    'Migration',
+)
 
 class Migration(migrations.Migration):
     """

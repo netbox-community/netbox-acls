@@ -1,5 +1,5 @@
 """
-Import each of the directory's files
+Import each of the directory's scripts.
 """
 
 from .models import *

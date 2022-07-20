@@ -1,3 +1,7 @@
+"""
+Defines each django model's GUI filter/search options.
+"""
+
 from dcim.models import Device, Region, Site, SiteGroup
 from django import forms
 from ipam.models import Prefix
@@ -19,6 +23,9 @@ __all__ = (
 
 
 class AccessListFilterForm(NetBoxModelFilterSetForm):
+    """
+    GUI filter form to search the django AccessList model.
+    """
     model = AccessList
     region = DynamicModelChoiceField(
         queryset=Region.objects.all(),
@@ -65,6 +72,9 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
 
 
 class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
+    """
+    GUI filter form to search the django ACLStandardRule model.
+    """
     model = ACLStandardRule
     tag = TagFilterField(model)
     source_prefix = forms.ModelMultipleChoiceField(
@@ -86,6 +96,9 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
 
 
 class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
+    """
+    GUI filter form to search the django ACLExtendedRule model.
+    """
     model = ACLExtendedRule
     index = forms.IntegerField(
         required=False

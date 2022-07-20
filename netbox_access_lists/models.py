@@ -1,3 +1,7 @@
+"""
+Define the django models for this plugin.
+"""
+
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.urls import reverse
@@ -5,8 +9,17 @@ from django.urls import reverse
 from netbox.models import NetBoxModel
 from netbox_access_lists.choices import *
 
+__all__ = (
+    'AccessList',
+    'ACLStandardRule',
+    'ACLExtendedRule',
+)
+
 
 class AccessList(NetBoxModel):
+    """
+    Model defintion for Access-Lists.
+    """
     name = models.CharField(
         max_length=100
     )
@@ -36,6 +49,10 @@ class AccessList(NetBoxModel):
         return self.name
 
     def get_absolute_url(self):
+        """
+        The method is a Django convention; although not strictly required,
+        it conveniently returns the absolute URL for any particular object.
+        """
         return reverse('plugins:netbox_access_lists:accesslist', args=[self.pk])
 
     def get_default_action_color(self):
@@ -48,6 +65,7 @@ class AccessList(NetBoxModel):
 class ACLRule(NetBoxModel):
     """
     Abstract model for ACL Rules.
+    Inherrited by both ACLStandardRule and ACLExtendedRule.
     """
     access_list = models.ForeignKey(
         on_delete=models.CASCADE,
@@ -79,7 +97,6 @@ class ACLRule(NetBoxModel):
     def get_action_color(self):
         return ACLRuleActionChoices.colors.get(self.action)
 
-
     class Meta:
         abstract = True
         default_related_name='%(class)ss'
@@ -88,12 +105,23 @@ class ACLRule(NetBoxModel):
 
 
 class ACLStandardRule(ACLRule):
+    """
+    Inherits ACLRule.
+    """
 
     def get_absolute_url(self):
+        """
+        The method is a Django convention; although not strictly required,
+        it conveniently returns the absolute URL for any particular object.
+        """
         return reverse('plugins:netbox_access_lists:aclstandardrule', args=[self.pk])
 
 
 class ACLExtendedRule(ACLRule):
+    """
+    Inherits ACLRule.
+    Add ACLExtendedRule specific fields: source_ports, desintation_prefix, destination_ports, and protocol
+    """
     source_ports = ArrayField(
         base_field=models.PositiveIntegerField(),
         blank=True,
@@ -121,6 +149,10 @@ class ACLExtendedRule(ACLRule):
     )
 
     def get_absolute_url(self):
+        """
+        The method is a Django convention; although not strictly required,
+        it conveniently returns the absolute URL for any particular object.
+        """
         return reverse('plugins:netbox_access_lists:aclextendedrule', args=[self.pk])
 
     def get_protocol_color(self):

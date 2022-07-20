@@ -1,3 +1,7 @@
+"""
+Map Views to URLs.
+"""
+
 from django.urls import path
 
 from netbox.views.generic import ObjectChangeLogView

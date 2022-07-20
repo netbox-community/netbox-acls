@@ -1,3 +1,7 @@
+"""
+Creates API endpoint URLs for the plugin.
+"""
+
 from netbox.api.routers import NetBoxRouter
 from . import views
 

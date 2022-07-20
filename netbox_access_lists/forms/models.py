@@ -1,3 +1,7 @@
+"""
+Defines each django model's GUI form to add or edit objects for each django model
+"""
+
 from dcim.models import Device, Region, Site, SiteGroup
 from django import forms
 from django.utils.safestring import mark_safe
@@ -14,10 +18,15 @@ __all__ = (
     'ACLExtendedRuleForm',
 )
 
+# Sets a standard mark_save help_text value to be used by the various classes
 acl_rule_logic_help = mark_safe('<b>*Note:</b> CANNOT be set if action is set to remark.')
 
 
 class AccessListForm(NetBoxModelForm):
+    """
+    GUI form to add or edit an Access-List.
+    Requires a device, a name, a type, and a default_action.
+    """
     region = DynamicModelChoiceField(
         queryset=Region.objects.all(),
         required=False,
@@ -60,27 +69,39 @@ class AccessListForm(NetBoxModelForm):
         }
 
     def clean(self):
+        """
+        Validates form inputs before submitting.
+        """
         cleaned_data = super().clean()
+        error_message = {}
         if self.errors.get('name'):
             return cleaned_data
         name = cleaned_data.get('name')
         device = cleaned_data.get('device')
         type =  cleaned_data.get('type')
         if ('name' in self.changed_data or 'device' in self.changed_data) and AccessList.objects.filter(name__iexact=name, device=device).exists():
-            raise forms.ValidationError(
+            error_message.update(
                 {
                     'device': ['An ACL with this name (case insensitive) is already associated to this device.'],
-                    'name': ['An ACL with this name (case insensitive) is already associated to this device.'],
+                    'name': ['An ACL with this name (case insensitive) is already associated to this device.']
                 }
                 )
         if type == 'extended' and self.instance.aclstandardrules.exists():
-            raise forms.ValidationError({'type': ['This ACL has Standard ACL rules already associated, CANNOT change ACL type!!']})
+            error_message.update({'type': ['This ACL has Standard ACL rules already associated, CANNOT change ACL type!!']})
         elif type == 'standard' and self.instance.aclextendedrules.exists():
-            raise forms.ValidationError({'type': ['This ACL has Extended ACL rules already associated, CANNOT change ACL type!!']})
+            error_message.update({'type': ['This ACL has Extended ACL rules already associated, CANNOT change ACL type!!']})
+        if len(error_message) > 0:
+            raise forms.ValidationError(error_message)
+
         return cleaned_data
 
 
 class ACLStandardRuleForm(NetBoxModelForm):
+    """
+    GUI form to add or edit Standard Access-List.
+    Requires an access_list, an index, and ACL rule type.
+    See the clean function for logic on other field requirements.
+    """
     access_list = DynamicModelChoiceField(
         queryset=AccessList.objects.all(),
         query_params={
@@ -117,26 +138,32 @@ class ACLStandardRuleForm(NetBoxModelForm):
         }
 
     def clean(self):
+        """
+        Validates form inputs before submitting.
+        If action is set to remark, remark needs to be set.
+        If action is set to remark, source_prefix cannot be set.
+        If action is not set to remark, remark cannot be set.
+        """
         cleaned_data = super().clean()
+        error_message = {}
         if cleaned_data.get('action') == 'remark':
             if cleaned_data.get('remark') is None:
-                raise forms.ValidationError(
-                    {
-                        'action': ['Action Remark is set, MUST add a remark.'],
-                        'remark': ['Action Remark is set, MUST add a remark.'],
-                    }
-                    )
+                error_message.update({'remark': ['Action is set to remark, you MUST add a remark.']})
             if cleaned_data.get('source_prefix'):
-                raise forms.ValidationError('Cannot input a remark AND a source prefix. Remove one.')
-        else:
-            if cleaned_data.get('remark'):
-                raise forms.ValidationError('CANNOT set a remark without the action set to remark also.')
-        #if cleaned_data.get('access_list_type') == 'standard' and (source_ports or destination_prefix or destination_ports):
-        #    raise forms.ValidationError('Standard Access-Lists only allow a source_prefix or remark')
+                error_message.update({'source_prefix': ['Action is set to remark, Source Prefix CANNOT be set.']})
+        elif cleaned_data.get('remark'):
+                error_message.update({'remark': ['CANNOT set remark unless action is set to remark, .']})
+        if len(error_message) > 0:
+            raise forms.ValidationError(error_message)
         return cleaned_data
 
 
 class ACLExtendedRuleForm(NetBoxModelForm):
+    """
+    GUI form to add or edit Extended Access-List.
+    Requires an access_list, an index, and ACL rule type.
+    See the clean function for logic on other field requirements.
+    """
     access_list = DynamicModelChoiceField(
         queryset=AccessList.objects.all(),
         query_params={
@@ -182,27 +209,29 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         }
 
     def clean(self):
+        """
+        Validates form inputs before submitting.
+        If action is set to remark, remark needs to be set.
+        If action is set to remark, source_prefix, source_ports, desintation_prefix, destination_ports, or protocol cannot be set.
+        If action is not set to remark, remark cannot be set.
+        """
         cleaned_data = super().clean()
+        error_message = {}
         if cleaned_data.get('action') == 'remark':
             if cleaned_data.get('remark') is None:
-                raise forms.ValidationError(
-                    {
-                        'action': ['Action Remark is set, MUST add a remark.'],
-                        'remark': ['Action Remark is set, MUST add a remark.'],
-                    }
-                    )
-            if cleaned_data.get('remark') is None:
-                raise forms.ValidationError('Action Remark is set, MUST set a remark')
+                error_message.update({'remark': ['Action is set to remark, you MUST add a remark.']})
             if cleaned_data.get('source_prefix'):
-                raise forms.ValidationError('CANNOT set an action of remark AND a source prefix.')
+                error_message.update({'source_prefix': ['Action is set to remark, Source Prefix CANNOT be set.']})
             if cleaned_data.get('source_ports'):
-                raise forms.ValidationError('CANNOT set an action of remark AND source ports.')
+                error_message.update({'source_ports': ['Action is set to remark, Source Ports CANNOT be set.']})
             if cleaned_data.get('destination_prefix'):
-                raise forms.ValidationError('CANNOT set an action of remark AND a destination prefix.')
+                error_message.update({'destination_prefix': ['Action is set to remark, Destination Prefix CANNOT be set.']})
             if cleaned_data.get('destination_ports'):
-                raise forms.ValidationError('CANNOT set an action of remark AND destination ports.')
+                error_message.update({'destination_ports': ['Action is set to remark, Destination Ports CANNOT be set.']})
             if cleaned_data.get('protocol'):
-                raise forms.ValidationError('CANNOT set an action of remark AND a protocol.')
+                error_message.update({'protocol': ['Action is set to remark, Protocol CANNOT be set.']})
         elif cleaned_data.get('remark'):
-            raise forms.ValidationError('CANNOT set a remark without the action set to remark also.')
+                error_message.update({'remark': ['CANNOT set remark unless action is set to remark, .']})
+        if len(error_message) > 0:
+            raise forms.ValidationError(error_message)
         return cleaned_data

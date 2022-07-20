@@ -1,3 +1,7 @@
+"""
+Defines the migrations for propogating django models into the database schemea.
+"""
+
 import django.contrib.postgres.fields
 import django.core.serializers.json
 from django.db import migrations, models
@@ -6,6 +10,9 @@ import taggit.managers
 
 
 class Migration(migrations.Migration):
+    """
+    Defines the migrations required for the initial setup of the access-list plugin and its associated django models.
+    """
 
     initial = True
 

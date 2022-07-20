@@ -1,3 +1,7 @@
+"""
+Draft for a possible BulkEditForm, but may not be worth wile.
+"""
+
 from dcim.models import Device, Region, Site, SiteGroup
 from django import forms
 from django.core.exceptions import ValidationError
@@ -56,6 +60,7 @@ from netbox_access_lists.models import (AccessList, ACLActionChoices,
 #        ('Host Details', ('region', 'site_group', 'site', 'device')),
 #        ('Access-List Details', ('type', 'default_action', 'add_tags', 'remove_tags')),
 #    ]
+#
 #
 #    class Meta:
 #        model = AccessList

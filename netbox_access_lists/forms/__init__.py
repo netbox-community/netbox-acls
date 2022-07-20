@@ -1,3 +1,7 @@
+"""
+Import each of the directory's files
+"""
+
 from .models import *
 from .filtersets import *
 #from .object_create import *

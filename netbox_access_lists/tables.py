@@ -1,10 +1,23 @@
+"""
+Define the object lists / table view for each of the plugin models.
+"""
+
 import django_tables2 as tables
 
 from netbox.tables import NetBoxTable, columns, ChoiceFieldColumn
 from .models import AccessList, ACLExtendedRule, ACLStandardRule
 
+__all__ = (
+    'AccessListTable',
+    'ACLStandardRuleTable',
+    'ACLExtendedRuleTable',
+)
+
 
 class AccessListTable(NetBoxTable):
+    """
+    Defines the table view for the AccessList model.
+    """
     name = tables.Column(
         linkify=True
     )
@@ -27,6 +40,9 @@ class AccessListTable(NetBoxTable):
 
 
 class ACLStandardRuleTable(NetBoxTable):
+    """
+    Defines the table view for the ACLStandardRule model.
+    """
     access_list = tables.Column(
         linkify=True
     )
@@ -37,6 +53,7 @@ class ACLStandardRuleTable(NetBoxTable):
     tags = columns.TagColumn(
         url_name='plugins:netbox_access_lists:aclstandardrule_list'
     )
+
     class Meta(NetBoxTable.Meta):
         model = ACLStandardRule
         fields = (
@@ -48,6 +65,9 @@ class ACLStandardRuleTable(NetBoxTable):
 
 
 class ACLExtendedRuleTable(NetBoxTable):
+    """
+    Defines the table view for the ACLExtendedRule model.
+    """
     access_list = tables.Column(
         linkify=True
     )

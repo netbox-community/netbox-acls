@@ -106,9 +106,9 @@ class AccessListForm(NetBoxModelForm):
         virtual_chassis = cleaned_data.get('virtual_chassis')
         virtual_machine = cleaned_data.get('virtual_machine')
         if (device and virtual_chassis) or (device and virtual_machine) or (virtual_chassis and virtual_machine):
-            forms.ValidationError('Access Lists must be assigned to one host (either a device, virtual chassis or virtual machine).')
+            raise forms.ValidationError('Access Lists must be assigned to one host (either a device, virtual chassis or virtual machine).')
         if not device and not virtual_chassis and not virtual_machine:
-            forms.ValidationError('Access Lists must be assigned to a device, virtual chassis or virtual machine.')
+            raise forms.ValidationError('Access Lists must be assigned to a device, virtual chassis or virtual machine.')
         if ('name' in self.changed_data or 'device' in self.changed_data) and device and AccessList.objects.filter(name__iexact=name, device=device).exists():
             error_message.update(
                 {

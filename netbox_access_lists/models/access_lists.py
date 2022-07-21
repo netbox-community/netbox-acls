@@ -51,8 +51,8 @@ class AccessList(NetBoxModel):
     )
 
     class Meta:
-        unique_together = ('assigned_object_type', 'assigned_object_id', 'name')
-        ordering = ('assigned_object_type', 'assigned_object_id', 'name')
+        unique_together = ['assigned_object_type', 'assigned_object_id', 'name']
+        ordering = ['assigned_object_type', 'assigned_object_id', 'name']
         verbose_name = "Access List"
 
     def __str__(self):

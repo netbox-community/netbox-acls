@@ -92,8 +92,8 @@ class Migration(migrations.Migration):
                 'verbose_name': 'ACL Extended Rule',
             },
         ),
-        migrations.AddConstraint(
-            model_name='accesslist',
-            constraint=models.UniqueConstraint(fields=('assigned_object_type', 'assigned_object_id'), name='accesslist_assigned_object'),
-        ),
+        #migrations.AddConstraint(
+        #    model_name='accesslist',
+        #    constraint=models.UniqueConstraint(fields=('assigned_object_type', 'assigned_object_id'), name='accesslist_assigned_object'),
+        #),
     ]

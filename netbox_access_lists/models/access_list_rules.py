@@ -64,8 +64,8 @@ class ACLRule(NetBoxModel):
           - unique together
         """
         abstract = True
-        ordering = ('access_list', 'index')
-        unique_together = ('access_list', 'index')
+        ordering = ['access_list', 'index']
+        unique_together = ['access_list', 'index']
 
 
 class ACLStandardRule(ACLRule):

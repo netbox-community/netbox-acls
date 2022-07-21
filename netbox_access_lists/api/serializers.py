@@ -3,74 +3,25 @@ Serializers control the translation of client data to and from Python objects,
 while Django itself handles the database abstraction.
 """
 
-from dcim.api.nested_serializers import NestedDeviceSerializer
 from django.contrib.contenttypes.models import ContentType
 from drf_yasg.utils import swagger_serializer_method
 from ipam.api.serializers import NestedPrefixSerializer
 from netbox.api import ContentTypeField
-from netbox.api.serializers import (NetBoxModelSerializer,
-                                    WritableNestedSerializer)
+from netbox.api.serializers import NetBoxModelSerializer
 from rest_framework import serializers
 from utilities.api import get_serializer_for_model
 
 from ..constants import ACL_HOST_ASSIGNMENT_MODELS
 from ..models import AccessList, ACLExtendedRule, ACLStandardRule
+from .nested_serializers import (NestedAccessListSerializer,
+                                 NestedACLExtendedRuleSerializer,
+                                 NestedACLStandardRuleSerializer)
 
-#
-# Nested serializers
-#
-
-
-class NestedAccessListSerializer(WritableNestedSerializer):
-    """
-    Defines the nested serializer for the django AccessList model & associates it to a view.
-    """
-    url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:netbox_access_lists-api:accesslist-detail'
-    )
-
-    class Meta:
-        """
-        Associates the django model ACLStandardRule & fields to the nested serializer.
-        """
-        model = AccessList
-        fields = ('id', 'url', 'display', 'name')
-
-
-class NestedACLStandardRuleSerializer(WritableNestedSerializer):
-    """
-    Defines the nested serializer for the django ACLStandardRule model & associates it to a view.
-    """
-    url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:netbox_access_lists-api:aclstandardrule-detail'
-    )
-
-    class Meta:
-        """
-        Associates the django model ACLStandardRule & fields to the nested serializer.
-        """
-        model = ACLStandardRule
-        fields = ('id', 'url', 'display', 'index')
-
-
-class NestedACLExtendedRuleSerializer(WritableNestedSerializer):
-    """
-    Defines the nested serializer for the django ACLExtendedRule model & associates it to a view.
-    """
-    url = serializers.HyperlinkedIdentityField(
-        view_name='plugins-api:netbox_access_lists-api:aclextendedrule-detail'
-    )
-
-    class Meta:
-        """
-        Associates the django model ACLExtendedRule & fields to the nested serializer.
-        """
-        model = ACLExtendedRule
-        fields = ('id', 'url', 'display', 'index')
-
-#
-# Regular serializers
-#
+__all__ = [
+    'NestedAccessListSerializer',
+    'NestedACLStandardRuleSerializer',
+    'NestedACLExtendedRuleSerializer'
+]
 
 
 class AccessListSerializer(NetBoxModelSerializer):

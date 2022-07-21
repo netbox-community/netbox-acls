@@ -12,14 +12,18 @@ __all__ = (
     'AccessListView',
     'AccessListListView',
     'AccessListEditView',
+    'AccessListDeleteView',
+    'AccessListBulkDeleteView',
     'ACLStandardRuleView',
     'ACLStandardRuleListView',
     'ACLStandardRuleEditView',
     'ACLStandardRuleDeleteView',
+    'ACLStandardRuleBulkDeleteView',
     'ACLExtendedRuleView',
     'ACLExtendedRuleListView',
     'ACLExtendedRuleEditView',
     'ACLExtendedRuleDeleteView',
+    'ACLExtendedRuleBulkDeleteView',
 )
 
 
@@ -66,6 +70,7 @@ class AccessListEditView(generic.ObjectEditView):
     """
     queryset = models.AccessList.objects.all()
     form = forms.AccessListForm
+    template_name = 'netbox_access_lists/accesslist_edit.html'
 
 
 class AccessListDeleteView(generic.ObjectDeleteView):
@@ -73,6 +78,12 @@ class AccessListDeleteView(generic.ObjectDeleteView):
     Defines the delete view for the AccessLists django model.
     """
     queryset = models.AccessList.objects.all()
+
+
+class AccessListBulkDeleteView(generic.BulkDeleteView):
+    queryset = models.AccessList.objects.all()
+    filterset = filtersets.AccessListFilterSet
+    table = tables.AccessListTable
 
 
 #class AccessListBulkEditView(generic.BulkEditView):
@@ -122,6 +133,12 @@ class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
     """
     queryset = models.ACLStandardRule.objects.all()
 
+
+class ACLStandardRuleBulkDeleteView(generic.BulkDeleteView):
+    queryset = models.ACLStandardRule.objects.all()
+    filterset = filtersets.ACLStandardRuleFilterSet
+    table = tables.ACLStandardRuleTable
+
 #
 # ACLExtendedRule views
 #
@@ -157,3 +174,8 @@ class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
     Defines the delete view for the ACLExtendedRules django model.
     """
     queryset = models.ACLExtendedRule.objects.all()
+
+class ACLExtendedRuleBulkDeleteView(generic.BulkDeleteView):
+    queryset = models.ACLExtendedRule.objects.all()
+    filterset = filtersets.ACLExtendedRuleFilterSet
+    table = tables.ACLExtendedRuleTable

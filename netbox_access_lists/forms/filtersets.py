@@ -2,13 +2,14 @@
 Defines each django model's GUI filter/search options.
 """
 
-from dcim.models import Device, Region, Site, SiteGroup
+from dcim.models import Device, Region, Site, SiteGroup, VirtualChassis
 from django import forms
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelFilterSetForm
 from utilities.forms import (ChoiceField, DynamicModelChoiceField,
                              StaticSelect, StaticSelectMultiple,
                              TagFilterField, add_blank_choice)
+from virtualization.models import VirtualMachine
 
 from ..choices import (ACLActionChoices, ACLProtocolChoices,
                        ACLRuleActionChoices, ACLTypeChoices)

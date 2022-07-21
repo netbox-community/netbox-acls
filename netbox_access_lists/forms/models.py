@@ -2,7 +2,7 @@
 Defines each django model's GUI form to add or edit objects for each django model.
 """
 
-from dcim.models import Device, Region, Site, SiteGroup
+from dcim.models import Device, Region, Site, SiteGroup, VirtualChassis
 from django import forms
 from django.utils.safestring import mark_safe
 from extras.models import Tag
@@ -10,6 +10,7 @@ from ipam.models import Prefix
 from netbox.forms import NetBoxModelForm
 from utilities.forms import (CommentField, DynamicModelChoiceField,
                              DynamicModelMultipleChoiceField)
+from virtualization.models import VirtualMachine
 
 from ..models import AccessList, ACLExtendedRule, ACLStandardRule
 
@@ -43,11 +44,22 @@ class AccessListForm(NetBoxModelForm):
     )
     device = DynamicModelChoiceField(
         queryset=Device.objects.all(),
+        required=False,
         query_params={
             'region': '$region',
             'group_id': '$site_group',
             'site_id': '$site',
         },
+    )
+    virtual_chassis = DynamicModelChoiceField(
+        queryset=VirtualChassis.objects.all(),
+        required=False,
+        label='Virtual Chassis',
+    )
+    virtual_machine = DynamicModelChoiceField(
+        queryset=VirtualMachine.objects.all(),
+        required=False,
+        label='Virtual Machine',
     )
     comments = CommentField()
     tags = DynamicModelMultipleChoiceField(
@@ -55,19 +67,30 @@ class AccessListForm(NetBoxModelForm):
         required=False
     )
 
-    fieldsets = [
-        ('Host Details', ('region', 'site_group', 'site', 'device')),
-        ('Access List Details', ('name', 'type', 'default_action', 'tags')),
-    ]
-
     class Meta:
         model = AccessList
-        fields = ('region', 'site_group', 'site', 'device', 'name', 'type', 'default_action', 'comments', 'tags')
+        fields = ('region', 'site_group', 'site', 'device', 'virtual_machine', 'virtual_chassis', 'name', 'type', 'default_action', 'comments', 'tags')
         help_texts = {
             'default_action': 'The default behavior of the ACL.',
             'name': 'The name uniqueness per device is case insensitive.',
             'type': mark_safe('<b>*Note:</b> CANNOT be changed if ACL Rules are assoicated to this Access List.'),
         }
+
+    def __init__(self, *args, **kwargs):
+
+        # Initialize helper selectors
+        instance = kwargs.get('instance')
+        initial = kwargs.get('initial', {}).copy()
+        if instance:
+            if type(instance.assigned_object) is Device:
+                initial['device'] = instance.assigned_object
+            elif type(instance.assigned_object) is VirtualChassis:
+                initial['virtual_chassis'] = instance.assigned_object
+            elif type(instance.assigned_object) is VirtualMachine:
+                initial['virtual_machine'] = instance.assigned_object
+        kwargs['initial'] = initial
+
+        super().__init__(*args, **kwargs)
 
     def clean(self):
         """
@@ -77,7 +100,36 @@ class AccessListForm(NetBoxModelForm):
         error_message = {}
         if self.errors.get('name'):
             return cleaned_data
+        name = cleaned_data.get('name')
         type =  cleaned_data.get('type')
+        device = cleaned_data.get('device')
+        virtual_chassis = cleaned_data.get('virtual_chassis')
+        virtual_machine = cleaned_data.get('virtual_machine')
+        if (device and virtual_chassis) or (device and virtual_machine) or (virtual_chassis and virtual_machine):
+            raise forms.ValidationError('Access Lists must be assigned to one host (either a device, virtual chassis or virtual machine).')
+        if not device and not virtual_chassis and not virtual_machine:
+            raise forms.ValidationError('Access Lists must be assigned to a device, virtual chassis or virtual machine.')
+        if ('name' in self.changed_data or 'device' in self.changed_data) and device and AccessList.objects.filter(name__iexact=name, device=device).exists():
+            error_message.update(
+                {
+                    'device': ['An ACL with this name (case insensitive) is already associated to this host.'],
+                    'name': ['An ACL with this name (case insensitive) is already associated to this host.'],
+                }
+            )
+        if ('name' in self.changed_data or 'virtual_chassis' in self.changed_data) and virtual_chassis and AccessList.objects.filter(name__iexact=name, virtual_chassis=virtual_chassis).exists():
+            error_message.update(
+                {
+                    'virtual_chassis': ['An ACL with this name (case insensitive) is already associated to this host.'],
+                    'name': ['An ACL with this name (case insensitive) is already associated to this host.'],
+                }
+            )
+        if ('name' in self.changed_data or 'virtual_machine' in self.changed_data) and virtual_machine and AccessList.objects.filter(name__iexact=name, virtual_machine=virtual_machine).exists():
+            error_message.update(
+                {
+                    'virtual_machine': ['An ACL with this name (case insensitive) is already associated to this host.'],
+                    'name': ['An ACL with this name (case insensitive) is already associated to this host.'],
+                }
+            )
         if type == 'extended' and self.instance.aclstandardrules.exists():
             error_message.update({'type': ['This ACL has Standard ACL rules already associated, CANNOT change ACL type!!']})
         elif type == 'standard' and self.instance.aclextendedrules.exists():
@@ -86,6 +138,12 @@ class AccessListForm(NetBoxModelForm):
             raise forms.ValidationError(error_message)
 
         return cleaned_data
+
+    def save(self, *args, **kwargs):
+        # Set assigned object
+        self.instance.assigned_object = self.cleaned_data.get('device') or self.cleaned_data.get('virtual_chassis') or self.cleaned_data.get('virtual_machine')
+
+        return super().save(*args, **kwargs)
 
 
 class ACLStandardRuleForm(NetBoxModelForm):

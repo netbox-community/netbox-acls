@@ -2,7 +2,7 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.238.0/containers/python-3-postgres
 // Update the VARIANT arg in docker-compose.yml to pick a Python version
 {
-	"name": "NetBox Plugin Develoment",
+	"name": "NetBox Plugin Development",
 	"dockerComposeFile": [
 		"docker-compose.yml",
 		"docker-compose.override.yml"

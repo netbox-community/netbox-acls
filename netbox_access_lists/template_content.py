@@ -7,6 +7,8 @@ from .models import AccessList
 __all__ = (
     'AccessLists',
     'DeviceAccessLists',
+    'VirtualChassisAccessLists',
+    'VMAccessLists',
 )
 
 
@@ -18,11 +20,13 @@ class AccessLists(PluginTemplateExtension):
         access_lists = None
         ctype = ContentType.objects.get_for_model(obj)
         if ctype.model == 'device':
-            access_lists = AccessList.objects.filter(device=obj.pk)
-        #elif ctype.model == 'virtualmachine':
-        #    access_lists = AccessList.objects.filter(device=obj.pk)
+            access_lists = AccessList.objects.filter(assigned_object_id=obj.pk, assigned_object_type=ctype)
+        elif ctype.model == 'virtualchassis':
+            access_lists = AccessList.objects.filter(assigned_object_id=obj.pk, assigned_object_type=ctype)
+        elif ctype.model == 'virtualmachine':
+            access_lists = AccessList.objects.filter(assigned_object_id=obj.pk, assigned_object_type=ctype)
 
-        return self.render('inc/device/access_lists.html', extra_context={
+        return self.render('inc/assigned_host/access_lists.html', extra_context={
             'access_lists': access_lists,
             'type': ctype.model if ctype.model == 'device' else ctype.name.replace(' ', '_'),
         })
@@ -32,8 +36,12 @@ class DeviceAccessLists(AccessLists):
     model = 'dcim.device'
 
 
-#class VMAccessLists(AccessLists):
-#    model = 'virtualization.virtualmachine'
+class VirtualChassisAccessLists(AccessLists):
+    model = 'dcim.virtualchassis'
 
 
-template_extensions = [DeviceAccessLists]
+class VMAccessLists(AccessLists):
+    model = 'virtualization.virtualmachine'
+
+
+template_extensions = [DeviceAccessLists, VirtualChassisAccessLists, VMAccessLists]

@@ -33,7 +33,8 @@ class Migration(migrations.Migration):
                 ('last_updated', models.DateTimeField(auto_now=True, null=True)),
                 ('custom_field_data', models.JSONField(blank=True, default=dict, encoder=django.core.serializers.json.DjangoJSONEncoder)),
                 ('name', models.CharField(max_length=100)),
-                ('device', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='access_lists', to='dcim.device')),
+                ('assigned_object_id', models.PositiveIntegerField()),
+                ('assigned_object_type', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='contenttypes.contenttype')),
                 ('type', models.CharField(max_length=100)),
                 ('default_action', models.CharField(default='deny', max_length=30)),
                 ('comments', models.TextField(blank=True)),
@@ -41,7 +42,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'ordering': ('name', 'device'),
-                'unique_together': {('name', 'device')},
+                'unique_together': {('assigned_object_type', 'assigned_object_id', 'name')},
                 'verbose_name': 'Access List',
             },
         ),
@@ -91,4 +92,8 @@ class Migration(migrations.Migration):
                 'verbose_name': 'ACL Extended Rule',
             },
         ),
+        #migrations.AddConstraint(
+        #    model_name='accesslist',
+        #    constraint=models.UniqueConstraint(fields=('assigned_object_type', 'assigned_object_id'), name='accesslist_assigned_object'),
+        #),
     ]

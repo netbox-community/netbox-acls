@@ -13,14 +13,17 @@ __all__ = (
     'AccessListListView',
     'AccessListEditView',
     'AccessListDeleteView',
+    'AccessListBulkDeleteView',
     'ACLStandardRuleView',
     'ACLStandardRuleListView',
     'ACLStandardRuleEditView',
     'ACLStandardRuleDeleteView',
+    'ACLStandardRuleBulkDeleteView',
     'ACLExtendedRuleView',
     'ACLExtendedRuleListView',
     'ACLExtendedRuleEditView',
     'ACLExtendedRuleDeleteView',
+    'ACLExtendedRuleBulkDeleteView',
 )
 
 
@@ -77,6 +80,12 @@ class AccessListDeleteView(generic.ObjectDeleteView):
     queryset = models.AccessList.objects.all()
 
 
+class AccessListBulkDeleteView(generic.BulkDeleteView):
+    queryset = models.AccessList.objects.all()
+    filterset = filtersets.AccessListFilterSet
+    table = tables.AccessListTable
+
+
 #class AccessListBulkEditView(generic.BulkEditView):
 #    """
 #    Defines the bulk edit view for the AccessList django model.
@@ -124,6 +133,12 @@ class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
     """
     queryset = models.ACLStandardRule.objects.all()
 
+
+class ACLStandardRuleBulkDeleteView(generic.BulkDeleteView):
+    queryset = models.ACLStandardRule.objects.all()
+    filterset = filtersets.ACLStandardRuleFilterSet
+    table = tables.ACLStandardRuleTable
+
 #
 # ACLExtendedRule views
 #
@@ -159,3 +174,8 @@ class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
     Defines the delete view for the ACLExtendedRules django model.
     """
     queryset = models.ACLExtendedRule.objects.all()
+
+class ACLExtendedRuleBulkDeleteView(generic.BulkDeleteView):
+    queryset = models.ACLExtendedRule.objects.all()
+    filterset = filtersets.ACLExtendedRuleFilterSet
+    table = tables.ACLExtendedRuleTable

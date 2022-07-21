@@ -8,7 +8,8 @@ from django.db.models import Count
 from netbox.api.viewsets import NetBoxModelViewSet
 
 from .. import filtersets, models
-from .serializers import AccessListSerializer, ACLStandardRuleSerializer, ACLExtendedRuleSerializer
+from .serializers import (AccessListSerializer, ACLExtendedRuleSerializer,
+                          ACLStandardRuleSerializer)
 
 __all__ = [
     'AccessListViewSet',

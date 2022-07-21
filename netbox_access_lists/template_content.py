@@ -26,7 +26,7 @@ class AccessLists(PluginTemplateExtension):
         elif ctype.model == 'virtualmachine':
             access_lists = AccessList.objects.filter(assigned_object_id=obj.pk, assigned_object_type=ctype)
 
-        return self.render('inc/device/access_lists.html', extra_context={
+        return self.render('inc/assigned_host/access_lists.html', extra_context={
             'access_lists': access_lists,
             'type': ctype.model if ctype.model == 'device' else ctype.name.replace(' ', '_'),
         })

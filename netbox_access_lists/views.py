@@ -12,6 +12,7 @@ __all__ = (
     'AccessListView',
     'AccessListListView',
     'AccessListEditView',
+    'AccessListDeleteView',
     'ACLStandardRuleView',
     'ACLStandardRuleListView',
     'ACLStandardRuleEditView',

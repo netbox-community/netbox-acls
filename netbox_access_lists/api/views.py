@@ -21,9 +21,7 @@ class AccessListViewSet(NetBoxModelViewSet):
     """
     Defines the view set for the django AccessList model & associates it to a view.
     """
-    queryset = models.AccessList.objects.prefetch_related(
-        'device', 'tags'
-    ).annotate(
+    queryset = models.AccessList.objects.prefetch_related('tags').annotate(
         rule_count=Count('aclextendedrules') + Count('aclstandardrules')
     )
     serializer_class = AccessListSerializer

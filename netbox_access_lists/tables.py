@@ -3,7 +3,8 @@ Define the object lists / table view for each of the plugin models.
 """
 
 import django_tables2 as tables
-from netbox.tables import ChoiceFieldColumn, NetBoxTable, columns
+from netbox.tables import (ChoiceFieldColumn, NetBoxTable, TemplateColumn,
+                           columns)
 
 from .models import (AccessList, ACLExtendedRule, ACLInterfaceAssignment,
                      ACLStandardRule)
@@ -15,6 +16,14 @@ __all__ = (
     'ACLExtendedRuleTable',
 )
 
+
+COL_HOST_ASSIGNMENT = """
+    {% if record.assigned_object.device %}
+    <a href="{{ record.assigned_object.device.get_absolute_url }}">{{ record.assigned_object.device|placeholder }}</a>
+    {% else %}
+    <a href="{{ record.assigned_object.virtual_machine.get_absolute_url }}">{{ record.assigned_object.virtual_machine|placeholder }}</a>
+    {% endif %}
+ """
 
 class AccessListTable(NetBoxTable):
     """
@@ -62,8 +71,9 @@ class ACLInterfaceAssignmentTable(NetBoxTable):
         linkify=True
     )
     direction = ChoiceFieldColumn()
-    host = tables.Column(
-        linkify=True
+    host = tables.TemplateColumn(
+        template_code=COL_HOST_ASSIGNMENT
+
     )
     assigned_object = tables.Column(
         linkify=True,

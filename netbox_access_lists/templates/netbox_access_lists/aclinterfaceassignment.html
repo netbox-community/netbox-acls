@@ -43,13 +43,17 @@
             <tr>
               <th scope="row">Host</th>
               <td>
-                <a href="{{ object.access_list.host.get_absolute_url }}">{{ object.host|placeholder }}</a>
+                {% if object.assigned_object.device %}
+                <a href="{{ object.assigned_object.device.get_absolute_url }}">{{ object.assigned_object.device|placeholder }}</a>
+                {% else %}
+                <a href="{{ object.assigned_object.virtual_machine.get_absolute_url }}">{{ object.assigned_object.virtual_machine|placeholder }}</a>
+                {% endif %}
               </td>
             </tr>
             <tr>
               <th scope="row">Interface</th>
               <td>
-                <a href="{{ object.access_list.assigned_object.get_absolute_url }}">{{ object.assigned_object }}</a>
+                <a href="{{ object.assigned_object.get_absolute_url }}">{{ object.assigned_object }}</a>
               </td>
             </tr>
             <tr>

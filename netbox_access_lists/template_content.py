@@ -22,9 +22,7 @@ class ACLInterfaceAssignments(PluginTemplateExtension):
 
         acl_interface_assignments = None
         ctype = ContentType.objects.get_for_model(obj)
-        if ctype.model == 'interface':
-            acl_interface_assignments = ACLInterfaceAssignment.objects.filter(assigned_object_id=obj.pk, assigned_object_type=ctype)
-        elif ctype.model == 'vminterface':
+        if ctype.model in ['interface', 'vminterface']:
             acl_interface_assignments = ACLInterfaceAssignment.objects.filter(assigned_object_id=obj.pk, assigned_object_type=ctype)
 
         return self.render('inc/assigned_interface/access_lists.html', extra_context={
@@ -40,11 +38,7 @@ class AccessLists(PluginTemplateExtension):
 
         access_lists = None
         ctype = ContentType.objects.get_for_model(obj)
-        if ctype.model == 'device':
-            access_lists = AccessList.objects.filter(assigned_object_id=obj.pk, assigned_object_type=ctype)
-        elif ctype.model == 'virtualchassis':
-            access_lists = AccessList.objects.filter(assigned_object_id=obj.pk, assigned_object_type=ctype)
-        elif ctype.model == 'virtualmachine':
+        if ctype.model in ['device', 'virtualchassis', 'virtualmachine']:
             access_lists = AccessList.objects.filter(assigned_object_id=obj.pk, assigned_object_type=ctype)
 
         return self.render('inc/assigned_host/access_lists.html', extra_context={

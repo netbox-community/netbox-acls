@@ -137,7 +137,6 @@ GenericRelation(
     related_query_name='vminterface'
 ).contribute_to_class(VMInterface, 'accesslistassignments')
 
-
 GenericRelation(
     to=AccessList,
     content_type_field='assigned_object_type',

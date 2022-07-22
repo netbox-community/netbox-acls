@@ -5,6 +5,7 @@ Defines each django model's GUI form to add or edit objects for each django mode
 from dcim.models import (Device, Interface, Region, Site, SiteGroup,
                          VirtualChassis)
 from django import forms
+from django.contrib.contenttypes.models import ContentType
 from django.utils.safestring import mark_safe
 from extras.models import Tag
 from ipam.models import Prefix
@@ -233,25 +234,78 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         #    'remark': mark_safe('<b>*Note:</b> CANNOT be set if source prefix OR action is set.'),
         #}
 
-    #def clean(self):
-    #    """
-    #    Validates form inputs before submitting.
-    #    If action is set to remark, remark needs to be set.
-    #    If action is set to remark, source_prefix cannot be set.
-    #    If action is not set to remark, remark cannot be set.
-    #    """
-    #    cleaned_data = super().clean()
-    #    error_message = {}
-    #    if cleaned_data.get('action') == 'remark':
-    #        if cleaned_data.get('remark') is None:
-    #            error_message.update({'remark': ['Action is set to remark, you MUST add a remark.']})
-    #        if cleaned_data.get('source_prefix'):
-    #            error_message.update({'source_prefix': ['Action is set to remark, Source Prefix CANNOT be set.']})
-    #    elif cleaned_data.get('remark'):
-    #            error_message.update({'remark': ['CANNOT set remark unless action is set to remark, .']})
-    #    if len(error_message) > 0:
-    #        raise forms.ValidationError(error_message)
-    #    return cleaned_data
+    def clean(self):
+        """
+        Validates form inputs before submitting.
+        If action is set to remark, remark needs to be set.
+        If action is set to remark, source_prefix cannot be set.
+        If action is not set to remark, remark cannot be set.
+        """
+        cleaned_data = super().clean()
+        error_message = {}
+        access_list = cleaned_data.get('access_list')
+        direction = cleaned_data.get('direction')
+        interface = cleaned_data.get('interface')
+        vminterface = cleaned_data.get('vminterface')
+        if interface:
+            assigned_object_id = Interface.objects.get(pk=interface.pk).pk
+            assigned_object_type = 'interface'
+            assigned_object_type_id = ContentType.objects.get_for_model(interface).pk
+            host = Interface.objects.get(pk=interface.pk).device
+            host_type = 'device'
+        elif vminterface:
+            assigned_object_id = VMInterface.objects.get(pk=vminterface.pk).pk
+            assigned_object_type = 'vminterface'
+            assigned_object_type_id = ContentType.objects.get_for_model(vminterface).pk
+            host = VMInterface.objects.get(pk=vminterface.pk).virtual_machine
+            host_type = 'virtual_machine'
+        access_list_host = AccessList.objects.get(pk=access_list.pk).assigned_object
+        # Check that both interface and vminterface are not set
+        if interface and vminterface:
+            error_message.update(
+                {
+                    'device': ['Access Lists must be assigned to one type of device at a time (VM or physical device).'],
+                    'interface': ['Access Lists must be assigned to one type of interface at a time (VM interface or physical interface)'],
+                    'virtual_machine': ['Access Lists must be assigned to one type of device at a time (VM or physical device).'],
+                    'vminterface': ['Access Lists must be assigned to one type of interface at a time (VM interface or physical interface)'],
+                }
+            )
+        elif not (interface or vminterface):
+            error_message.update(
+                {
+                    'interface': ['An Access List assignment but specify an Interface or VM Interface.'],
+                    'vminterface': ['An Access List assignment but specify an Interface or VM Interface.'],
+                }
+            )
+        # If NOT set with 2 interface types, check that an interface's parent device/virtual_machine is assigned to the Access List.
+        elif access_list_host != host:
+            error_message.update(
+                {
+                    'access_list': ['Access Lists must be assigned to a host before it can be assigned to the host interface.'],
+                    assigned_object_type: ['Access Lists must be assigned to a host before it can be assigned to the host interface.'],
+                    host_type: ['Access Lists must be assigned to a host before it can be assigned to the host interface.'],
+                }
+            )
+        # Check that for duplicate entry
+        if ACLInterfaceAssignment.objects.filter(access_list=access_list, assigned_object_id=assigned_object_id, assigned_object_type=assigned_object_type_id, direction=direction).exists():
+            error_message.update(
+                {
+                    'access_list': ['An ACL with this name (case insensitive) is already associated to this host.'],
+                    'direction': ['Interfaces can only have 1 Access List Assigned in each direction.'],
+                    assigned_object_type: ['Interfaces can only have 1 Access List Assigned in each direction.'],
+                }
+            )
+        # Check that the interface does not have an existing ACL applied in the direction already
+        elif assigned_object.objects.filter(assigned_object=assigned_object, direction=direction).exists():
+            error_message.update(
+                {
+                    'direction': ['Interfaces can only have 1 Access List Assigned in each direction.'],
+                    assigned_object_type: ['Interfaces can only have 1 Access List Assigned in each direction.'],
+                }
+            )
+        if len(error_message) > 0:
+            raise forms.ValidationError(error_message)
+        return cleaned_data
 
     def save(self, *args, **kwargs):
         # Set assigned object

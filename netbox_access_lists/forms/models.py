@@ -2,7 +2,8 @@
 Defines each django model's GUI form to add or edit objects for each django model.
 """
 
-from dcim.models import Device, Region, Site, SiteGroup, VirtualChassis
+from dcim.models import (Device, Interface, Region, Site, SiteGroup,
+                         VirtualChassis)
 from django import forms
 from django.utils.safestring import mark_safe
 from extras.models import Tag
@@ -10,12 +11,14 @@ from ipam.models import Prefix
 from netbox.forms import NetBoxModelForm
 from utilities.forms import (CommentField, DynamicModelChoiceField,
                              DynamicModelMultipleChoiceField)
-from virtualization.models import VirtualMachine
+from virtualization.models import VirtualMachine, VMInterface
 
-from ..models import AccessList, ACLExtendedRule, ACLStandardRule
+from ..models import (AccessList, ACLExtendedRule, ACLInterfaceAssignment,
+                      ACLStandardRule)
 
 __all__ = (
     'AccessListForm',
+    'ACLInterfaceAssignmentForm',
     'ACLStandardRuleForm',
     'ACLExtendedRuleForm',
 )
@@ -142,6 +145,117 @@ class AccessListForm(NetBoxModelForm):
     def save(self, *args, **kwargs):
         # Set assigned object
         self.instance.assigned_object = self.cleaned_data.get('device') or self.cleaned_data.get('virtual_chassis') or self.cleaned_data.get('virtual_machine')
+
+        return super().save(*args, **kwargs)
+
+
+class ACLInterfaceAssignmentForm(NetBoxModelForm):
+    """
+    GUI form to add or edit ACL Host Object assignments
+    Requires an access_list, a name, a type, and a default_action.
+    """
+    device = DynamicModelChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        query_params={
+           # Need to pass ACL device to it
+        },
+    )
+    interface = DynamicModelChoiceField(
+        queryset=Interface.objects.all(),
+        required=False,
+        query_params={
+            'device_id': '$device'
+        }
+    )
+    virtual_machine = DynamicModelChoiceField(
+        queryset=VirtualMachine.objects.all(),
+        required=False,
+        label='Virtual Machine',
+    )
+    vminterface = DynamicModelChoiceField(
+        queryset=VMInterface.objects.all(),
+        required=False,
+        query_params={
+            'virtual_machine_id': '$virtual_machine'
+        },
+        label='VM Interface'
+    )
+    #virtual_chassis = DynamicModelChoiceField(
+    #    queryset=VirtualChassis.objects.all(),
+    #    required=False,
+    #    label='Virtual Chassis',
+    #)
+    access_list = DynamicModelChoiceField(
+        queryset=AccessList.objects.all(),
+        query_params={
+            'assigned_object': '$device',
+            #'assigned_object': '$virtual_machine',
+        },
+        label='Access List',
+    )
+    comments = CommentField()
+    tags = DynamicModelMultipleChoiceField(
+        queryset=Tag.objects.all(),
+        required=False
+    )
+
+    #fieldsets = (
+    #    ('Access List Details', ('access_list', 'description', 'tags')),
+    #    ('Rule Definition', ('index', 'action', 'remark', 'source_prefix')),
+    #)
+
+    def __init__(self, *args, **kwargs):
+
+        # Initialize helper selectors
+        instance = kwargs.get('instance')
+        initial = kwargs.get('initial', {}).copy()
+        if instance:
+            if type(instance.assigned_object) is Interface:
+                initial['interface'] = instance.assigned_object
+                initial['device'] = 'device'
+            elif type(instance.assigned_object) is VMInterface:
+                initial['vminterface'] = instance.assigned_object
+                initial['virtual_machine'] = 'virtual_machine'
+        kwargs['initial'] = initial
+
+        super().__init__(*args, **kwargs)
+
+
+    class Meta:
+        model = ACLInterfaceAssignment
+        fields = (
+            'access_list', 'direction', 'device', 'interface', 'virtual_machine',
+            'vminterface', 'comments', 'tags',
+        )
+        #help_texts = {
+        #    'index': 'Determines the order of the rule in the ACL processing.',
+        #    'remark': mark_safe('<b>*Note:</b> CANNOT be set if source prefix OR action is set.'),
+        #}
+
+    #def clean(self):
+    #    """
+    #    Validates form inputs before submitting.
+    #    If action is set to remark, remark needs to be set.
+    #    If action is set to remark, source_prefix cannot be set.
+    #    If action is not set to remark, remark cannot be set.
+    #    """
+    #    cleaned_data = super().clean()
+    #    error_message = {}
+    #    if cleaned_data.get('action') == 'remark':
+    #        if cleaned_data.get('remark') is None:
+    #            error_message.update({'remark': ['Action is set to remark, you MUST add a remark.']})
+    #        if cleaned_data.get('source_prefix'):
+    #            error_message.update({'source_prefix': ['Action is set to remark, Source Prefix CANNOT be set.']})
+    #    elif cleaned_data.get('remark'):
+    #            error_message.update({'remark': ['CANNOT set remark unless action is set to remark, .']})
+    #    if len(error_message) > 0:
+    #        raise forms.ValidationError(error_message)
+    #    return cleaned_data
+
+    def save(self, *args, **kwargs):
+        # Set assigned object
+        self.instance.assigned_object = self.cleaned_data.get('interface') or self.cleaned_data.get('vminterface')
 
         return super().save(*args, **kwargs)
 

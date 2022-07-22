@@ -6,10 +6,29 @@ from .models import AccessList
 
 __all__ = (
     'AccessLists',
+    "ACLInterfaceAssignments",
     'DeviceAccessLists',
     'VirtualChassisAccessLists',
     'VMAccessLists',
 )
+
+
+class ACLInterfaceAssignments(PluginTemplateExtension):
+
+    def right_page(self):
+        obj = self.context['object']
+
+        interface_assignments = None
+        ctype = ContentType.objects.get_for_model(obj)
+        if ctype.model == 'device':
+            interface_assignments = ACLInterfaceAssignment.objects.filter(assigned_object_id=obj.pk, assigned_object_type=ctype)
+        elif ctype.model == 'virtualmachine':
+            interface_assignments = ACLInterfaceAssignment.objects.filter(assigned_object_id=obj.pk, assigned_object_type=ctype)
+
+        return self.render('inc/assigned_interface/access_lists.html', extra_context={
+            'interface_assignments': interface_assignments,
+            '': ctype.model if ctype.model == 'device' else ctype.name.replace(' ', '_'),
+        })
 
 
 class AccessLists(PluginTemplateExtension):

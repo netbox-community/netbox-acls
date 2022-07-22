@@ -9,11 +9,13 @@ from netbox.api.viewsets import NetBoxModelViewSet
 
 from .. import filtersets, models
 from .serializers import (AccessListSerializer, ACLExtendedRuleSerializer,
+                          ACLInterfaceAssignmentSerializer,
                           ACLStandardRuleSerializer)
 
 __all__ = [
     'AccessListViewSet',
     'ACLStandardRuleViewSet',
+    'ACLInterfaceAssignmentViewSet'
     'ACLExtendedRuleViewSet',
 ]
 
@@ -27,6 +29,15 @@ class AccessListViewSet(NetBoxModelViewSet):
     )
     serializer_class = AccessListSerializer
     filterset_class = filtersets.AccessListFilterSet
+
+
+class ACLInterfaceAssignmentViewSet(NetBoxModelViewSet):
+    """
+    Defines the view set for the django ACLInterfaceAssignment model & associates it to a view.
+    """
+    queryset = models.ACLInterfaceAssignment.objects.prefetch_related('access_list', 'tags')
+    serializer_class = ACLInterfaceAssignmentSerializer
+    filterset_class = filtersets.ACLInterfaceAssignmentFilterSet
 
 
 class ACLStandardRuleViewSet(NetBoxModelViewSet):

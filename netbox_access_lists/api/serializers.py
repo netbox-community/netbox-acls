@@ -11,16 +11,20 @@ from netbox.api.serializers import NetBoxModelSerializer
 from rest_framework import serializers
 from utilities.api import get_serializer_for_model
 
-from ..constants import ACL_HOST_ASSIGNMENT_MODELS
-from ..models import AccessList, ACLExtendedRule, ACLStandardRule
+from ..constants import (ACL_HOST_ASSIGNMENT_MODELS,
+                         ACL_INTERFACE_ASSIGNMENT_MODELS)
+from ..models import (AccessList, ACLExtendedRule, ACLInterfaceAssignment,
+                      ACLStandardRule)
 from .nested_serializers import (NestedAccessListSerializer,
                                  NestedACLExtendedRuleSerializer,
+                                 NestedACLInterfaceAssignmentSerializer,
                                  NestedACLStandardRuleSerializer)
 
 __all__ = [
-    'NestedAccessListSerializer',
-    'NestedACLStandardRuleSerializer',
-    'NestedACLExtendedRuleSerializer'
+    'AccessListSerializer',
+    'ACLInterfaceAssignmentSerializer',
+    'ACLStandardRuleSerializer',
+    'ACLExtendedRuleSerializer'
 ]
 
 
@@ -63,6 +67,46 @@ class AccessListSerializer(NetBoxModelSerializer):
             })
 
         return super().validate(data)
+
+
+class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
+    """
+    Defines the serializer for the django ACLInterfaceAssignment model & associates it to a view.
+    """
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_access_lists-api:aclinterfaceassignment-detail'
+    )
+    assigned_object_type = ContentTypeField(
+        queryset=ContentType.objects.filter(ACL_INTERFACE_ASSIGNMENT_MODELS)
+    )
+    assigned_object = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        """
+        Associates the django model ACLInterfaceAssignment & fields to the serializer.
+        """
+        model = ACLInterfaceAssignment
+        fields = (
+            'id', 'url', 'access_list', 'direction', 'assigned_object_type', 'assigned_object_id', 'assigned_object', 'comments', 'tags', 'custom_fields', 'created',
+            'last_updated'
+        )
+
+    @swagger_serializer_method(serializer_or_field=serializers.DictField)
+    def get_assigned_object(self, obj):
+        serializer = get_serializer_for_model(obj.assigned_object, prefix='Nested')
+        context = {'request': self.context['request']}
+        return serializer(obj.assigned_object, context=context).data
+
+    #def validate(self, data):
+    #    """
+    #    Validate the AccessList django model model's inputs before allowing it to update the instance.
+    #    """
+    #    if self.instance.rule_count > 0:
+    #        raise serializers.ValidationError({
+    #            'type': 'This ACL has ACL rules already associated, CANNOT change ACL type!!'
+    #        })
+#
+    #    return super().validate(data)
 
 
 class ACLStandardRuleSerializer(NetBoxModelSerializer):

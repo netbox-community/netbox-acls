@@ -5,10 +5,12 @@ Define the object lists / table view for each of the plugin models.
 import django_tables2 as tables
 from netbox.tables import ChoiceFieldColumn, NetBoxTable, columns
 
-from .models import AccessList, ACLExtendedRule, ACLStandardRule
+from .models import (AccessList, ACLExtendedRule, ACLInterfaceAssignment,
+                     ACLStandardRule)
 
 __all__ = (
     'AccessListTable',
+    'ACLInterfaceAssignmentTable',
     'ACLStandardRuleTable',
     'ACLExtendedRuleTable',
 )
@@ -19,7 +21,7 @@ class AccessListTable(NetBoxTable):
     Defines the table view for the AccessList model.
     """
     pk = columns.ToggleColumn()
-    id = tables.Column(  # Provides a link to the secret
+    id = tables.Column(
         linkify=True
     )
     assigned_object = tables.Column(
@@ -46,6 +48,36 @@ class AccessListTable(NetBoxTable):
         model = AccessList
         fields = ('pk', 'id', 'name', 'assigned_object', 'type', 'rule_count', 'default_action', 'comments', 'actions', 'tags')
         default_columns = ('name', 'assigned_object', 'type', 'rule_count', 'default_action', 'tags')
+
+
+class ACLInterfaceAssignmentTable(NetBoxTable):
+    """
+    Defines the table view for the AccessList model.
+    """
+    pk = columns.ToggleColumn()
+    id = tables.Column(
+        linkify=True
+    )
+    access_list = tables.Column(
+        linkify=True
+    )
+    direction = ChoiceFieldColumn()
+    host = tables.Column(
+        linkify=True
+    )
+    assigned_object = tables.Column(
+        linkify=True,
+        orderable=False,
+        verbose_name='Assigned Interface'
+    )
+    tags = columns.TagColumn(
+        url_name='plugins:netbox_access_lists:aclinterfaceassignment_list'
+    )
+
+    class Meta(NetBoxTable.Meta):
+        model = ACLInterfaceAssignment
+        fields = ('pk', 'id', 'access_list', 'direction', 'host', 'assigned_object', 'tags')
+        default_columns = ('id', 'access_list', 'direction', 'host', 'assigned_object', 'tags')
 
 
 class ACLStandardRuleTable(NetBoxTable):

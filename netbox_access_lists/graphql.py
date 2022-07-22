@@ -10,6 +10,7 @@ from . import filtersets, models
 
 __all__ = (
     'AccessListType',
+    'ACLInterfaceAssignmentType',
     'ACLExtendedRuleType',
     'ACLStandardRuleType',
 )
@@ -31,6 +32,20 @@ class AccessListType(NetBoxObjectType):
         model = models.AccessList
         fields = '__all__'
         filterset_class = filtersets.AccessListFilterSet
+
+
+class ACLInterfaceAssignmentType(NetBoxObjectType):
+    """
+    Defines the object type for the django model AccessList.
+    """
+
+    class Meta:
+        """
+        Associates the filterset, fields, and model for the django model ACLInterfaceAssignment.
+        """
+        model = models.ACLInterfaceAssignment
+        fields = '__all__'
+        filterset_class = filtersets.ACLInterfaceAssignmentFilterSet
 
 
 class ACLExtendedRuleType(NetBoxObjectType):

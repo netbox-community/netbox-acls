@@ -2,15 +2,14 @@
 {% load static %}
 {% load form_helpers %}
 
-{% block title %}{% if obj.pk %}Editing {{ obj }}{% else %}Add an Access List{% endif %}{% endblock %}
+{% block title %}{% if obj.pk %}Editing {{ obj }}{% else %}Add an Access List to an Interface{% endif %}{% endblock %}
 
 {% block form %}
 {% render_errors form %}
 <div class="field-group">
   <h4>Access List Details</h4>
-  {% render_field form.name %}
-  {% render_field form.type %}
-  {% render_field form.default_action %}
+  {% render_field form.access_list %}
+  {% render_field form.direction %}
   {% render_field form.tags %}
 </div>
 <div class="field-group">
@@ -30,19 +29,6 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-              <button
-                  role="tab"
-                  type="button"
-                  id="vm_tab"
-                  data-bs-toggle="tab"
-                  class="nav-link {% if form.initial.virtual_chassis %}active{% endif %}"
-                  data-bs-target="#virtualchassis"
-                  aria-controls="virtualchassis"
-              >
-                  Virtual Chassis
-              </button>
-          </li>
-            <li class="nav-item" role="presentation">
                 <button
                     role="tab"
                     type="button"
@@ -58,16 +44,12 @@
         </ul>
         <div class="tab-content">
             <div class="tab-pane{% if not form.initial.virtual_chassis and not form.initial.virtualmachine %} active{% endif %}" id="device">
-                {% render_field form.region %}
-                {% render_field form.site_group %}
-                {% render_field form.site %}
                 {% render_field form.device %}
+                {% render_field form.interface %}
             </div>
-            <div class="tab-pane{% if form.initial.virtual_chassis %} active{% endif %}" id="virtualchassis">
-              {% render_field form.virtual_chassis %}
-          </div>
             <div class="tab-pane{% if form.initial.virtual_machine %} active{% endif %}" id="virtualmachine">
                 {% render_field form.virtual_machine %}
+                {% render_field form.vminterface %}
             </div>
     </div>
 </div>

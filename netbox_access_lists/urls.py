@@ -21,7 +21,19 @@ urlpatterns = (
         'model': models.AccessList
     }),
 
-    # Standard Access List rules
+    # Access List Interface Assignments
+    path('interface-assignments/', views.ACLInterfaceAssignmentListView.as_view(), name='aclinterfaceassignment_list'),
+    path('interface-assignments/add/', views.ACLInterfaceAssignmentEditView.as_view(), name='aclinterfaceassignment_add'),
+    #path('interface-assignments/edit/', views.ACLInterfaceAssignmentBulkEditView.as_view(), name='aclinterfaceassignment_bulk_edit'),
+    path('interface-assignments/delete/', views.ACLInterfaceAssignmentBulkDeleteView.as_view(), name='aclinterfaceassignment_bulk_delete'),
+    path('interface-assignments/<int:pk>/', views.ACLInterfaceAssignmentView.as_view(), name='aclinterfaceassignment'),
+    path('interface-assignments/<int:pk>/edit/', views.ACLInterfaceAssignmentEditView.as_view(), name='aclinterfaceassignment_edit'),
+    path('interface-assignments/<int:pk>/delete/', views.ACLInterfaceAssignmentDeleteView.as_view(), name='aclinterfaceassignment_delete'),
+    path('interface-assignments/<int:pk>/changelog/', ObjectChangeLogView.as_view(), name='aclinterfaceassignment_changelog', kwargs={
+        'model': models.ACLInterfaceAssignment
+    }),
+
+    # Standard Access List Rules
     path('standard-rules/', views.ACLStandardRuleListView.as_view(), name='aclstandardrule_list'),
     path('standard-rules/add/', views.ACLStandardRuleEditView.as_view(), name='aclstandardrule_add'),
     path('standard-rules/delete/', views.ACLStandardRuleBulkDeleteView.as_view(), name='aclstandardrule_bulk_delete'),
@@ -32,7 +44,7 @@ urlpatterns = (
         'model': models.ACLStandardRule
     }),
 
-    # Extended Access List rules
+    # Extended Access List Rules
     path('extended-rules/', views.ACLExtendedRuleListView.as_view(), name='aclextendedrule_list'),
     path('extended-rules/add/', views.ACLExtendedRuleEditView.as_view(), name='aclextendedrule_add'),
     path('extended-rules/delete/', views.ACLExtendedRuleBulkDeleteView.as_view(), name='aclextendedrule_bulk_delete'),

@@ -6,10 +6,12 @@ while Django itself handles the database abstraction.
 from netbox.api.serializers import WritableNestedSerializer
 from rest_framework import serializers
 
-from ..models import AccessList, ACLExtendedRule, ACLStandardRule
+from ..models import (AccessList, ACLExtendedRule, ACLInterfaceAssignment,
+                      ACLStandardRule)
 
 __all__ = [
     'NestedAccessListSerializer',
+    'NestedACLInterfaceAssignmentSerializer',
     'NestedACLStandardRuleSerializer',
     'NestedACLExtendedRuleSerializer'
 ]
@@ -28,6 +30,22 @@ class NestedAccessListSerializer(WritableNestedSerializer):
         """
         model = AccessList
         fields = ('id', 'url', 'display', 'name')
+
+
+class NestedACLInterfaceAssignmentSerializer(WritableNestedSerializer):
+    """
+    Defines the nested serializer for the django ACLInterfaceAssignment model & associates it to a view.
+    """
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_access_lists-api:aclinterfaceassignment-detail'
+    )
+
+    class Meta:
+        """
+        Associates the django model ACLInterfaceAssignment & fields to the nested serializer.
+        """
+        model = ACLInterfaceAssignment
+        fields = ('id', 'url', 'display', 'access_list')
 
 
 class NestedACLStandardRuleSerializer(WritableNestedSerializer):

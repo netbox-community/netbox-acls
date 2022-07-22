@@ -2,20 +2,22 @@
 Define the django models for this plugin.
 """
 
-from dcim.models import Device, VirtualChassis
+from dcim.models import Device, Interface, VirtualChassis
 from django.contrib.contenttypes.fields import (GenericForeignKey,
                                                 GenericRelation)
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.urls import reverse
 from netbox.models import NetBoxModel
-from virtualization.models import VirtualMachine
+from virtualization.models import VirtualMachine, VMInterface
 
 from ..choices import *
-from ..constants import ACL_HOST_ASSIGNMENT_MODELS
+from ..constants import (ACL_HOST_ASSIGNMENT_MODELS,
+                         ACL_INTERFACE_ASSIGNMENT_MODELS)
 
 __all__ = (
     'AccessList',
+    'ACLInterfaceAssignment',
 )
 
 
@@ -54,6 +56,7 @@ class AccessList(NetBoxModel):
         unique_together = ['assigned_object_type', 'assigned_object_id', 'name']
         ordering = ['assigned_object_type', 'assigned_object_id', 'name']
         verbose_name = "Access List"
+        verbose_name_plural = "Access Lists"
 
     def __str__(self):
         return self.name
@@ -70,6 +73,69 @@ class AccessList(NetBoxModel):
 
     def get_type_color(self):
         return ACLTypeChoices.colors.get(self.type)
+
+
+class ACLInterfaceAssignment(NetBoxModel):
+    """
+    Model defintion for Access Lists associations with other Host interfaces:
+      - VM interfaces
+      - device interface
+      - tbd on more
+    """
+
+    access_list = models.ForeignKey(
+        on_delete=models.CASCADE,
+        to=AccessList,
+        verbose_name='Access List',
+    )
+    direction = models.CharField(
+        max_length=30,
+        choices=ACLAssignmentDirectionChoices
+    )
+    assigned_object_type = models.ForeignKey(
+        to=ContentType,
+        limit_choices_to=ACL_INTERFACE_ASSIGNMENT_MODELS,
+        on_delete=models.PROTECT
+    )
+    assigned_object_id = models.PositiveBigIntegerField()
+    assigned_object = GenericForeignKey(
+        ct_field='assigned_object_type',
+        fk_field='assigned_object_id'
+    )
+    comments = models.TextField(
+        blank=True
+    )
+
+    class Meta:
+        unique_together = ['assigned_object_type', 'assigned_object_id', 'access_list', 'direction']
+        ordering = ['assigned_object_type', 'assigned_object_id', 'access_list', 'direction']
+        verbose_name = "ACL Interface Assignment"
+        verbose_name_plural = "ACL Interface Assignments"
+
+    def get_absolute_url(self):
+        """
+        The method is a Django convention; although not strictly required,
+        it conveniently returns the absolute URL for any particular object.
+        """
+        return reverse('plugins:netbox_access_lists:aclinterfaceassignment', args=[self.pk])
+
+    def get_direction_color(self):
+        return ACLAssignmentDirectionChoices.colors.get(self.direction)
+
+
+GenericRelation(
+    to=ACLInterfaceAssignment,
+    content_type_field='assigned_object_type',
+    object_id_field='assigned_object_id',
+    related_query_name='interface'
+).contribute_to_class(Interface, 'accesslistassignments')
+
+GenericRelation(
+    to=ACLInterfaceAssignment,
+    content_type_field='assigned_object_type',
+    object_id_field='assigned_object_id',
+    related_query_name='vminterface'
+).contribute_to_class(VMInterface, 'accesslistassignments')
 
 
 GenericRelation(

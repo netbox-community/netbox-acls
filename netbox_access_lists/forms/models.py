@@ -241,6 +241,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         direction = cleaned_data.get('direction')
         interface = cleaned_data.get('interface')
         vminterface = cleaned_data.get('vminterface')
+        assigned_object = cleaned_data.get('assigned_object')
         if interface:
             assigned_object_id = Interface.objects.get(pk=interface.pk).pk
             assigned_object_type = 'interface'
@@ -262,7 +263,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
             error_message |= {'device': [error_too_many_hosts], 'interface': [error_too_many_interfaces], 'virtual_machine': [error_too_many_hosts], 'vminterface': [error_too_many_interfaces]}
         elif not (interface or vminterface):
             error_no_interface = 'An Access List assignment but specify an Interface or VM Interface.'
-            error_message.update |= {'interface': [error_no_interface], 'vminterface': [error_no_interface]}
+            error_message |= {'interface': [error_no_interface], 'vminterface': [error_no_interface]}
         # If NOT set with 2 interface types, check that an interface's parent device/virtual_machine is assigned to the Access List.
         elif access_list_host != host:
             error_acl_not_on_host = 'Access Lists must be assigned to a host before it can be assigned to the host interface.'
@@ -272,8 +273,12 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         if ACLInterfaceAssignment.objects.filter(access_list=access_list, assigned_object_id=assigned_object_id, assigned_object_type=assigned_object_type_id, direction=direction).exists():
             error_duplicate_entry = 'An ACL with this name is already associated to this interface & direction.'
             error_message |= {'access_list': [error_duplicate_entry], 'direction': [error_duplicate_entry], assigned_object_type: [error_duplicate_entry]}
+        # Check if ACL assigned to host
+        elif not AccessList.objects.filter(assigned_object_id=host.pk, assigned_object_type=assigned_object_type_id, name=access_list).exists():
+            error_acl_not_assigned_to_host = 'Access List not present on selected host.'
+            error_message |= {'access_list': [error_acl_not_assigned_to_host], host_type: [error_acl_not_assigned_to_host]}
         # Check that the interface does not have an existing ACL applied in the direction already
-        elif assigned_object.objects.filter(assigned_object=assigned_object, direction=direction).exists():
+        elif ACLInterfaceAssignment.objects.filter(assigned_object_id=assigned_object_id, assigned_object_type=ContentType.objects.get_for_model(assigned_object_type).pk, direction=direction).exists():
             error_interface_already_assigned = 'Interfaces can only have 1 Access List Assigned in each direction.'
             error_message |= {'direction': [error_interface_already_assigned], assigned_object_type: [error_interface_already_assigned]}
 

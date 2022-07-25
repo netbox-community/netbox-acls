@@ -50,8 +50,8 @@ class ACLAssignmentDirectionChoices(ChoiceSet):
     """
 
     CHOICES = [
-        ('in', 'In', 'blue'),
-        ('out', 'Out', 'purple'),
+        ('ingress', 'Ingress', 'blue'),
+        ('egress', 'Egress', 'purple'),
     ]
 
 

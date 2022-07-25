@@ -15,7 +15,7 @@
             <td>{{ object.access_list.default_action|title }}</td>
             {% if object.access_list.type == 'standard' %}
             <td>{{ object.access_list.aclstandardrules.count|placeholder }}</td>
-            {% elif object.type == 'extended' %}
+            {% elif object.access_list.type == 'extended' %}
             <td>{{ object.access_list.aclextendedrules.count|placeholder }}</td>
             {% endif %}
             <td>{{ object.direction|title }}</td>

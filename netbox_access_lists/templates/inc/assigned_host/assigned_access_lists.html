@@ -1,4 +1,4 @@
-{% if acl_interface_assignments %}
+{% if access_lists %}
 
 <table class="table table-hover">
     <tr>
@@ -7,7 +7,7 @@
         <th>Default Action</th>
         <th>Rule Count</th>
     </tr>
-    {% for object in acl_interface_assignments %}
+    {% for object in access_lists %}
         <tr>
             <td>{{ object|linkify }}</td>
             <td>{{ object.type|title }}</td>
@@ -22,6 +22,6 @@
 </table>
 {% else %}
 <div class="text-muted">
-    None
+    None found
 </div>
 {% endif %}

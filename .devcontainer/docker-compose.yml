@@ -1,7 +1,7 @@
 version: '3.4'
 services:
   netbox: &netbox
-    image: tgenannt/netbox:${VARIANT-latest}
+    image: netboxcommunity/netbox:${VARIANT-latest}
     depends_on:
       - postgres
       - redis

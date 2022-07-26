@@ -1,6 +1,6 @@
 ARG VARIANT=latest
 
-FROM tgenannt/netbox:${VARIANT}
+FROM netboxcommunity/netbox:${VARIANT}
 
 ARG DEBIAN_FRONTEND=noninteractive
 

@@ -183,10 +183,10 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
     #)
     access_list = DynamicModelChoiceField(
         queryset=AccessList.objects.all(),
-        query_params={
-            'assigned_object': '$device',
-            #'assigned_object': '$virtual_machine',
-        },
+        #query_params={
+        #    'assigned_object': '$device',
+        #    'assigned_object': '$virtual_machine',
+        #},
         label='Access List',
     )
     comments = CommentField()
@@ -194,11 +194,6 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         queryset=Tag.objects.all(),
         required=False
     )
-
-    #fieldsets = (
-    #    ('Access List Details', ('access_list', 'description', 'tags')),
-    #    ('Rule Definition', ('index', 'action', 'remark', 'source_prefix')),
-    #)
 
     def __init__(self, *args, **kwargs):
 
@@ -247,12 +242,14 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
             assigned_object_type = 'interface'
             assigned_object_type_id = ContentType.objects.get_for_model(interface).pk
             host = Interface.objects.get(pk=interface.pk).device
+            host_object_type_id  = ContentType.objects.get_for_model(host).pk
             host_type = 'device'
         elif vminterface:
             assigned_object_id = VMInterface.objects.get(pk=vminterface.pk).pk
             assigned_object_type = 'vminterface'
             assigned_object_type_id = ContentType.objects.get_for_model(vminterface).pk
             host = VMInterface.objects.get(pk=vminterface.pk).virtual_machine
+            host_object_type_id  = ContentType.objects.get_for_model(vminterface).pk
             host_type = 'virtual_machine'
         access_list_host = AccessList.objects.get(pk=access_list.pk).assigned_object
 
@@ -267,18 +264,18 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         # If NOT set with 2 interface types, check that an interface's parent device/virtual_machine is assigned to the Access List.
         elif access_list_host != host:
             error_acl_not_on_host = 'Access Lists must be assigned to a host before it can be assigned to the host interface.'
-            error_message |= {'access_list': [error_acl_not_on_host],assigned_object_type: [error_acl_not_on_host],host_type: [error_acl_not_on_host]}
+            error_message |= {'access_list': [error_acl_not_on_host], assigned_object_type: [error_acl_not_on_host], host_type: [error_acl_not_on_host]}
 
         # Check that for duplicate entry
         if ACLInterfaceAssignment.objects.filter(access_list=access_list, assigned_object_id=assigned_object_id, assigned_object_type=assigned_object_type_id, direction=direction).exists():
             error_duplicate_entry = 'An ACL with this name is already associated to this interface & direction.'
             error_message |= {'access_list': [error_duplicate_entry], 'direction': [error_duplicate_entry], assigned_object_type: [error_duplicate_entry]}
         # Check if ACL assigned to host
-        elif not AccessList.objects.filter(assigned_object_id=host.pk, assigned_object_type=assigned_object_type_id, name=access_list).exists():
+        elif not AccessList.objects.filter(assigned_object_id=host.pk, assigned_object_type=host_object_type_id, name=access_list).exists():
             error_acl_not_assigned_to_host = 'Access List not present on selected host.'
             error_message |= {'access_list': [error_acl_not_assigned_to_host], host_type: [error_acl_not_assigned_to_host]}
         # Check that the interface does not have an existing ACL applied in the direction already
-        elif ACLInterfaceAssignment.objects.filter(assigned_object_id=assigned_object_id, assigned_object_type=ContentType.objects.get_for_model(assigned_object_type).pk, direction=direction).exists():
+        elif ACLInterfaceAssignment.objects.filter(assigned_object_id=assigned_object_id, assigned_object_type=assigned_object_type_id, direction=direction).exists():
             error_interface_already_assigned = 'Interfaces can only have 1 Access List Assigned in each direction.'
             error_message |= {'direction': [error_interface_already_assigned], assigned_object_type: [error_interface_already_assigned]}
 

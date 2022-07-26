@@ -122,26 +122,31 @@ class AccessListForm(NetBoxModelForm):
         virtual_machine = cleaned_data.get('virtual_machine')
 
 
+        # Check if more than one host type selected.
         if (device and virtual_chassis) or (device and virtual_machine) or (virtual_chassis and virtual_machine):
             raise forms.ValidationError('Access Lists must be assigned to one host (either a device, virtual chassis or virtual machine) at a time.')
+        # Check if no hosts selected.
         if not device and not virtual_chassis and not virtual_machine:
             raise forms.ValidationError('Access Lists must be assigned to a device, virtual chassis or virtual machine.')
 
         if device:
             host_type = 'device'
+            existing_acls = AccessList.objects.filter(name__iexact=name, device=device).exists()
         elif virtual_chassis:
             host_type = 'virtual_chassis'
+            existing_acls = AccessList.objects.filter(name__iexact=name, virtual_chassis=virtual_chassis).exists()
         elif virtual_machine:
             host_type = 'virtual_machine'
-        if ('name' in self.changed_data or host_type in self.changed_data) and AccessList.objects.filter(name__iexact=name, device=device).exists():
+            existing_acls = AccessList.objects.filter(name__iexact=name, virtual_machine=virtual_machine).exists()
+        host = cleaned_data.get(host_type)
+
+        # Check if Access List already assigned to host with a similar name
+        if ('name' in self.changed_data or host_type in self.changed_data) and existing_acls:
             error_same_acl_name = 'An ACL with this name (case insensitive) is already associated to this host.'
             error_message |= {host_type: [error_same_acl_name], 'name': [error_same_acl_name]}
-
-        if acl_type == 'extended' and self.instance.aclstandardrules.exists():
-            error_message['type'] = ['This ACL has Standard ACL rules already associated, CANNOT change ACL type!!']
-
-        elif acl_type == 'standard' and self.instance.aclextendedrules.exists():
-            error_message['type'] = ['This ACL has Extended ACL rules already associated, CANNOT change ACL type!!']
+        # Check if Access List already assigned with existing rules
+        if (acl_type == 'extended' and self.instance.aclstandardrules.exists()) or (acl_type == 'standard' and self.instance.aclextendedrules.exists()):
+            error_message['type'] = ['This ACL has ACL rules associated, CANNOT change ACL type!!']
 
         if error_message:
             raise forms.ValidationError(error_message)
@@ -249,36 +254,37 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         vminterface = cleaned_data.get('vminterface')
         assigned_object = cleaned_data.get('assigned_object')
         if interface:
-            assigned_object_id = Interface.objects.get(pk=interface.pk).pk
+            assigned_object = interface
             assigned_object_type = 'interface'
-            assigned_object_type_id = ContentType.objects.get_for_model(interface).pk
-            host = Interface.objects.get(pk=interface.pk).device
             host_type = 'device'
         elif vminterface:
-            assigned_object_id = VMInterface.objects.get(pk=vminterface.pk).pk
+            assigned_object = vminterface
             assigned_object_type = 'vminterface'
-            assigned_object_type_id = ContentType.objects.get_for_model(vminterface).pk
-            host = VMInterface.objects.get(pk=vminterface.pk).virtual_machine
             host_type = 'virtual_machine'
+        if interface or vminterface:
+            assigned_object_id = VMInterface.objects.get(pk=assigned_object.pk).pk
+            assigned_object_type_id = ContentType.objects.get_for_model(assigned_object).pk
+            host = VMInterface.objects.get(pk=assigned_object.pk).virtual_machine
         access_list_host = AccessList.objects.get(pk=access_list.pk).assigned_object
 
-        # Check that both interface and vminterface are not set
+        # Check if both interface and vminterface are set.
         if interface and vminterface:
             error_too_many_interfaces = 'Access Lists must be assigned to one type of interface at a time (VM interface or physical interface)'
             error_too_many_hosts = 'Access Lists must be assigned to one type of device at a time (VM or physical device).'
             error_message |= {'device': [error_too_many_hosts], 'interface': [error_too_many_interfaces], 'virtual_machine': [error_too_many_hosts], 'vminterface': [error_too_many_interfaces]}
+        # Check if neither interface or vminterface are set.
         elif not (interface or vminterface):
             error_no_interface = 'An Access List assignment but specify an Interface or VM Interface.'
             error_message |= {'interface': [error_no_interface], 'vminterface': [error_no_interface]}
-        # If NOT set with 2 interface types, check that an interface's parent device/virtual_machine is assigned to the Access List.
+        # Check that an interface's parent device/virtual_machine is assigned to the Access List.
         elif access_list_host != host:
             error_acl_not_assigned_to_host = 'Access List not present on selected host.'
             error_message |= {'access_list': [error_acl_not_assigned_to_host], assigned_object_type: [error_acl_not_assigned_to_host], host_type: [error_acl_not_assigned_to_host]}
-        # Check for duplicate entry
+        # Check for duplicate entry.
         elif ACLInterfaceAssignment.objects.filter(access_list=access_list, assigned_object_id=assigned_object_id, assigned_object_type=assigned_object_type_id, direction=direction).exists():
             error_duplicate_entry = 'An ACL with this name is already associated to this interface & direction.'
             error_message |= {'access_list': [error_duplicate_entry], 'direction': [error_duplicate_entry], assigned_object_type: [error_duplicate_entry]}
-        # Check that the interface does not have an existing ACL applied in the direction already
+        # Check that the interface does not have an existing ACL applied in the direction already.
         elif ACLInterfaceAssignment.objects.filter(assigned_object_id=assigned_object_id, assigned_object_type=assigned_object_type_id, direction=direction).exists():
             error_interface_already_assigned = 'Interfaces can only have 1 Access List Assigned in each direction.'
             error_message |= {'direction': [error_interface_already_assigned], assigned_object_type: [error_interface_already_assigned]}
@@ -345,11 +351,15 @@ class ACLStandardRuleForm(NetBoxModelForm):
         """
         cleaned_data = super().clean()
         error_message = {}
+
         if cleaned_data.get('action') == 'remark':
+            # Check if action set to remark, but no remark set.
             if cleaned_data.get('remark') is None:
                 error_message['remark'] = [error_message_no_remark]
+            # Check if action set to remark, but source_prefix set.
             if cleaned_data.get('source_prefix'):
                 error_message['source_prefix'] = [error_message_action_remark_source_prefix_set]
+        # Check remark set, but action not set to remark.
         elif cleaned_data.get('remark'):
                 error_message['remark'] = [error_message_remark_without_action_remark]
 
@@ -420,20 +430,28 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         error_message = {}
 
         if cleaned_data.get('action') == 'remark':
+            # Check if action set to remark, but no remark set.
             if cleaned_data.get('remark') is None:
                 error_message['remark'] = [error_message_no_remark]
+            # Check if action set to remark, but source_prefix set.
             if cleaned_data.get('source_prefix'):
                 error_message['source_prefix'] = [error_message_action_remark_source_prefix_set]
+            # Check if action set to remark, but source_ports set.
             if cleaned_data.get('source_ports'):
                 error_message['source_ports'] = ['Action is set to remark, Source Ports CANNOT be set.']
+            # Check if action set to remark, but destination_prefix set.
             if cleaned_data.get('destination_prefix'):
                 error_message['destination_prefix'] = ['Action is set to remark, Destination Prefix CANNOT be set.']
+            # Check if action set to remark, but destination_ports set.
             if cleaned_data.get('destination_ports'):
                 error_message['destination_ports'] = ['Action is set to remark, Destination Ports CANNOT be set.']
+            # Check if action set to remark, but protocol set.
             if cleaned_data.get('protocol'):
                 error_message['protocol'] = ['Action is set to remark, Protocol CANNOT be set.']
+        # Check if action not set to remark, but remark set.
         elif cleaned_data.get('remark'):
                 error_message['remark'] = [error_message_remark_without_action_remark]
+
         if error_message:
             raise forms.ValidationError(error_message)
         return cleaned_data

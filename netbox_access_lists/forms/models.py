@@ -24,8 +24,12 @@ __all__ = (
     'ACLExtendedRuleForm',
 )
 
-# Sets a standard mark_save help_text value to be used by the various classes
-acl_rule_logic_help = mark_safe('<b>*Note:</b> CANNOT be set if action is set to remark.')
+# Sets a standard mark_safe help_text value to be used by the various classes
+help_text_acl_rule_logic = mark_safe('<b>*Note:</b> CANNOT be set if action is set to remark.')
+# Sets a standard help_text value to be used by the various classes for acl action
+help_text_acl_action = 'Action the rule will take (remark, deny, or allow).'
+# Sets a standard help_text value to be used by the various classes for acl index
+help_text_acl_rule_index = 'Determines the order of the rule in the ACL processing. AKA Sequence Number.'
 
 # Sets a standard error message for ACL rules with an action of remark, but no remark set.
 error_message_no_remark = 'Action is set to remark, you MUST add a remark.'
@@ -33,6 +37,7 @@ error_message_no_remark = 'Action is set to remark, you MUST add a remark.'
 error_message_action_remark_source_prefix_set = 'Action is set to remark, Source Prefix CANNOT be set.'
 # Sets a standard error message for ACL rules with an action not set to remark, but no remark is set.
 error_message_remark_without_action_remark = 'CANNOT set remark unless action is set to remark.'
+
 
 class AccessListForm(NetBoxModelForm):
     """
@@ -194,6 +199,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         #    'assigned_object': '$virtual_machine',
         #},
         label='Access List',
+        help_text=mark_safe('<b>*Note:</b> Access List must be present on the device already.')
     )
     comments = CommentField()
     tags = DynamicModelMultipleChoiceField(
@@ -224,10 +230,9 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
             'access_list', 'direction', 'device', 'interface', 'virtual_machine',
             'vminterface', 'comments', 'tags',
         )
-        #help_texts = {
-        #    'index': 'Determines the order of the rule in the ACL processing.',
-        #    'remark': mark_safe('<b>*Note:</b> CANNOT be set if source prefix OR action is set.'),
-        #}
+        help_texts = {
+            'direction': mark_safe('<b>*Note:</b> CANNOT assign 2 ACLs to the same interface & direction.'),
+        }
 
     def clean(self):
         """
@@ -306,7 +311,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
     source_prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
-        help_text=acl_rule_logic_help,
+        help_text=help_text_acl_rule_logic,
         label='Source Prefix',
     )
     tags = DynamicModelMultipleChoiceField(
@@ -326,7 +331,8 @@ class ACLStandardRuleForm(NetBoxModelForm):
             'tags', 'description'
         )
         help_texts = {
-            'index': 'Determines the order of the rule in the ACL processing.',
+            'index': help_text_acl_rule_index,
+            'action': help_text_acl_action,
             'remark': mark_safe('<b>*Note:</b> CANNOT be set if source prefix OR action is set.'),
         }
 
@@ -373,13 +379,13 @@ class ACLExtendedRuleForm(NetBoxModelForm):
     source_prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
-        help_text=acl_rule_logic_help,
+        help_text=help_text_acl_rule_logic,
         label='Source Prefix',
     )
     destination_prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
-        help_text=acl_rule_logic_help,
+        help_text=help_text_acl_rule_logic,
         label='Destination Prefix',
     )
     fieldsets = (
@@ -395,11 +401,12 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             'tags', 'description'
         )
         help_texts = {
-            'destination_ports': acl_rule_logic_help,
-            'index': 'Determines the order of the rule in the ACL processing.',
-            'protocol': acl_rule_logic_help,
+            'action': help_text_acl_action,
+            'destination_ports': help_text_acl_rule_logic,
+            'index': help_text_acl_rule_index,
+            'protocol': help_text_acl_rule_logic,
             'remark': mark_safe('<b>*Note:</b> CANNOT be set if action is not set to remark.'),
-            'source_ports': acl_rule_logic_help,
+            'source_ports': help_text_acl_rule_logic,
         }
 
     def clean(self):

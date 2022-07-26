@@ -27,6 +27,12 @@ __all__ = (
 # Sets a standard mark_save help_text value to be used by the various classes
 acl_rule_logic_help = mark_safe('<b>*Note:</b> CANNOT be set if action is set to remark.')
 
+# Sets a standard error message for ACL rules with an action of remark, but no remark set.
+error_message_no_remark = 'Action is set to remark, you MUST add a remark.'
+# Sets a standard error message for ACL rules with an action of remark, but no source_prefix is set.
+error_message_action_remark_source_prefix_set = 'Action is set to remark, Source Prefix CANNOT be set.'
+# Sets a standard error message for ACL rules with an action not set to remark, but no remark is set.
+error_message_remark_without_action_remark = 'CANNOT set remark unless action is set to remark.'
 
 class AccessListForm(NetBoxModelForm):
     """
@@ -242,14 +248,12 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
             assigned_object_type = 'interface'
             assigned_object_type_id = ContentType.objects.get_for_model(interface).pk
             host = Interface.objects.get(pk=interface.pk).device
-            host_object_type_id  = ContentType.objects.get_for_model(host).pk
             host_type = 'device'
         elif vminterface:
             assigned_object_id = VMInterface.objects.get(pk=vminterface.pk).pk
             assigned_object_type = 'vminterface'
             assigned_object_type_id = ContentType.objects.get_for_model(vminterface).pk
             host = VMInterface.objects.get(pk=vminterface.pk).virtual_machine
-            host_object_type_id  = ContentType.objects.get_for_model(vminterface).pk
             host_type = 'virtual_machine'
         access_list_host = AccessList.objects.get(pk=access_list.pk).assigned_object
 
@@ -263,17 +267,12 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
             error_message |= {'interface': [error_no_interface], 'vminterface': [error_no_interface]}
         # If NOT set with 2 interface types, check that an interface's parent device/virtual_machine is assigned to the Access List.
         elif access_list_host != host:
-            error_acl_not_on_host = 'Access Lists must be assigned to a host before it can be assigned to the host interface.'
-            error_message |= {'access_list': [error_acl_not_on_host], assigned_object_type: [error_acl_not_on_host], host_type: [error_acl_not_on_host]}
-
-        # Check that for duplicate entry
-        if ACLInterfaceAssignment.objects.filter(access_list=access_list, assigned_object_id=assigned_object_id, assigned_object_type=assigned_object_type_id, direction=direction).exists():
+            error_acl_not_assigned_to_host = 'Access List not present on selected host.'
+            error_message |= {'access_list': [error_acl_not_assigned_to_host], assigned_object_type: [error_acl_not_assigned_to_host], host_type: [error_acl_not_assigned_to_host]}
+        # Check for duplicate entry
+        elif ACLInterfaceAssignment.objects.filter(access_list=access_list, assigned_object_id=assigned_object_id, assigned_object_type=assigned_object_type_id, direction=direction).exists():
             error_duplicate_entry = 'An ACL with this name is already associated to this interface & direction.'
             error_message |= {'access_list': [error_duplicate_entry], 'direction': [error_duplicate_entry], assigned_object_type: [error_duplicate_entry]}
-        # Check if ACL assigned to host
-        elif not AccessList.objects.filter(assigned_object_id=host.pk, assigned_object_type=host_object_type_id, name=access_list).exists():
-            error_acl_not_assigned_to_host = 'Access List not present on selected host.'
-            error_message |= {'access_list': [error_acl_not_assigned_to_host], host_type: [error_acl_not_assigned_to_host]}
         # Check that the interface does not have an existing ACL applied in the direction already
         elif ACLInterfaceAssignment.objects.filter(assigned_object_id=assigned_object_id, assigned_object_type=assigned_object_type_id, direction=direction).exists():
             error_interface_already_assigned = 'Interfaces can only have 1 Access List Assigned in each direction.'
@@ -342,11 +341,11 @@ class ACLStandardRuleForm(NetBoxModelForm):
         error_message = {}
         if cleaned_data.get('action') == 'remark':
             if cleaned_data.get('remark') is None:
-                error_message['remark'] = ['Action is set to remark, you MUST add a remark.']
+                error_message['remark'] = [error_message_no_remark]
             if cleaned_data.get('source_prefix'):
-                error_message['source_prefix'] = ['Action is set to remark, Source Prefix CANNOT be set.']
+                error_message['source_prefix'] = [error_message_action_remark_source_prefix_set]
         elif cleaned_data.get('remark'):
-                error_message['remark'] = ['CANNOT set remark unless action is set to remark, .']
+                error_message['remark'] = [error_message_remark_without_action_remark]
 
         if error_message:
             raise forms.ValidationError(error_message)
@@ -415,9 +414,9 @@ class ACLExtendedRuleForm(NetBoxModelForm):
 
         if cleaned_data.get('action') == 'remark':
             if cleaned_data.get('remark') is None:
-                error_message['remark'] = ['Action is set to remark, you MUST add a remark.']
+                error_message['remark'] = [error_message_no_remark]
             if cleaned_data.get('source_prefix'):
-                error_message['source_prefix'] = ['Action is set to remark, Source Prefix CANNOT be set.']
+                error_message['source_prefix'] = [error_message_action_remark_source_prefix_set]
             if cleaned_data.get('source_ports'):
                 error_message['source_ports'] = ['Action is set to remark, Source Ports CANNOT be set.']
             if cleaned_data.get('destination_prefix'):
@@ -427,7 +426,7 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             if cleaned_data.get('protocol'):
                 error_message['protocol'] = ['Action is set to remark, Protocol CANNOT be set.']
         elif cleaned_data.get('remark'):
-                error_message['remark'] = ['CANNOT set remark unless action is set to remark, .']
+                error_message['remark'] = [error_message_remark_without_action_remark]
         if error_message:
             raise forms.ValidationError(error_message)
         return cleaned_data

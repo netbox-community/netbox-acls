@@ -109,7 +109,9 @@ class AccessListForm(NetBoxModelForm):
 
     def clean(self):
         """
-        Validates form inputs before submitting.
+        Validates form inputs before submitting:
+          - Check if Access List already assigned to host with a similar name. (Partly because of GFK, but mostly for case insensitive matches)
+          - Check if Access List already assigned with existing rules.
         """
         cleaned_data = super().clean()
         error_message = {}
@@ -140,11 +142,11 @@ class AccessListForm(NetBoxModelForm):
             existing_acls = AccessList.objects.filter(name__iexact=name, virtual_machine=virtual_machine).exists()
         host = cleaned_data.get(host_type)
 
-        # Check if Access List already assigned to host with a similar name
+        # Check if Access List already assigned to host with a similar name.
         if ('name' in self.changed_data or host_type in self.changed_data) and existing_acls:
             error_same_acl_name = 'An ACL with this name (case insensitive) is already associated to this host.'
             error_message |= {host_type: [error_same_acl_name], 'name': [error_same_acl_name]}
-        # Check if Access List already assigned with existing rules
+        # Check if Access List already assigned with existing rules.
         if (acl_type == 'extended' and self.instance.aclstandardrules.exists()) or (acl_type == 'standard' and self.instance.aclextendedrules.exists()):
             error_message['type'] = ['This ACL has ACL rules associated, CANNOT change ACL type.']
 
@@ -241,10 +243,13 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
 
     def clean(self):
         """
-        Validates form inputs before submitting.
-        If action is set to remark, remark needs to be set.
-        If action is set to remark, source_prefix cannot be set.
-        If action is not set to remark, remark cannot be set.
+        Validates form inputs before submitting:
+          - Check if both interface and vminterface are set.
+          - Check if neither interface or vminterface are set.
+          - Check that an interface's parent device/virtual_machine is assigned to the Access List.
+          - Check that an interface's parent device/virtual_machine is assigned to the Access List.
+          - Check for duplicate entry. (Because of GFK)
+          - Check that the interface does not have an existing ACL applied in the direction already.
         """
         cleaned_data = super().clean()
         error_message = {}
@@ -287,7 +292,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
             error_message |= {'access_list': [error_duplicate_entry], 'direction': [error_duplicate_entry], assigned_object_type: [error_duplicate_entry]}
         # Check that the interface does not have an existing ACL applied in the direction already.
         elif ACLInterfaceAssignment.objects.filter(assigned_object_id=assigned_object_id, assigned_object_type=assigned_object_type_id, direction=direction).exists():
-            error_interface_already_assigned = 'Interfaces can only have 1 Access List Assigned in each direction.'
+            error_interface_already_assigned = 'Interfaces can only have 1 Access List assigned in each direction.'
             error_message |= {'direction': [error_interface_already_assigned], assigned_object_type: [error_interface_already_assigned]}
 
         if error_message:
@@ -345,10 +350,10 @@ class ACLStandardRuleForm(NetBoxModelForm):
 
     def clean(self):
         """
-        Validates form inputs before submitting.
-        If action is set to remark, remark needs to be set.
-        If action is set to remark, source_prefix cannot be set.
-        If action is not set to remark, remark cannot be set.
+        Validates form inputs before submitting:
+          - Check if action set to remark, but no remark set.
+          - Check if action set to remark, but source_prefix set.
+          - Check remark set, but action not set to remark.
         """
         cleaned_data = super().clean()
         error_message = {}
@@ -357,7 +362,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
 
         if cleaned_data.get('action') == 'remark':
             # Check if action set to remark, but no remark set.
-            if cleaned_data.get('remark') is None:
+            if not cleaned_data.get('remark'):
                 error_message['remark'] = [error_message_no_remark]
             # Check if action set to remark, but source_prefix set.
             if cleaned_data.get('source_prefix'):
@@ -424,10 +429,15 @@ class ACLExtendedRuleForm(NetBoxModelForm):
 
     def clean(self):
         """
-        Validates form inputs before submitting.
-        If action is set to remark, remark needs to be set.
-        If action is set to remark, source_prefix, source_ports, desintation_prefix, destination_ports, or protocol cannot be set.
-        If action is not set to remark, remark cannot be set.
+        Validates form inputs before submitting:
+          - Check if action set to remark, but no remark set.
+          - Check if action set to remark, but source_prefix set.
+          - Check if action set to remark, but source_ports set.
+          - Check if action set to remark, but destination_prefix set.
+          - Check if action set to remark, but destination_ports set.
+          - Check if action set to remark, but destination_ports set.
+          - Check if action set to remark, but protocol set.
+          - Check remark set, but action not set to remark.
         """
         cleaned_data = super().clean()
         error_message = {}
@@ -436,7 +446,7 @@ class ACLExtendedRuleForm(NetBoxModelForm):
 
         if cleaned_data.get('action') == 'remark':
             # Check if action set to remark, but no remark set.
-            if cleaned_data.get('remark') is None:
+            if not cleaned_data.get('remark'):
                 error_message['remark'] = [error_message_no_remark]
             # Check if action set to remark, but source_prefix set.
             if cleaned_data.get('source_prefix'):

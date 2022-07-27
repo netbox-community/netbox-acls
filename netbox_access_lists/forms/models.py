@@ -257,14 +257,15 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
             assigned_object = interface
             assigned_object_type = 'interface'
             host_type = 'device'
+            host = Interface.objects.get(pk=assigned_object.pk).device
         elif vminterface:
             assigned_object = vminterface
             assigned_object_type = 'vminterface'
             host_type = 'virtual_machine'
+            host = VMInterface.objects.get(pk=assigned_object.pk).virtual_machine
         if interface or vminterface:
             assigned_object_id = VMInterface.objects.get(pk=assigned_object.pk).pk
             assigned_object_type_id = ContentType.objects.get_for_model(assigned_object).pk
-            host = VMInterface.objects.get(pk=assigned_object.pk).virtual_machine
         access_list_host = AccessList.objects.get(pk=access_list.pk).assigned_object
 
         # Check if both interface and vminterface are set.

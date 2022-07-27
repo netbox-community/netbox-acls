@@ -29,9 +29,8 @@ class ACLRule(NetBoxModel):
     )
     index = models.PositiveIntegerField()
     remark = models.CharField(
-        max_length=200,
-        blank=True,
-        null=True
+        max_length=500,
+        blank=True
     )
     description = models.CharField(
         max_length=500,

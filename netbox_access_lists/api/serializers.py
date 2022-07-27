@@ -27,6 +27,15 @@ __all__ = [
     'ACLExtendedRuleSerializer'
 ]
 
+# Sets a standard error message for ACL rules with an action of remark, but no remark set.
+error_message_no_remark = 'Action is set to remark, you MUST add a remark.'
+# Sets a standard error message for ACL rules with an action of remark, but no source_prefix is set.
+error_message_action_remark_source_prefix_set = 'Action is set to remark, Source Prefix CANNOT be set.'
+# Sets a standard error message for ACL rules with an action not set to remark, but no remark is set.
+error_message_remark_without_action_remark = 'CANNOT set remark unless action is set to remark.'
+# Sets a standard error message for ACL rules no associated to an ACL of the same type.
+error_message_acl_type = 'Provided parent Access List is not of right type.'
+
 
 class AccessListSerializer(NetBoxModelSerializer):
     """
@@ -117,7 +126,11 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
         view_name='plugins-api:netbox_access_lists-api:aclstandardrule-detail'
     )
     access_list = NestedAccessListSerializer()
-    source_prefix = NestedPrefixSerializer()
+    source_prefix = NestedPrefixSerializer(
+        required=False,
+        allow_null=True,
+        default=None
+    )
 
     class Meta:
         """
@@ -126,18 +139,28 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
         model = ACLStandardRule
         fields = (
             'id', 'url', 'display', 'access_list', 'index', 'action', 'tags', 'description',
-            'created', 'custom_fields', 'last_updated', 'source_prefix'
+            'remark', 'created', 'custom_fields', 'last_updated', 'source_prefix'
         )
 
     def validate(self, data):
         """
         Validate the ACLStandardRule django model model's inputs before allowing it to update the instance.
         """
-        access_list = data.get('access_list')
-        if access_list.type == 'extended':
-            raise serializers.ValidationError({
-                'access_list': 'CANNOT associated standard ACL rules to an extended ACL!!'
-            })
+
+        error_message = {}
+
+        # Check if provided Access List is of right type.
+        if AccessList.objects.get(pk=data.get('access_list').pk).type != 'standard':
+            error_message['access_list'] = [error_message_acl_type]
+        # Check if action set to remark, but no remark set.
+        if data.get('action') == 'remark' and data.get('remark') is None:
+            error_message['remark'] = [error_message_no_remark]
+        # Check if action set to remark, but source_prefix set.
+        if data.get('source_prefix'):
+            error_message['source_prefix'] = [error_message_action_remark_source_prefix_set]
+
+        if error_message:
+            raise serializers.ValidationError(error_message)
 
         return super().validate(data)
 
@@ -150,8 +173,16 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
         view_name='plugins-api:netbox_access_lists-api:aclextendedrule-detail'
     )
     access_list = NestedAccessListSerializer()
-    source_prefix = NestedPrefixSerializer()
-    destination_prefix = NestedPrefixSerializer()
+    source_prefix = NestedPrefixSerializer(
+        required=False,
+        allow_null=True,
+        default=None
+    )
+    destination_prefix = NestedPrefixSerializer(
+        required=False,
+        allow_null=True,
+        default=None
+    )
 
     class Meta:
         """
@@ -161,17 +192,38 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
         fields = (
             'id', 'url', 'display', 'access_list', 'index', 'action', 'tags', 'description',
             'created', 'custom_fields', 'last_updated', 'source_prefix', 'source_ports',
-            'destination_prefix', 'destination_ports', 'protocol'
+            'destination_prefix', 'destination_ports', 'protocol', 'remark',
         )
 
     def validate(self, data):
         """
         Validate the ACLExtendedRule django model model's inputs before allowing it to update the instance.
         """
-        access_list = data.get('access_list')
-        if access_list.type == 'standard':
-            raise serializers.ValidationError({
-                'access_list': 'CANNOT associated extended ACL rules to a standard ACL!!'
-            })
+        error_message = {}
+
+        # Check if provided Access List is of right type.
+        if AccessList.objects.get(pk=data.get('access_list').pk).type != 'extended':
+            error_message['access_list'] = [error_message_acl_type]
+        # Check if action set to remark, but no remark set.
+        if data.get('action') == 'remark' and data.get('remark') is None:
+            error_message['remark'] = [error_message_no_remark]
+        # Check if action set to remark, but source_prefix set.
+        if data.get('source_prefix'):
+            error_message['source_prefix'] = [error_message_action_remark_source_prefix_set]
+        # Check if action set to remark, but source_ports set.
+        if data.get('source_ports'):
+            error_message['source_ports'] = ['Action is set to remark, Source Ports CANNOT be set.']
+        # Check if action set to remark, but destination_prefix set.
+        if data.get('destination_prefix'):
+            error_message['destination_prefix'] = ['Action is set to remark, Destination Prefix CANNOT be set.']
+        # Check if action set to remark, but destination_ports set.
+        if data.get('destination_ports'):
+            error_message['destination_ports'] = ['Action is set to remark, Destination Ports CANNOT be set.']
+        # Check if action set to remark, but protocol set.
+        if data.get('protocol'):
+            error_message['protocol'] = ['Action is set to remark, Protocol CANNOT be set.']
+
+        if error_message:
+            raise serializers.ValidationError(error_message)
 
         return super().validate(data)

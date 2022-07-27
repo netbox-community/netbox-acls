@@ -146,7 +146,7 @@ class AccessListForm(NetBoxModelForm):
             error_message |= {host_type: [error_same_acl_name], 'name': [error_same_acl_name]}
         # Check if Access List already assigned with existing rules
         if (acl_type == 'extended' and self.instance.aclstandardrules.exists()) or (acl_type == 'standard' and self.instance.aclextendedrules.exists()):
-            error_message['type'] = ['This ACL has ACL rules associated, CANNOT change ACL type!!']
+            error_message['type'] = ['This ACL has ACL rules associated, CANNOT change ACL type.']
 
         if error_message:
             raise forms.ValidationError(error_message)
@@ -353,6 +353,8 @@ class ACLStandardRuleForm(NetBoxModelForm):
         cleaned_data = super().clean()
         error_message = {}
 
+        # No need to check for unique_together since there is no usage of GFK
+
         if cleaned_data.get('action') == 'remark':
             # Check if action set to remark, but no remark set.
             if cleaned_data.get('remark') is None:
@@ -429,6 +431,8 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         """
         cleaned_data = super().clean()
         error_message = {}
+
+        # No need to check for unique_together since there is no usage of GFK
 
         if cleaned_data.get('action') == 'remark':
             # Check if action set to remark, but no remark set.

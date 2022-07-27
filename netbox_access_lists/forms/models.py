@@ -110,8 +110,10 @@ class AccessListForm(NetBoxModelForm):
     def clean(self):
         """
         Validates form inputs before submitting:
+          - Check if more than one host type selected.
+          - Check if no hosts selected.
           - Check if Access List already assigned to host with a similar name. (Partly because of GFK, but mostly for case insensitive matches)
-          - Check if Access List already assigned with existing rules.
+          - Check if Access List has existing rules.
         """
         cleaned_data = super().clean()
         error_message = {}
@@ -146,7 +148,7 @@ class AccessListForm(NetBoxModelForm):
         if ('name' in self.changed_data or host_type in self.changed_data) and existing_acls:
             error_same_acl_name = 'An ACL with this name (case insensitive) is already associated to this host.'
             error_message |= {host_type: [error_same_acl_name], 'name': [error_same_acl_name]}
-        # Check if Access List already assigned with existing rules.
+        # Check if Access List has existing rules.
         if (acl_type == 'extended' and self.instance.aclstandardrules.exists()) or (acl_type == 'standard' and self.instance.aclextendedrules.exists()):
             error_message['type'] = ['This ACL has ACL rules associated, CANNOT change ACL type.']
 

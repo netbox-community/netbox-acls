@@ -6,6 +6,7 @@ from dcim.models import Device, Interface, VirtualChassis
 from django.contrib.contenttypes.fields import (GenericForeignKey,
                                                 GenericRelation)
 from django.contrib.contenttypes.models import ContentType
+from django.core.validators import RegexValidator
 from django.db import models
 from django.urls import reverse
 from netbox.models import NetBoxModel
@@ -21,12 +22,15 @@ __all__ = (
 )
 
 
+alphanumeric_plus = RegexValidator(r'^[0-9a-zA-Z,-,_]*$', 'Only alphanumeric, hyphens, and underscores characters are allowed.')
+
 class AccessList(NetBoxModel):
     """
     Model defintion for Access Lists.
     """
     name = models.CharField(
-        max_length=100
+        max_length=500,
+        validators=[alphanumeric_plus]
     )
     assigned_object_type = models.ForeignKey(
         to=ContentType,
@@ -55,8 +59,8 @@ class AccessList(NetBoxModel):
     class Meta:
         unique_together = ['assigned_object_type', 'assigned_object_id', 'name']
         ordering = ['assigned_object_type', 'assigned_object_id', 'name']
-        verbose_name = "Access List"
-        verbose_name_plural = "Access Lists"
+        verbose_name = 'Access List'
+        verbose_name_plural = 'Access Lists'
 
     def __str__(self):
         return self.name
@@ -109,8 +113,8 @@ class ACLInterfaceAssignment(NetBoxModel):
     class Meta:
         unique_together = ['assigned_object_type', 'assigned_object_id', 'access_list', 'direction']
         ordering = ['assigned_object_type', 'assigned_object_id', 'access_list', 'direction']
-        verbose_name = "ACL Interface Assignment"
-        verbose_name_plural = "ACL Interface Assignments"
+        verbose_name = 'ACL Interface Assignment'
+        verbose_name_plural = 'ACL Interface Assignments'
 
     def get_absolute_url(self):
         """

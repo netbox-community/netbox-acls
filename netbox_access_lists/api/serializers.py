@@ -68,12 +68,21 @@ class AccessListSerializer(NetBoxModelSerializer):
 
     def validate(self, data):
         """
-        Validate the AccessList django model model's inputs before allowing it to update the instance.
+        Validates api inputs before processing:
+          - Check if Access List has no existing rules before change the Access List's type.
         """
-        if self.instance.rule_count > 0:
-            raise serializers.ValidationError({
-                'type': 'This ACL has ACL rules already associated, CANNOT change ACL type!!'
-            })
+        error_message = {}
+        assigned_object_type = data.get('assigned_object_type')
+        assigned_object_type_id = ContentType.objects.get_for_model(assigned_object_type).pk
+        assigned_object_id = data.get('assigned_object_id')
+        name = data.get('name')
+
+        # Check if Access List has no existing rules before change the Access List's type.
+        if self.instance and self.instance.type != data.get('type') and self.instance.rule_count > 0:
+            error_message['type'] = ['This ACL has ACL rules associated, CANNOT change ACL type.']
+
+        if error_message:
+            raise serializers.ValidationError(error_message)
 
         return super().validate(data)
 
@@ -106,16 +115,16 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
         context = {'request': self.context['request']}
         return serializer(obj.assigned_object, context=context).data
 
-    #def validate(self, data):
-    #    """
-    #    Validate the AccessList django model model's inputs before allowing it to update the instance.
-    #    """
-    #    if self.instance.rule_count > 0:
-    #        raise serializers.ValidationError({
-    #            'type': 'This ACL has ACL rules already associated, CANNOT change ACL type!!'
-    #        })
-#
-    #    return super().validate(data)
+    def validate(self, data):
+        """
+        Validate the AccessList django model model's inputs before allowing it to update the instance.
+        """
+        if self.instance.rule_count > 0:
+            raise serializers.ValidationError({
+                'type': 'This ACL has ACL rules already associated, CANNOT change ACL type!!'
+            })
+
+        return super().validate(data)
 
 
 class ACLStandardRuleSerializer(NetBoxModelSerializer):
@@ -146,12 +155,8 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
         """
         Validate the ACLStandardRule django model model's inputs before allowing it to update the instance.
         """
-
         error_message = {}
 
-        # Check if provided Access List is of right type.
-        if AccessList.objects.get(pk=data.get('access_list').pk).type != 'standard':
-            error_message['access_list'] = [error_message_acl_type]
         # Check if action set to remark, but no remark set.
         if data.get('action') == 'remark' and data.get('remark') is None:
             error_message['remark'] = [error_message_no_remark]
@@ -201,9 +206,6 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
         """
         error_message = {}
 
-        # Check if provided Access List is of right type.
-        if AccessList.objects.get(pk=data.get('access_list').pk).type != 'extended':
-            error_message['access_list'] = [error_message_acl_type]
         # Check if action set to remark, but no remark set.
         if data.get('action') == 'remark' and data.get('remark') is None:
             error_message['remark'] = [error_message_no_remark]

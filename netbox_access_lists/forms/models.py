@@ -112,8 +112,8 @@ class AccessListForm(NetBoxModelForm):
         Validates form inputs before submitting:
           - Check if more than one host type selected.
           - Check if no hosts selected.
-          - Check if Access List already assigned to host with a similar name. (Partly because of GFK, but mostly for case insensitive matches)
-          - Check if Access List has existing rules.
+          - Check if duplicate entry. (Because of GFK.)
+          - Check if Access List has no existing rules before change the Access List's type.
         """
         cleaned_data = super().clean()
         error_message = {}
@@ -135,20 +135,20 @@ class AccessListForm(NetBoxModelForm):
 
         if device:
             host_type = 'device'
-            existing_acls = AccessList.objects.filter(name__iexact=name, device=device).exists()
+            existing_acls = AccessList.objects.filter(name=name, device=device).exists()
         elif virtual_chassis:
             host_type = 'virtual_chassis'
-            existing_acls = AccessList.objects.filter(name__iexact=name, virtual_chassis=virtual_chassis).exists()
+            existing_acls = AccessList.objects.filter(name=name, virtual_chassis=virtual_chassis).exists()
         elif virtual_machine:
             host_type = 'virtual_machine'
-            existing_acls = AccessList.objects.filter(name__iexact=name, virtual_machine=virtual_machine).exists()
+            existing_acls = AccessList.objects.filter(name=name, virtual_machine=virtual_machine).exists()
         host = cleaned_data.get(host_type)
 
-        # Check if Access List already assigned to host with a similar name.
+        # Check if duplicate entry.
         if ('name' in self.changed_data or host_type in self.changed_data) and existing_acls:
-            error_same_acl_name = 'An ACL with this name (case insensitive) is already associated to this host.'
+            error_same_acl_name = 'An ACL with this name is already associated to this host.'
             error_message |= {host_type: [error_same_acl_name], 'name': [error_same_acl_name]}
-        # Check if Access List has existing rules.
+        # Check if Access List has no existing rules before change the Access List's type.
         if (acl_type == 'extended' and self.instance.aclstandardrules.exists()) or (acl_type == 'standard' and self.instance.aclextendedrules.exists()):
             error_message['type'] = ['This ACL has ACL rules associated, CANNOT change ACL type.']
 

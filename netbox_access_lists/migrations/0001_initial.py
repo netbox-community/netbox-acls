@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
                 ('created', models.DateTimeField(auto_now_add=True, null=True)),
                 ('last_updated', models.DateTimeField(auto_now=True, null=True)),
                 ('custom_field_data', models.JSONField(blank=True, default=dict, encoder=django.core.serializers.json.DjangoJSONEncoder)),
-                ('name', models.CharField(max_length=100)),
+                ('name', models.CharField(max_length=500)),
                 ('assigned_object_id', models.PositiveIntegerField()),
                 ('assigned_object_type', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='contenttypes.contenttype')),
                 ('type', models.CharField(max_length=100)),

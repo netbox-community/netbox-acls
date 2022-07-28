@@ -77,7 +77,7 @@ from ..models import AccessList
 #            return cleaned_data
 #        name = cleaned_data.get('name')
 #        device = cleaned_data.get('device')
-#        type =  cleaned_data.get('type')
+#        type = cleaned_data.get('type')
 #        if ('name' in self.changed_data or 'device' in self.changed_data) and AccessList.objects.filter(name__iexact=name, device=device).exists():
 #            raise forms.ValidationError('An ACL with this name (case insensitive) is already associated to this device.')
 #        if type == 'extended' and self.cleaned_data['aclstandardrules'].exists():

@@ -1,0 +1,13 @@
+    <div class="card">
+        <h5 class="card-header">
+            Access Lists
+        </h5>
+        <div class="card-body">
+            {% include 'inc/assigned_interface/assigned_access_lists.html' %}
+        </div>
+        <div class="card-footer text-end noprint">
+            <a href="{% url 'plugins:netbox_access_lists:aclinterfaceassignment_add' %}?{{ type }}={{ object.pk }}&return_url={{ object.get_absolute_url }}" class="btn btn-sm btn-primary">
+                <i class="mdi mdi-plus-thick"></i> Assign Access List
+            </a>
+        </div>
+    </div>

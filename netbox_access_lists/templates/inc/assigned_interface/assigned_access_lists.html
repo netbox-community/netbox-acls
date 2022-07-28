@@ -1,0 +1,29 @@
+{% if acl_interface_assignments %}
+
+<table class="table table-hover">
+    <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Default Action</th>
+        <th>Rule Count</th>
+        <th>Direction</th>
+    </tr>
+    {% for object in acl_interface_assignments %}
+        <tr>
+            <td>{{ object.access_list|linkify }}</td>
+            <td>{{ object.access_list.type|title }}</td>
+            <td>{{ object.access_list.default_action|title }}</td>
+            {% if object.access_list.type == 'standard' %}
+            <td>{{ object.access_list.aclstandardrules.count|placeholder }}</td>
+            {% elif object.access_list.type == 'extended' %}
+            <td>{{ object.access_list.aclextendedrules.count|placeholder }}</td>
+            {% endif %}
+            <td>{{ object.direction|title }}</td>
+        </tr>
+    {% endfor %}
+</table>
+{% else %}
+<div class="text-muted">
+    None
+</div>
+{% endif %}

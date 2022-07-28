@@ -1,0 +1,81 @@
+{% extends 'generic/object.html' %}
+{% load render_table from django_tables2 %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'plugins:netbox_access_lists:aclinterfaceassignment_list' %}">ACL Interface Assignments</a></li>
+{% endblock %}
+{% block controls %}
+<div class="pull-right noprint">
+    {% if perms.netbox_access_lists.change_policy %}
+    <a href="{% url 'plugins:netbox_access_lists:aclinterfaceassignment_edit' pk=object.pk %}" class="btn btn-warning">
+        <span class="mdi mdi-pencil" aria-hidden="true"></span> Edit
+    </a>
+    {% endif %}
+    {% if perms.netbox_access_lists.delete_policy %}
+    <a href="{% url 'plugins:netbox_access_lists:aclinterfaceassignment_delete' pk=object.pk %}" class="btn btn-danger">
+        <span class="mdi mdi-trash-can-outline" aria-hidden="true"></span> Delete
+    </a>
+    {% endif %}
+</div>
+{% endblock controls %}
+{% block tabs %}
+<ul class="nav nav-tabs px-3">
+    {% block tab_items %}
+    <li class="nav-item" role="presentation">
+        <a class="nav-link{% if not active_tab %} active{% endif %}" href="{{ object.get_absolute_url }}">{{ object|meta:"verbose_name"|bettertitle }}</a>
+    </li>
+    {% endblock tab_items %}
+    {% if perms.extras.view_objectchange %}
+    <li role="presentation" class="nav-item">
+        <a href="{% url 'plugins:netbox_access_lists:aclinterfaceassignment_changelog' pk=object.pk %}" class="nav-link{% if active_tab == 'changelog'%} active{% endif %}">Change Log</a>
+    </li>
+    {% endif %}
+</ul>
+{% endblock tabs %}
+
+{% block content %}
+  <div class="row mb-3">
+    <div class="col col-md-6">
+      <div class="card">
+        <h5 class="card-header">ACL Interface Assignment</h5>
+        <div class="card-body">
+          <table class="table table-hover attr-table">
+            <tr>
+              <th scope="row">Host</th>
+              <td>
+                {% if object.assigned_object.device %}
+                <a href="{{ object.assigned_object.device.get_absolute_url }}">{{ object.assigned_object.device|placeholder }}</a>
+                {% else %}
+                <a href="{{ object.assigned_object.virtual_machine.get_absolute_url }}">{{ object.assigned_object.virtual_machine|placeholder }}</a>
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Interface</th>
+              <td>
+                <a href="{{ object.assigned_object.get_absolute_url }}">{{ object.assigned_object }}</a>
+              </td>
+            </tr>
+            <tr>
+                <th scope="row">Access List</th>
+                <td>
+                  <a href="{{ object.access_list.get_absolute_url }}">{{ object.access_list }}</a>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">Direction</th>
+                <td>
+                  {{ object.direction|title }}
+                </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      {% include 'inc/panels/custom_fields.html' %}
+    </div>
+    <div class="col col-md-6">
+      {% include 'inc/panels/tags.html' %}
+      {% include 'inc/panels/comments.html' %}
+    </div>
+  </div>
+{% endblock content %}

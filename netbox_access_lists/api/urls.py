@@ -10,6 +10,7 @@ app_name = 'netbox_access_list'
 
 router = NetBoxRouter()
 router.register('access-lists', views.AccessListViewSet)
+router.register('interface-assignments', views.ACLInterfaceAssignmentViewSet)
 router.register('standard-acl-rules', views.ACLStandardRuleViewSet)
 router.register('extended-acl-rules', views.ACLExtendedRuleViewSet)
 

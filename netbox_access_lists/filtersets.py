@@ -3,15 +3,16 @@ Filters enable users to request only a specific subset of objects matching a que
 when filtering the sites list by status or region, for instance.
 """
 import django_filters
-from dcim.models import Device, VirtualChassis
+from dcim.models import Device, Interface, VirtualChassis
 from netbox.filtersets import NetBoxModelFilterSet
-from virtualization.models import VirtualMachine
+from virtualization.models import VirtualMachine, VMInterface
 
 from .models import *
 
 __all__ = (
     'AccessListFilterSet',
     'ACLStandardRuleFilterSet',
+    'ACLInterfaceAssignmentFilterSet',
     'ACLExtendedRuleFilterSet',
 )
 
@@ -60,6 +61,47 @@ class AccessListFilterSet(NetBoxModelFilterSet):
         """
         model = AccessList
         fields = ('id', 'name', 'device', 'device_id', 'virtual_chassis', 'virtual_chassis_id', 'virtual_machine', 'virtual_machine_id', 'type', 'default_action', 'comments')
+
+    def search(self, queryset, name, value):
+        """
+        Override the default search behavior for the django model.
+        """
+        return queryset.filter(description__icontains=value)
+
+
+class ACLInterfaceAssignmentFilterSet(NetBoxModelFilterSet):
+    """
+    Define the filter set for the django model ACLInterfaceAssignment.
+    """
+    interface = django_filters.ModelMultipleChoiceFilter(
+        field_name='interface__name',
+        queryset=Interface.objects.all(),
+        to_field_name='name',
+        label='Interface (name)',
+    )
+    interface_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='interface',
+        queryset=Interface.objects.all(),
+        label='Interface (ID)',
+    )
+    vminterface = django_filters.ModelMultipleChoiceFilter(
+        field_name='vminterface__name',
+        queryset=VMInterface.objects.all(),
+        to_field_name='name',
+        label='VM Interface (name)',
+    )
+    vminterface_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='vminterface',
+        queryset=VMInterface.objects.all(),
+        label='VM Interface (ID)',
+    )
+
+    class Meta:
+        """
+        Associates the django model ACLInterfaceAssignment & fields to the filter set.
+        """
+        model = ACLInterfaceAssignment
+        fields = ('id', 'access_list', 'direction', 'interface', 'interface_id', 'vminterface', 'vminterface_id')
 
     def search(self, queryset, name, value):
         """

@@ -26,12 +26,12 @@ class ACLRule(NetBoxModel):
         on_delete=models.CASCADE,
         to=AccessList,
         verbose_name='Access List',
+        related_name='rules',
     )
     index = models.PositiveIntegerField()
     remark = models.CharField(
-        max_length=200,
-        blank=True,
-        null=True
+        max_length=500,
+        blank=True
     )
     description = models.CharField(
         max_length=500,
@@ -72,6 +72,13 @@ class ACLStandardRule(ACLRule):
     """
     Inherits ACLRule.
     """
+    access_list = models.ForeignKey(
+        on_delete=models.CASCADE,
+        to=AccessList,
+        verbose_name='Standard Access List',
+        limit_choices_to={'type': 'standard'},
+        related_name='aclstandardrules',
+    )
 
     def get_absolute_url(self):
         """
@@ -87,7 +94,6 @@ class ACLStandardRule(ACLRule):
           - verbose name (for displaying in the GUI)
           - verbose name plural (for displaying in the GUI)
         """
-        default_related_name='aclstandardrules'
         verbose_name='ACL Standard Rule'
         verbose_name_plural='ACL Standard Rules'
 
@@ -96,6 +102,13 @@ class ACLExtendedRule(ACLRule):
     Inherits ACLRule.
     Add ACLExtendedRule specific fields: source_ports, desintation_prefix, destination_ports, and protocol
     """
+    access_list = models.ForeignKey(
+        on_delete=models.CASCADE,
+        to=AccessList,
+        verbose_name='Extended Access List',
+        limit_choices_to={'type': 'extended'},
+        related_name='aclextendedrules',
+    )
     source_ports = ArrayField(
         base_field=models.PositiveIntegerField(),
         blank=True,
@@ -139,6 +152,5 @@ class ACLExtendedRule(ACLRule):
           - verbose name (for displaying in the GUI)
           - verbose name plural (for displaying in the GUI)
         """
-        default_related_name='aclextendedrules'
         verbose_name='ACL Extended Rule'
         verbose_name_plural='ACL Extended Rules'

@@ -24,6 +24,11 @@ cleanup: ## Clean associated docker resources.
 
 # in VS Code Devcontianer
 
+.PHONY: nbshell
+nbshell: ## Run nbshell
+	${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} nbshell
+	from netbox_access_lists.models import *
+
 .PHONY: setup
 setup: ## Copy plugin settings.  Setup NetBox plugin.
 	-${VENV_PY_PATH} -m pip install --disable-pip-version-check --no-cache-dir -e ${REPO_PATH}

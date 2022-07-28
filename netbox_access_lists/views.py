@@ -14,6 +14,11 @@ __all__ = (
     'AccessListEditView',
     'AccessListDeleteView',
     'AccessListBulkDeleteView',
+    'ACLInterfaceAssignmentView',
+    'ACLInterfaceAssignmentListView',
+    'ACLInterfaceAssignmentEditView',
+    'ACLInterfaceAssignmentDeleteView',
+    'ACLInterfaceAssignmentBulkDeleteView',
     'ACLStandardRuleView',
     'ACLStandardRuleListView',
     'ACLStandardRuleEditView',
@@ -85,17 +90,48 @@ class AccessListBulkDeleteView(generic.BulkDeleteView):
     filterset = filtersets.AccessListFilterSet
     table = tables.AccessListTable
 
+#
+# ACLInterfaceAssignment views
+#
 
-#class AccessListBulkEditView(generic.BulkEditView):
-#    """
-#    Defines the bulk edit view for the AccessList django model.
-#    """
-#    queryset = models.AccessList.objects.annotate(
-#        rule_count=Count('aclextendedrules') + Count('aclstandardrules')
-#    )
-#    table = tables.AccessListTable
-#    filterset = filtersets.AccessListFilterSet
-#    form = forms.AccessListBulkEditForm
+class ACLInterfaceAssignmentView(generic.ObjectView):
+    """
+    Defines the view for the ACLInterfaceAssignments django model.
+    """
+    queryset = models.ACLInterfaceAssignment.objects.all()
+
+
+class ACLInterfaceAssignmentListView(generic.ObjectListView):
+    """
+    Defines the list view for the ACLInterfaceAssignments django model.
+    """
+    queryset = models.ACLInterfaceAssignment.objects.all()
+    table = tables.ACLInterfaceAssignmentTable
+    filterset = filtersets.ACLInterfaceAssignmentFilterSet
+    filterset_form = forms.ACLInterfaceAssignmentFilterForm
+
+
+class ACLInterfaceAssignmentEditView(generic.ObjectEditView):
+    """
+    Defines the edit view for the ACLInterfaceAssignments django model.
+    """
+    queryset = models.ACLInterfaceAssignment.objects.all()
+    form = forms.ACLInterfaceAssignmentForm
+    template_name = 'netbox_access_lists/aclinterfaceassignment_edit.html'
+
+
+class ACLInterfaceAssignmentDeleteView(generic.ObjectDeleteView):
+    """
+    Defines the delete view for the ACLInterfaceAssignments django model.
+    """
+    queryset = models.ACLInterfaceAssignment.objects.all()
+
+
+class ACLInterfaceAssignmentBulkDeleteView(generic.BulkDeleteView):
+    queryset = models.ACLInterfaceAssignment.objects.all()
+    filterset = filtersets.ACLInterfaceAssignmentFilterSet
+    table = tables.ACLInterfaceAssignmentTable
+
 
 #
 # ACLStandardRule views

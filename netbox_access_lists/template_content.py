@@ -25,7 +25,7 @@ class ACLInterfaceAssignments(PluginTemplateExtension):
         if ctype.model in ['interface', 'vminterface']:
             acl_interface_assignments = ACLInterfaceAssignment.objects.filter(assigned_object_id=obj.pk, assigned_object_type=ctype)
 
-        return self.render('inc/assigned_interface/access_lists.html', extra_context={
+        return self.render('netbox_access_lists/inc/assigned_interface/access_lists.html', extra_context={
             'acl_interface_assignments': acl_interface_assignments,
             'type': ctype.model if ctype.model == 'device' else ctype.name.replace(' ', '_'),
         })
@@ -41,7 +41,7 @@ class AccessLists(PluginTemplateExtension):
         if ctype.model in ['device', 'virtualchassis', 'virtualmachine']:
             access_lists = AccessList.objects.filter(assigned_object_id=obj.pk, assigned_object_type=ctype)
 
-        return self.render('inc/assigned_host/access_lists.html', extra_context={
+        return self.render('netbox_access_lists/inc/assigned_host/access_lists.html', extra_context={
             'access_lists': access_lists,
             'type': ctype.model if ctype.model == 'device' else ctype.name.replace(' ', '_'),
         })

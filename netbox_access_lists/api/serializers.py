@@ -70,17 +70,20 @@ class AccessListSerializer(NetBoxModelSerializer):
     def validate(self, data):
         """
         Validates api inputs before processing:
+          - Check that the GFK object is valid.
           - Check if Access List has no existing rules before change the Access List's type.
         """
+        error_message = {}
 
-        # Validate that the parent object exists
+        # Check that the GFK object is valid.
         if 'assigned_object_type' in data and 'assigned_object_id' in data:
             try:
                 assigned_object = data['assigned_object_type'].get_object_for_this_type(id=data['assigned_object_id'])
             except ObjectDoesNotExist:
-                raise serializers.ValidationError(
-                    f"Invalid assigned_object: {data['assigned_object_type']} ID {data['assigned_object_id']}"
-                )
+                # Sets a standard error message for invalid GFK
+                error_message_invalid_gfk = f"Invalid assigned_object {data['assigned_object_type']} ID {data['assigned_object_id']}"
+                error_message['assigned_object_type'] = [error_message_invalid_gfk]
+                error_message['assigned_object_id'] = [error_message_invalid_gfk]
 
         # Check if Access List has no existing rules before change the Access List's type.
         if self.instance and self.instance.type != data.get('type') and self.instance.rule_count > 0:
@@ -123,34 +126,32 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
     def validate(self, data):
         """
         Validate the AccessList django model model's inputs before allowing it to update the instance.
+          - Check that the GFK object is valid.
+          - Check that the associated interface's parent host has the selected ACL defined.
         """
         error_message = {}
+        acl_host = data['access_list'].assigned_object
 
-        # Validate that the parent object exists
+        # Check that the GFK object is vlaid.
         if 'assigned_object_type' in data and 'assigned_object_id' in data:
             try:
                 assigned_object = data['assigned_object_type'].get_object_for_this_type(id=data['assigned_object_id'])
             except ObjectDoesNotExist:
-                raise serializers.ValidationError(
-                    f"Invalid assigned_object: {data['assigned_object_type']} ID {data['assigned_object_id']}"
-                )
-            if data['assigned_object_type'].model == 'interface':
-                error_message['access_list'] = [assigned_object.device]
-            elif data['assigned_object_type'].model == 'vminterface':
-                error_message['access_list'] = [assigned_object.virtual_machine]
-
-        #get the parent ACL host id and host type and check
-
-        #assigned_object_type = data.get('assigned_object_type')
-        #assigned_object_type_id = ContentType.objects.get_for_model(assigned_object_type).pk
-        #assigned_object_id = data.get('assigned_object_id')
-        #access_list = data.get('access_list')
+                # Sets a standard error message for invalid GFK
+                error_message_invalid_gfk = f"Invalid assigned_object {data['assigned_object_type']} ID {data['assigned_object_id']}"
+                error_message['assigned_object_type'] = [error_message_invalid_gfk]
+                error_message['assigned_object_id'] = [error_message_invalid_gfk]
 
 
-
-        # Check if Access List has no existing rules before change the Access List's type.
-        #if self.instance and self.instance.type != data.get('type') and self.instance.rule_count > 0:
-        #    error_message['type'] = ['This ACL has ACL rules associated, CANNOT change ACL type.']
+        if data['assigned_object_type'].model == 'interface':
+            interface_host = data['assigned_object_type'].get_object_for_this_type(id=data['assigned_object_id']).device
+        elif data['assigned_object_type'].model == 'vminterface':
+            interface_host = data['assigned_object_type'].get_object_for_this_type(id=data['assigned_object_id']).virtual_machine
+        # Check that the associated interface's parent host has the selected ACL defined.
+        if acl_host != interface_host:
+            error_acl_not_assigned_to_host = "Access List not present on the selected interface's host."
+            error_message['access_list'] = [error_acl_not_assigned_to_host]
+            error_message['assigned_object_id'] = [error_acl_not_assigned_to_host]
 
         if error_message:
             raise serializers.ValidationError(error_message)
@@ -183,7 +184,9 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
 
     def validate(self, data):
         """
-        Validate the ACLStandardRule django model model's inputs before allowing it to update the instance.
+        Validate the ACLStandardRule django model model's inputs before allowing it to update the instance:
+          - Check if action set to remark, but no remark set.
+          - Check if action set to remark, but source_prefix set.
         """
         error_message = {}
 
@@ -232,7 +235,14 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
 
     def validate(self, data):
         """
-        Validate the ACLExtendedRule django model model's inputs before allowing it to update the instance.
+        Validate the ACLExtendedRule django model model's inputs before allowing it to update the instance:
+          - Check if action set to remark, but no remark set.
+          - Check if action set to remark, but source_prefix set.
+          - Check if action set to remark, but source_ports set.
+          - Check if action set to remark, but destination_prefix set.
+          - Check if action set to remark, but destination_ports set.
+          - Check if action set to remark, but protocol set.
+          - Check if action set to remark, but protocol set.
         """
         error_message = {}
 

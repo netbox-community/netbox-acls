@@ -1,12 +1,4 @@
-#Possible Choices:
-#  status:
-#  - container
-#  - active
-#  - reserved
-#  - deprecated
-##
-#Examples:
-
+---
 - description: prefix1
   prefix: 10.1.1.0/24
   site: AMS 1

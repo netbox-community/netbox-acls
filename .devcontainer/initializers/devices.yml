@@ -1,18 +1,4 @@
-#Possible Choices:
-#  face:
-#  - front
-#  - rear
-#  status:
-#  - offline
-#  - active
-#  - planned
-#  - staged
-#  - failed
-#  - inventory
-#  - decommissioning
-##
-#Examples:
-
+---
 - name: server01
   device_role: server
   device_type: Other

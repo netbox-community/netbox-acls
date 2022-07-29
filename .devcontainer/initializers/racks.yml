@@ -1,19 +1,4 @@
-#Possible Choices:
-#  width:
-#  - 19
-#  - 23
-#  types:
-#  - 2-post-frame
-#  - 4-post-frame
-#  - 4-post-cabinet
-#  - wall-frame
-#  - wall-cabinet
-#  outer_unit:
-#  - mm
-#  - in
-##
-#Examples:
-
+---
 - site: AMS 1
   name: rack-01
   role: Role 1

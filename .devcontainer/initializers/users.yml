@@ -1,3 +1,4 @@
+---
 admin:
   api_token: 0123456789admin789abcdef01234567admin
   is_active: True

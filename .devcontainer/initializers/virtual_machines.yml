@@ -1,11 +1,4 @@
-#Possible Choices:
-#  status:
-#  - active
-#  - offline
-#  - staged
-##
-#Examples:
-
+---
 - cluster: cluster1
   comments: VM1
   disk: 200

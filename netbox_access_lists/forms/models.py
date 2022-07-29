@@ -184,7 +184,6 @@ class AccessListForm(NetBoxModelForm):
                 name=name,
                 virtual_machine=virtual_machine,
             ).exists()
-        host = cleaned_data.get(host_type)
 
         # Check if duplicate entry.
         if (

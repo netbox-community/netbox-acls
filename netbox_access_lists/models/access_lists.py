@@ -11,7 +11,7 @@ from django.urls import reverse
 from netbox.models import NetBoxModel
 from virtualization.models import VirtualMachine, VMInterface
 
-from ..choices import *
+from ..choices import ACLActionChoices, ACLAssignmentDirectionChoices, ACLTypeChoices
 from ..constants import ACL_HOST_ASSIGNMENT_MODELS, ACL_INTERFACE_ASSIGNMENT_MODELS
 
 __all__ = (

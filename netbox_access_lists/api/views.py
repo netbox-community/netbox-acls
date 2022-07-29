@@ -18,7 +18,8 @@ from .serializers import (
 __all__ = [
     "AccessListViewSet",
     "ACLStandardRuleViewSet",
-    "ACLInterfaceAssignmentViewSet" "ACLExtendedRuleViewSet",
+    "ACLInterfaceAssignmentViewSet",
+    "ACLExtendedRuleViewSet",
 ]
 
 

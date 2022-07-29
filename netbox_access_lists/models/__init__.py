@@ -1,3 +1,4 @@
+# flake8: noqa
 """
 Import each of the directory's scripts.
 """

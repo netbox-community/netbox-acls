@@ -7,7 +7,7 @@ from dcim.models import Device, Interface, VirtualChassis
 from netbox.filtersets import NetBoxModelFilterSet
 from virtualization.models import VirtualMachine, VMInterface
 
-from .models import *
+from .models import AccessList, ACLExtendedRule, ACLInterfaceAssignment, ACLStandardRule
 
 __all__ = (
     "AccessListFilterSet",

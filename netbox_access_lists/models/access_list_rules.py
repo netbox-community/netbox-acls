@@ -7,7 +7,7 @@ from django.db import models
 from django.urls import reverse
 from netbox.models import NetBoxModel
 
-from ..choices import *
+from ..choices import ACLProtocolChoices, ACLRuleActionChoices
 from .access_lists import AccessList
 
 __all__ = (

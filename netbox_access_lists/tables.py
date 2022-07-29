@@ -3,7 +3,7 @@ Define the object lists / table view for each of the plugin models.
 """
 
 import django_tables2 as tables
-from netbox.tables import ChoiceFieldColumn, NetBoxTable, TemplateColumn, columns
+from netbox.tables import ChoiceFieldColumn, NetBoxTable, columns
 
 from .models import AccessList, ACLExtendedRule, ACLInterfaceAssignment, ACLStandardRule
 

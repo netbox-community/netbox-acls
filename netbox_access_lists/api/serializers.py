@@ -97,7 +97,9 @@ class AccessListSerializer(NetBoxModelSerializer):
         # Check that the GFK object is valid.
         if "assigned_object_type" in data and "assigned_object_id" in data:
             try:
-                assigned_object = data["assigned_object_type"].get_object_for_this_type(
+                assigned_object = data[  # noqa: F841
+                    "assigned_object_type"
+                ].get_object_for_this_type(
                     id=data["assigned_object_id"],
                 )
             except ObjectDoesNotExist:
@@ -175,7 +177,9 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
         # Check that the GFK object is vlaid.
         if "assigned_object_type" in data and "assigned_object_id" in data:
             try:
-                assigned_object = data["assigned_object_type"].get_object_for_this_type(
+                assigned_object = data[  # noqa: F841
+                    "assigned_object_type"
+                ].get_object_for_this_type(
                     id=data["assigned_object_id"],
                 )
             except ObjectDoesNotExist:

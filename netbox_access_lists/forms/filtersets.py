@@ -66,6 +66,14 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
         },
         required=False,
     )
+    virtual_machine = DynamicModelChoiceField(
+        queryset=VirtualMachine.objects.all(),
+        required=False,
+    )
+    virtual_chassis = DynamicModelChoiceField(
+        queryset=VirtualChassis.objects.all(),
+        required=False,
+    )
     type = ChoiceField(
         choices=add_blank_choice(ACLTypeChoices),
         required=False,
@@ -83,7 +91,17 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
 
     fieldsets = (
         (None, ("q", "tag")),
-        ("Host Details", ("region", "site_group", "site", "device")),
+        (
+            "Host Details",
+            (
+                "region",
+                "site_group",
+                "site",
+                "device",
+                "virtual_chassis",
+                "virtual_machine",
+            ),
+        ),
         ("ACL Details", ("type", "default_action")),
     )
 

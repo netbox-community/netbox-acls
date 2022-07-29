@@ -30,14 +30,14 @@
 				"python.sortImports.path": "/opt/netbox/venv/bin/isort",
 				"python.analysis.typeCheckingMode": "strict",
 				"python.analysis.extraPaths": [
-					"/opt/netbox/",
+				//	"/opt/netbox/",
 					"/opt/netbox/netbox"
 				],
 				"python.autoComplete.extraPaths": [
-					"/opt/netbox/netbox/",
-					"/opt/netbox/netbox/**",
-					"/opt/netbox/netbox/**/**"
-
+				//	"/opt/netbox/netbox/",
+				//	"/opt/netbox/netbox/**",
+				//	"/opt/netbox/netbox/**/**",
+                                        "/opt/netbox/netbox"
 				],
 				"python.defaultInterpreterPath": "/opt/netbox/venv/bin/python3",
 				"python.formatting.autopep8Path": "/opt/netbox/venv/bin/autopep8",
@@ -62,7 +62,13 @@
 				"python.linting.pylintPath": "/opt/netbox/venv/bin/pylint",
 				"python.pythonPath": "/opt/netbox/venv/bin/python3",
 				"python.terminal.activateEnvironment": true,
-				"python.venvPath": "/opt/netbox/"
+				"python.venvPath": "/opt/netbox/",
+				"files.exclude": {
+					"**/node_modules": true,
+					"build": true,
+					"dist": true,
+					"*egg*": true
+                }
 			},
 
 			// Add the IDs of extensions you want installed when the container is created.

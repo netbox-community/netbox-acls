@@ -22,7 +22,7 @@ RUN useradd -md /home/vscode -s /usr/bin/zsh -u $USER_UID $USERNAME \
     && usermod -aG sudo $USERNAME \
     && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
     && mkdir /opt/netbox/netbox/netbox-access-lists \
-    && chown $USERNAME:$USERNAME /opt/netbox /etc/netbox -R
+    && chown $USERNAME:$USERNAME /opt/netbox /etc/netbox /opt/unit -R
 
 USER $USERNAME
 
@@ -36,7 +36,7 @@ WORKDIR /opt/netbox/netbox/netbox-access-lists
 
 USER root
 
-COPY entrypoint-dev.sh /bin/entrypoint.sh
-RUN chmod +x /bin/entrypoint.sh
+COPY entrypoint-dev.sh /bin/entrypoint-dev.sh
+RUN chmod +x /bin/entrypoint-dev.sh
 
-CMD ["/bin/entrypoint.sh"]
+CMD ["/bin/entrypoint-dev.sh"]

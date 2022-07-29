@@ -1,9 +1,3 @@
-####
-## We recommend to not edit this file.
-## Create separate files to overwrite the settings.
-## See `extra.py` as an example.
-####
-
 import re
 from os import environ
 from os.path import abspath, dirname, join

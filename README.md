@@ -6,7 +6,7 @@ A NetBox plugin for Access List management
 
 Based on the NetBox plugin tutorial by [jeremystretch](https://github.com/jeremystretch):
 
-- [demo repo](https://github.com/netbox-community/netbox-plugin-demo)
+- [demo repository](https://github.com/netbox-community/netbox-plugin-demo)
 - [tutorial](https://github.com/netbox-community/netbox-plugin-tutorial)
 
 All credit should go to Jeremy.  Thanks Jeremy!

@@ -19,12 +19,7 @@ from ..models import (
     ACLInterfaceAssignment,
     ACLStandardRule,
 )
-from .nested_serializers import (
-    NestedAccessListSerializer,
-    NestedACLExtendedRuleSerializer,
-    NestedACLInterfaceAssignmentSerializer,
-    NestedACLStandardRuleSerializer,
-)
+from .nested_serializers import NestedAccessListSerializer
 
 __all__ = [
     "AccessListSerializer",
@@ -135,6 +130,7 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name="plugins-api:netbox_access_lists-api:aclinterfaceassignment-detail",
     )
+    access_list = NestedAccessListSerializer()
     assigned_object_type = ContentTypeField(
         queryset=ContentType.objects.filter(ACL_INTERFACE_ASSIGNMENT_MODELS),
     )

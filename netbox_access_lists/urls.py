@@ -11,7 +11,9 @@ urlpatterns = (
     # Access Lists
     path("access-lists/", views.AccessListListView.as_view(), name="accesslist_list"),
     path(
-        "access-lists/add/", views.AccessListEditView.as_view(), name="accesslist_add"
+        "access-lists/add/",
+        views.AccessListEditView.as_view(),
+        name="accesslist_add",
     ),
     # path('access-lists/edit/', views.AccessListBulkEditView.as_view(), name='accesslist_bulk_edit'),
     path(

@@ -24,7 +24,8 @@ This plugin was first developed using 3.2.5, and tested with all of 3.2.0.
 
 ## Installing
 
-For adding to a NetBox Docker setup see [the general instructions for using netbox-docker with plugins](https://github.com/netbox-community/netbox-docker/wiki/Using-Netbox-Plugins).
+For adding to a NetBox Docker setup see
+[the general instructions for using netbox-docker with plugins](https://github.com/netbox-community/netbox-docker/wiki/Using-Netbox-Plugins).
 
 While this is still in development and not yet on pypi you can install with pip:
 
@@ -38,7 +39,8 @@ or by adding to your `local_requirements.txt` or `plugin_requirements.txt` (netb
 git+https://github.com/ryanmerolle/netbox-access-lists.git@dev
 ```
 
-Enable the plugin in `/opt/netbox/netbox/netbox/configuration.py` or if you use netbox-docker, your `/configuration/plugins.py` file :
+Enable the plugin in `/opt/netbox/netbox/netbox/configuration.py`,
+ or if you use netbox-docker, your `/configuration/plugins.py` file :
 
 ```python
 PLUGINS = [

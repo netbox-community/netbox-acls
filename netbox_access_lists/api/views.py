@@ -40,7 +40,8 @@ class ACLInterfaceAssignmentViewSet(NetBoxModelViewSet):
     """
 
     queryset = models.ACLInterfaceAssignment.objects.prefetch_related(
-        "access_list", "tags"
+        "access_list",
+        "tags",
     )
     serializer_class = ACLInterfaceAssignmentSerializer
     filterset_class = filtersets.ACLInterfaceAssignmentFilterSet

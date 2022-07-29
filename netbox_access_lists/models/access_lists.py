@@ -135,7 +135,8 @@ class ACLInterfaceAssignment(NetBoxModel):
         it conveniently returns the absolute URL for any particular object.
         """
         return reverse(
-            "plugins:netbox_access_lists:aclinterfaceassignment", args=[self.pk]
+            "plugins:netbox_access_lists:aclinterfaceassignment",
+            args=[self.pk],
         )
 
     def get_direction_color(self):

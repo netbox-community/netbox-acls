@@ -103,7 +103,7 @@ class AccessListSerializer(NetBoxModelSerializer):
         if "assigned_object_type" in data and "assigned_object_id" in data:
             try:
                 assigned_object = data["assigned_object_type"].get_object_for_this_type(
-                    id=data["assigned_object_id"]
+                    id=data["assigned_object_id"],
                 )
             except ObjectDoesNotExist:
                 # Sets a standard error message for invalid GFK
@@ -118,7 +118,7 @@ class AccessListSerializer(NetBoxModelSerializer):
             and self.instance.rule_count > 0
         ):
             error_message["type"] = [
-                "This ACL has ACL rules associated, CANNOT change ACL type."
+                "This ACL has ACL rules associated, CANNOT change ACL type.",
             ]
 
         if error_message:
@@ -180,7 +180,7 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
         if "assigned_object_type" in data and "assigned_object_id" in data:
             try:
                 assigned_object = data["assigned_object_type"].get_object_for_this_type(
-                    id=data["assigned_object_id"]
+                    id=data["assigned_object_id"],
                 )
             except ObjectDoesNotExist:
                 # Sets a standard error message for invalid GFK
@@ -265,7 +265,7 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
         # Check if action set to remark, but source_prefix set.
         if data.get("source_prefix"):
             error_message["source_prefix"] = [
-                error_message_action_remark_source_prefix_set
+                error_message_action_remark_source_prefix_set,
             ]
 
         if error_message:
@@ -339,27 +339,27 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
         # Check if action set to remark, but source_prefix set.
         if data.get("source_prefix"):
             error_message["source_prefix"] = [
-                error_message_action_remark_source_prefix_set
+                error_message_action_remark_source_prefix_set,
             ]
         # Check if action set to remark, but source_ports set.
         if data.get("source_ports"):
             error_message["source_ports"] = [
-                "Action is set to remark, Source Ports CANNOT be set."
+                "Action is set to remark, Source Ports CANNOT be set.",
             ]
         # Check if action set to remark, but destination_prefix set.
         if data.get("destination_prefix"):
             error_message["destination_prefix"] = [
-                "Action is set to remark, Destination Prefix CANNOT be set."
+                "Action is set to remark, Destination Prefix CANNOT be set.",
             ]
         # Check if action set to remark, but destination_ports set.
         if data.get("destination_ports"):
             error_message["destination_ports"] = [
-                "Action is set to remark, Destination Ports CANNOT be set."
+                "Action is set to remark, Destination Ports CANNOT be set.",
             ]
         # Check if action set to remark, but protocol set.
         if data.get("protocol"):
             error_message["protocol"] = [
-                "Action is set to remark, Protocol CANNOT be set."
+                "Action is set to remark, Protocol CANNOT be set.",
             ]
 
         if error_message:

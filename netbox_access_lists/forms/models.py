@@ -32,7 +32,7 @@ __all__ = (
 
 # Sets a standard mark_safe help_text value to be used by the various classes
 help_text_acl_rule_logic = mark_safe(
-    "<b>*Note:</b> CANNOT be set if action is set to remark."
+    "<b>*Note:</b> CANNOT be set if action is set to remark.",
 )
 # Sets a standard help_text value to be used by the various classes for acl action
 help_text_acl_action = "Action the rule will take (remark, deny, or allow)."
@@ -116,7 +116,7 @@ class AccessListForm(NetBoxModelForm):
             "default_action": "The default behavior of the ACL.",
             "name": "The name uniqueness per device is case insensitive.",
             "type": mark_safe(
-                "<b>*Note:</b> CANNOT be changed if ACL Rules are assoicated to this Access List."
+                "<b>*Note:</b> CANNOT be changed if ACL Rules are assoicated to this Access List.",
             ),
         }
 
@@ -161,12 +161,12 @@ class AccessListForm(NetBoxModelForm):
             or (virtual_chassis and virtual_machine)
         ):
             raise forms.ValidationError(
-                "Access Lists must be assigned to one host (either a device, virtual chassis or virtual machine) at a time."
+                "Access Lists must be assigned to one host (either a device, virtual chassis or virtual machine) at a time.",
             )
         # Check if no hosts selected.
         if not device and not virtual_chassis and not virtual_machine:
             raise forms.ValidationError(
-                "Access Lists must be assigned to a device, virtual chassis or virtual machine."
+                "Access Lists must be assigned to a device, virtual chassis or virtual machine.",
             )
 
         if device:
@@ -175,12 +175,14 @@ class AccessListForm(NetBoxModelForm):
         elif virtual_chassis:
             host_type = "virtual_chassis"
             existing_acls = AccessList.objects.filter(
-                name=name, virtual_chassis=virtual_chassis
+                name=name,
+                virtual_chassis=virtual_chassis,
             ).exists()
         elif virtual_machine:
             host_type = "virtual_machine"
             existing_acls = AccessList.objects.filter(
-                name=name, virtual_machine=virtual_machine
+                name=name,
+                virtual_machine=virtual_machine,
             ).exists()
         host = cleaned_data.get(host_type)
 
@@ -200,7 +202,7 @@ class AccessListForm(NetBoxModelForm):
             acl_type == "standard" and self.instance.aclextendedrules.exists()
         ):
             error_message["type"] = [
-                "This ACL has ACL rules associated, CANNOT change ACL type."
+                "This ACL has ACL rules associated, CANNOT change ACL type.",
             ]
 
         if error_message:
@@ -265,7 +267,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         # },
         label="Access List",
         help_text=mark_safe(
-            "<b>*Note:</b> Access List must be present on the device already."
+            "<b>*Note:</b> Access List must be present on the device already.",
         ),
     )
     comments = CommentField()
@@ -304,7 +306,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         )
         help_texts = {
             "direction": mark_safe(
-                "<b>*Note:</b> CANNOT assign 2 ACLs to the same interface & direction."
+                "<b>*Note:</b> CANNOT assign 2 ACLs to the same interface & direction.",
             ),
         }
 
@@ -338,7 +340,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         if interface or vminterface:
             assigned_object_id = VMInterface.objects.get(pk=assigned_object.pk).pk
             assigned_object_type_id = ContentType.objects.get_for_model(
-                assigned_object
+                assigned_object,
             ).pk
         access_list_host = AccessList.objects.get(pk=access_list.pk).assigned_object
 
@@ -403,7 +405,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
     def save(self, *args, **kwargs):
         # Set assigned object
         self.instance.assigned_object = self.cleaned_data.get(
-            "interface"
+            "interface",
         ) or self.cleaned_data.get("vminterface")
 
         return super().save(*args, **kwargs)
@@ -422,7 +424,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
             "type": "standard",
         },
         help_text=mark_safe(
-            "<b>*Note:</b> This field will only display Standard ACLs."
+            "<b>*Note:</b> This field will only display Standard ACLs.",
         ),
         label="Access List",
     )
@@ -457,7 +459,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
             "index": help_text_acl_rule_index,
             "action": help_text_acl_action,
             "remark": mark_safe(
-                "<b>*Note:</b> CANNOT be set if source prefix OR action is set."
+                "<b>*Note:</b> CANNOT be set if source prefix OR action is set.",
             ),
         }
 
@@ -480,7 +482,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
             # Check if action set to remark, but source_prefix set.
             if cleaned_data.get("source_prefix"):
                 error_message["source_prefix"] = [
-                    error_message_action_remark_source_prefix_set
+                    error_message_action_remark_source_prefix_set,
                 ]
         # Check remark set, but action not set to remark.
         elif cleaned_data.get("remark"):
@@ -504,7 +506,7 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             "type": "extended",
         },
         help_text=mark_safe(
-            "<b>*Note:</b> This field will only display Extended ACLs."
+            "<b>*Note:</b> This field will only display Extended ACLs.",
         ),
         label="Access List",
     )
@@ -562,7 +564,7 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             "index": help_text_acl_rule_index,
             "protocol": help_text_acl_rule_logic,
             "remark": mark_safe(
-                "<b>*Note:</b> CANNOT be set if action is not set to remark."
+                "<b>*Note:</b> CANNOT be set if action is not set to remark.",
             ),
             "source_ports": help_text_acl_rule_logic,
         }
@@ -591,27 +593,27 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             # Check if action set to remark, but source_prefix set.
             if cleaned_data.get("source_prefix"):
                 error_message["source_prefix"] = [
-                    error_message_action_remark_source_prefix_set
+                    error_message_action_remark_source_prefix_set,
                 ]
             # Check if action set to remark, but source_ports set.
             if cleaned_data.get("source_ports"):
                 error_message["source_ports"] = [
-                    "Action is set to remark, Source Ports CANNOT be set."
+                    "Action is set to remark, Source Ports CANNOT be set.",
                 ]
             # Check if action set to remark, but destination_prefix set.
             if cleaned_data.get("destination_prefix"):
                 error_message["destination_prefix"] = [
-                    "Action is set to remark, Destination Prefix CANNOT be set."
+                    "Action is set to remark, Destination Prefix CANNOT be set.",
                 ]
             # Check if action set to remark, but destination_ports set.
             if cleaned_data.get("destination_ports"):
                 error_message["destination_ports"] = [
-                    "Action is set to remark, Destination Ports CANNOT be set."
+                    "Action is set to remark, Destination Ports CANNOT be set.",
                 ]
             # Check if action set to remark, but protocol set.
             if cleaned_data.get("protocol"):
                 error_message["protocol"] = [
-                    "Action is set to remark, Protocol CANNOT be set."
+                    "Action is set to remark, Protocol CANNOT be set.",
                 ]
         # Check if action not set to remark, but remark set.
         elif cleaned_data.get("remark"):

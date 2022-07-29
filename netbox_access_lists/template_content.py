@@ -22,7 +22,8 @@ class ACLInterfaceAssignments(PluginTemplateExtension):
         ctype = ContentType.objects.get_for_model(obj)
         if ctype.model in ["interface", "vminterface"]:
             acl_interface_assignments = ACLInterfaceAssignment.objects.filter(
-                assigned_object_id=obj.pk, assigned_object_type=ctype
+                assigned_object_id=obj.pk,
+                assigned_object_type=ctype,
             )
 
         return self.render(
@@ -44,7 +45,8 @@ class AccessLists(PluginTemplateExtension):
         ctype = ContentType.objects.get_for_model(obj)
         if ctype.model in ["device", "virtualchassis", "virtualmachine"]:
             access_lists = AccessList.objects.filter(
-                assigned_object_id=obj.pk, assigned_object_type=ctype
+                assigned_object_id=obj.pk,
+                assigned_object_type=ctype,
             )
 
         return self.render(

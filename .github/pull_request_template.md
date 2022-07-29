@@ -77,5 +77,6 @@ into the release notes.
 Please put an x into the brackets (like `[x]`) if you've completed that task.
 -->
 
-* [ ] I have explained my PR according to the information in the comments or in a linked issue.
+* [ ] I have explained my PR according to the information in the comments
+ or in a linked issue.
 * [ ] My PR targets the `dev` branch.

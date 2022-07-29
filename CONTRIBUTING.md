@@ -3,8 +3,10 @@
 ## Reporting Bugs
 
 * First, ensure that you're running the [latest stable version](https://github.com/netbox-community/netbox/releases)
-of NetBox or this plugin [latest stable version](https://github.com/ryanmerolle/netbox-access-lists/releases). If you're running an older version, it's possible that the bug has
-already been fixed or you are running a version of the plugin not tested with the NetBox version you are running [Compatibility Matrix](./README.md#compatibility).
+of NetBox or this plugin [latest stable version](https://github.com/ryanmerolle/netbox-access-lists/releases).
+If you're running an older version, it's possible that the bug has already been fixed
+or you are running a version of the plugin not tested with the NetBox version
+you are running [Compatibility Matrix](./README.md#compatibility).
 
 * Next, check the GitHub [issues list](https://github.com/ryanmerolle/netbox-access-lists/issues)
 to see if the bug you've found has already been reported. If you think you may

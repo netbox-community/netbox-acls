@@ -30,7 +30,9 @@ class Migration(migrations.Migration):
                 (
                     "id",
                     models.BigAutoField(
-                        auto_created=True, primary_key=True, serialize=False
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
                     ),
                 ),
                 ("created", models.DateTimeField(auto_now_add=True, null=True)),
@@ -58,14 +60,15 @@ class Migration(migrations.Migration):
                 (
                     "tags",
                     taggit.managers.TaggableManager(
-                        through="extras.TaggedItem", to="extras.Tag"
+                        through="extras.TaggedItem",
+                        to="extras.Tag",
                     ),
                 ),
             ],
             options={
                 "ordering": ("name", "device"),
                 "unique_together": {
-                    ("assigned_object_type", "assigned_object_id", "name")
+                    ("assigned_object_type", "assigned_object_id", "name"),
                 },
                 "verbose_name": "Access List",
             },
@@ -76,7 +79,9 @@ class Migration(migrations.Migration):
                 (
                     "id",
                     models.BigAutoField(
-                        auto_created=True, primary_key=True, serialize=False
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
                     ),
                 ),
                 ("created", models.DateTimeField(auto_now_add=True, null=True)),
@@ -110,7 +115,8 @@ class Migration(migrations.Migration):
                 (
                     "tags",
                     taggit.managers.TaggableManager(
-                        through="extras.TaggedItem", to="extras.Tag"
+                        through="extras.TaggedItem",
+                        to="extras.Tag",
                     ),
                 ),
             ],
@@ -127,7 +133,7 @@ class Migration(migrations.Migration):
                         "assigned_object_id",
                         "access_list",
                         "direction",
-                    )
+                    ),
                 },
                 "verbose_name": "ACL Interface Assignment",
             },
@@ -138,7 +144,9 @@ class Migration(migrations.Migration):
                 (
                     "id",
                     models.BigAutoField(
-                        auto_created=True, primary_key=True, serialize=False
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
                     ),
                 ),
                 ("created", models.DateTimeField(auto_now_add=True, null=True)),
@@ -154,7 +162,8 @@ class Migration(migrations.Migration):
                 (
                     "tags",
                     taggit.managers.TaggableManager(
-                        through="extras.TaggedItem", to="extras.Tag"
+                        through="extras.TaggedItem",
+                        to="extras.Tag",
                     ),
                 ),
                 (
@@ -192,7 +201,9 @@ class Migration(migrations.Migration):
                 (
                     "id",
                     models.BigAutoField(
-                        auto_created=True, primary_key=True, serialize=False
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
                     ),
                 ),
                 ("created", models.DateTimeField(auto_now_add=True, null=True)),
@@ -208,7 +219,8 @@ class Migration(migrations.Migration):
                 (
                     "tags",
                     taggit.managers.TaggableManager(
-                        through="extras.TaggedItem", to="extras.Tag"
+                        through="extras.TaggedItem",
+                        to="extras.Tag",
                     ),
                 ),
                 (

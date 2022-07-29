@@ -1,5 +1,5 @@
 repos:
-  - repo: 'https://github.com/pre-commit/pre-commit-hooks'
+  - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.3.0
     hooks:
       - id: trailing-whitespace
@@ -10,38 +10,45 @@ repos:
       - id: name-tests-test
       - id: requirements-txt-fixer
       - id: check-docstring-first
-  - repo: 'https://github.com/asottile/add-trailing-comma'
+  - repo: https://github.com/asottile/add-trailing-comma
     rev: v2.2.3
     hooks:
       - id: add-trailing-comma
         args:
-          - '--py36-plus'
-  - repo: 'https://github.com/asottile/pyupgrade'
+          - "--py36-plus"
+  - repo: https://github.com/asottile/pyupgrade
     rev: v2.37.3
     hooks:
       - id: pyupgrade
         args:
-          - '--py37-plus'
-  - repo: 'https://github.com/PyCQA/isort'
+          - "--py37-plus"
+  - repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
       - id: isort
         args:
-          - '--filter-files'
-  - repo: 'https://github.com/psf/black'
+          - "--filter-files"
+          - "--profile=black"
+  - repo: https://github.com/psf/black
     rev: 22.6.0
     hooks:
       - id: black
         language_version: python3
-  #- repo: 'https://github.com/adrienverge/yamllint'
+  #- repo: https://github.com/adrienverge/yamllint
   #  rev: v1.26.3
   #  hooks:
   #    - id: yamllint
-  - repo: 'https://github.com/psf/black'
+  - repo: https://github.com/psf/black
     rev: 22.6.0
     hooks:
       - id: black
-  - repo: 'https://github.com/igorshubovych/markdownlint-cli'
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-nodejs
+    rev: v1.1.2
+    hooks:
+    -   id: htmlhint
+        # optional custom config:
+        args: [--config, .htmlhintrc]
+  - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.32.1
     hooks:
       - id: markdownlint

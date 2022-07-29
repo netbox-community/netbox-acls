@@ -24,19 +24,15 @@
 				//		"source.organizeImports": true
 				//	}
 				//},
-				//"python.sortImports.args": [
-				//	"--profile=black"
-				//],
+				"python.sortImports.args": [
+					"--profile=black"
+				],
 				"python.sortImports.path": "/opt/netbox/venv/bin/isort",
 				"python.analysis.typeCheckingMode": "strict",
 				"python.analysis.extraPaths": [
-				//	"/opt/netbox/",
 					"/opt/netbox/netbox"
 				],
 				"python.autoComplete.extraPaths": [
-				//	"/opt/netbox/netbox/",
-				//	"/opt/netbox/netbox/**",
-				//	"/opt/netbox/netbox/**/**",
                                         "/opt/netbox/netbox"
 				],
 				"python.defaultInterpreterPath": "/opt/netbox/venv/bin/python3",

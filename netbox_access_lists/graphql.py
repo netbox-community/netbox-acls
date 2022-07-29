@@ -9,10 +9,10 @@ from netbox.graphql.types import NetBoxObjectType
 from . import filtersets, models
 
 __all__ = (
-    'AccessListType',
-    'ACLInterfaceAssignmentType',
-    'ACLExtendedRuleType',
-    'ACLStandardRuleType',
+    "AccessListType",
+    "ACLInterfaceAssignmentType",
+    "ACLExtendedRuleType",
+    "ACLStandardRuleType",
 )
 
 #
@@ -29,8 +29,9 @@ class AccessListType(NetBoxObjectType):
         """
         Associates the filterset, fields, and model for the django model AccessList.
         """
+
         model = models.AccessList
-        fields = '__all__'
+        fields = "__all__"
         filterset_class = filtersets.AccessListFilterSet
 
 
@@ -43,8 +44,9 @@ class ACLInterfaceAssignmentType(NetBoxObjectType):
         """
         Associates the filterset, fields, and model for the django model ACLInterfaceAssignment.
         """
+
         model = models.ACLInterfaceAssignment
-        fields = '__all__'
+        fields = "__all__"
         filterset_class = filtersets.ACLInterfaceAssignmentFilterSet
 
 
@@ -57,8 +59,9 @@ class ACLExtendedRuleType(NetBoxObjectType):
         """
         Associates the filterset, fields, and model for the django model ACLExtendedRule.
         """
+
         model = models.ACLExtendedRule
-        fields = '__all__'
+        fields = "__all__"
         filterset_class = filtersets.ACLExtendedRuleFilterSet
 
 
@@ -71,9 +74,11 @@ class ACLStandardRuleType(NetBoxObjectType):
         """
         Associates the filterset, fields, and model for the django model ACLStandardRule.
         """
+
         model = models.ACLStandardRule
-        fields = '__all__'
+        fields = "__all__"
         filterset_class = filtersets.ACLStandardRuleFilterSet
+
 
 #
 # Queries
@@ -93,5 +98,6 @@ class Query(ObjectType):
 
     acl_standard_rule = ObjectField(ACLStandardRuleType)
     acl_standard_rule_list = ObjectListField(ACLStandardRuleType)
+
 
 schema = Query

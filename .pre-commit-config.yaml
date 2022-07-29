@@ -17,7 +17,7 @@ repos:
         args:
           - '--py36-plus'
   - repo: 'https://github.com/asottile/pyupgrade'
-    rev: v2.34.0
+    rev: v2.37.3
     hooks:
       - id: pyupgrade
         args:
@@ -42,11 +42,9 @@ repos:
     hooks:
       - id: black
   - repo: 'https://github.com/igorshubovych/markdownlint-cli'
-    rev: v0.31.1
+    rev: v0.32.1
     hooks:
       - id: markdownlint
-  - repo: local
-    hooks:
   - repo: local
     hooks:
       - id: wily

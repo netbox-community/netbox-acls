@@ -6,7 +6,7 @@
 
 PLUGINS = [
     "netbox_access_lists",
-    ]
+]
 
 PLUGINS_CONFIG = {
     "netbox_access_lists": {},

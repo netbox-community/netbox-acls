@@ -1,20 +1,20 @@
-#import codecs
-#import os.path
+# import codecs
+# import os.path
 #
 from setuptools import find_packages, setup
 
 #
-#with open("README.md", "r") as fh:
+# with open("README.md", "r") as fh:
 #    long_description = fh.read()
 #
 #
-#def read(rel_path):
+# def read(rel_path):
 #    here = os.path.abspath(os.path.dirname(__file__))
-#    with codecs.open(os.path.join(here, rel_path), 'r') as fp:
+#    with codecs.open(os.path.join(here, rel_path), "r") as fp:
 #        return fp.read()
 #
 #
-#def get_version(rel_path):
+# def get_version(rel_path):
 #    for line in read(rel_path).splitlines():
 #        if line.startswith('__version__'):
 #            delim = '"' if '"' in line else "'"
@@ -24,13 +24,13 @@ from setuptools import find_packages, setup
 #
 
 setup(
-    name='netbox-access-lists',
-    version='0.1.0',
-    #version=get_version('netbox_access_lists/version.py'),
-    description='A NetBox plugin for Access List management',
-    #long_description=long_description,
+    name="netbox-access-lists",
+    version="0.1.0",
+    # version=get_version("netbox_access_lists/version.py"),
+    description="A NetBox plugin for Access List management",
+    # long_description=long_description,
     long_description_content_type="text/markdown",
-    url='https://github.com/ryanmerolle/netbox-access-lists',
+    url="https://github.com/ryanmerolle/netbox-access-lists",
     install_requires=[],
     packages=find_packages(),
     include_package_data=True,

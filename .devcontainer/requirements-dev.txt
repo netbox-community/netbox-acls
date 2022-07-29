@@ -9,4 +9,5 @@ pycodestyle
 pydocstyle
 pylint
 pylint-django
+wily
 yapf

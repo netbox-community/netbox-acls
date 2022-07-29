@@ -3,17 +3,15 @@ Define the object lists / table view for each of the plugin models.
 """
 
 import django_tables2 as tables
-from netbox.tables import (ChoiceFieldColumn, NetBoxTable, TemplateColumn,
-                           columns)
+from netbox.tables import ChoiceFieldColumn, NetBoxTable, TemplateColumn, columns
 
-from .models import (AccessList, ACLExtendedRule, ACLInterfaceAssignment,
-                     ACLStandardRule)
+from .models import AccessList, ACLExtendedRule, ACLInterfaceAssignment, ACLStandardRule
 
 __all__ = (
-    'AccessListTable',
-    'ACLInterfaceAssignmentTable',
-    'ACLStandardRuleTable',
-    'ACLExtendedRuleTable',
+    "AccessListTable",
+    "ACLInterfaceAssignmentTable",
+    "ACLStandardRuleTable",
+    "ACLExtendedRuleTable",
 )
 
 
@@ -25,93 +23,144 @@ COL_HOST_ASSIGNMENT = """
     {% endif %}
  """
 
+
 class AccessListTable(NetBoxTable):
     """
     Defines the table view for the AccessList model.
     """
+
     pk = columns.ToggleColumn()
     id = tables.Column(
-        linkify=True
+        linkify=True,
     )
     assigned_object = tables.Column(
         linkify=True,
         orderable=False,
-        verbose_name='Assigned Host'
+        verbose_name="Assigned Host",
     )
     name = tables.Column(
-        linkify=True
+        linkify=True,
     )
     device = tables.Column(
-        linkify=True
+        linkify=True,
     )
     type = ChoiceFieldColumn()
     default_action = ChoiceFieldColumn()
     rule_count = tables.Column(
-        verbose_name='Rule Count'
+        verbose_name="Rule Count",
     )
     tags = columns.TagColumn(
-        url_name='plugins:netbox_access_lists:accesslist_list'
+        url_name="plugins:netbox_access_lists:accesslist_list",
     )
 
     class Meta(NetBoxTable.Meta):
         model = AccessList
-        fields = ('pk', 'id', 'name', 'assigned_object', 'type', 'rule_count', 'default_action', 'comments', 'actions', 'tags')
-        default_columns = ('name', 'assigned_object', 'type', 'rule_count', 'default_action', 'tags')
+        fields = (
+            "pk",
+            "id",
+            "name",
+            "assigned_object",
+            "type",
+            "rule_count",
+            "default_action",
+            "comments",
+            "actions",
+            "tags",
+        )
+        default_columns = (
+            "name",
+            "assigned_object",
+            "type",
+            "rule_count",
+            "default_action",
+            "tags",
+        )
 
 
 class ACLInterfaceAssignmentTable(NetBoxTable):
     """
     Defines the table view for the AccessList model.
     """
+
     pk = columns.ToggleColumn()
     id = tables.Column(
-        linkify=True
+        linkify=True,
     )
     access_list = tables.Column(
-        linkify=True
+        linkify=True,
     )
     direction = ChoiceFieldColumn()
     host = tables.TemplateColumn(
-        template_code=COL_HOST_ASSIGNMENT
-
+        template_code=COL_HOST_ASSIGNMENT,
     )
     assigned_object = tables.Column(
         linkify=True,
         orderable=False,
-        verbose_name='Assigned Interface'
+        verbose_name="Assigned Interface",
     )
     tags = columns.TagColumn(
-        url_name='plugins:netbox_access_lists:aclinterfaceassignment_list'
+        url_name="plugins:netbox_access_lists:aclinterfaceassignment_list",
     )
 
     class Meta(NetBoxTable.Meta):
         model = ACLInterfaceAssignment
-        fields = ('pk', 'id', 'access_list', 'direction', 'host', 'assigned_object', 'tags')
-        default_columns = ('id', 'access_list', 'direction', 'host', 'assigned_object', 'tags')
+        fields = (
+            "pk",
+            "id",
+            "access_list",
+            "direction",
+            "host",
+            "assigned_object",
+            "tags",
+        )
+        default_columns = (
+            "id",
+            "access_list",
+            "direction",
+            "host",
+            "assigned_object",
+            "tags",
+        )
 
 
 class ACLStandardRuleTable(NetBoxTable):
     """
     Defines the table view for the ACLStandardRule model.
     """
+
     access_list = tables.Column(
-        linkify=True
+        linkify=True,
     )
     index = tables.Column(
-        linkify=True
+        linkify=True,
     )
     action = ChoiceFieldColumn()
     tags = columns.TagColumn(
-        url_name='plugins:netbox_access_lists:aclstandardrule_list'
+        url_name="plugins:netbox_access_lists:aclstandardrule_list",
     )
 
     class Meta(NetBoxTable.Meta):
         model = ACLStandardRule
         fields = (
-            'pk', 'id', 'access_list', 'index', 'action', 'actions', 'remark', 'tags', 'description', 'source_prefix',
+            "pk",
+            "id",
+            "access_list",
+            "index",
+            "action",
+            "actions",
+            "remark",
+            "tags",
+            "description",
+            "source_prefix",
         )
         default_columns = (
-            'access_list', 'index', 'action', 'actions', 'remark', 'source_prefix', 'tags'
+            "access_list",
+            "index",
+            "action",
+            "actions",
+            "remark",
+            "source_prefix",
+            "tags",
         )
 
 
@@ -119,25 +168,47 @@ class ACLExtendedRuleTable(NetBoxTable):
     """
     Defines the table view for the ACLExtendedRule model.
     """
+
     access_list = tables.Column(
-        linkify=True
+        linkify=True,
     )
     index = tables.Column(
-        linkify=True
+        linkify=True,
     )
     action = ChoiceFieldColumn()
     tags = columns.TagColumn(
-        url_name='plugins:netbox_access_lists:aclextendedrule_list'
+        url_name="plugins:netbox_access_lists:aclextendedrule_list",
     )
     protocol = ChoiceFieldColumn()
 
     class Meta(NetBoxTable.Meta):
         model = ACLExtendedRule
         fields = (
-            'pk', 'id', 'access_list', 'index', 'action', 'actions', 'remark', 'tags', 'description',
-            'source_prefix', 'source_ports', 'destination_prefix', 'destination_ports', 'protocol'
+            "pk",
+            "id",
+            "access_list",
+            "index",
+            "action",
+            "actions",
+            "remark",
+            "tags",
+            "description",
+            "source_prefix",
+            "source_ports",
+            "destination_prefix",
+            "destination_ports",
+            "protocol",
         )
         default_columns = (
-            'access_list', 'index', 'action', 'actions', 'remark', 'tags',
-            'source_prefix', 'source_ports', 'destination_prefix', 'destination_ports', 'protocol'
+            "access_list",
+            "index",
+            "action",
+            "actions",
+            "remark",
+            "tags",
+            "source_prefix",
+            "source_ports",
+            "destination_prefix",
+            "destination_ports",
+            "protocol",
         )

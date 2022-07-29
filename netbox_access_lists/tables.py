@@ -108,10 +108,10 @@ class ACLStandardRuleTable(NetBoxTable):
     class Meta(NetBoxTable.Meta):
         model = ACLStandardRule
         fields = (
-            'pk', 'id', 'access_list', 'index', 'action', 'actions', 'remark', 'tags', 'description',
+            'pk', 'id', 'access_list', 'index', 'action', 'actions', 'remark', 'tags', 'description', 'source_prefix',
         )
         default_columns = (
-            'access_list', 'index', 'action', 'actions', 'remark', 'tags'
+            'access_list', 'index', 'action', 'actions', 'remark', 'source_prefix', 'tags'
         )
 
 

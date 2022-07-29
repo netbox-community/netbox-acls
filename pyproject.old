@@ -15,36 +15,6 @@ max-line-length = 100
 good-names = "i,j,k,ex,Run,_,f,fh"
 no-docstring-rgx = "__.*__"
 
-[tool.pylint.messages_control]
-# missing module docstring will be picked up by pydocstyle
-# could not do infile b/c older version of pylint didn't have it
-# and ansible-test sanity uses older version in earlier ansible
-# pointless-string-statement allows for attribute docstring in dataclasses
-disable = [
-  "duplicate-code",
-  "fixme",
-  "missing-module-docstring",
-  "pointless-string-statement",
-  "too-few-public-methods",
-  "unsubscriptable-object",
-]
-enable = [
-  "expression-not-assigned",
-  "global-variable-not-assigned",
-  "possibly-unused-variable",
-  "reimported",
-  "unused-argument",
-  "unused-import",
-  "unused-variable",
-  "unused-wildcard-import",
-  "useless-else-on-loop",
-  "useless-import-alias",
-  "useless-object-inheritance",
-  "useless-parent-delegation",
-  "useless-return",
-  "useless-suppression", # Identify unneeded pylint disable statements
-]
-
 [tool.isort]
 force_grid_wrap = 0
 include_trailing_comma = true

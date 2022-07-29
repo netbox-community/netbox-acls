@@ -4,19 +4,19 @@ VENV_PY_PATH=/opt/netbox/venv/bin/python3
 NETBOX_MANAGE_PATH=/opt/netbox/netbox/manage.py
 VERFILE=./version.py
 
-.PHONY: help
-help: ## Display help message
+.PHONY: help ## Display help message
+help:
 	@grep -E '^[0-9a-zA-Z_-]+\.*[0-9a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-#################
-#     DOCKER    #
-#################
-
-# Outside of Devcontainer
-
-.PHONY: cleanup
-cleanup: ## Clean associated docker resources.
-	-docker-compose -p netbox-access-lists_devcontainer rm -fv
+##################
+##     DOCKER    #
+##################
+#
+## Outside of Devcontainer
+#
+#.PHONY: cleanup ## Clean associated docker resources.
+#cleanup:
+#	-docker-compose -p netbox-access-lists_devcontainer rm -fv
 
 ##################
 #   PLUGIN DEV   #
@@ -24,22 +24,22 @@ cleanup: ## Clean associated docker resources.
 
 # in VS Code Devcontianer
 
-.PHONY: nbshell
-nbshell: ## Run nbshell
+.PHONY: nbshell ## Run nbshell
+nbshell:
 	${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} nbshell
 	from netbox_access_lists.models import *
 
-.PHONY: setup
-setup: ## Copy plugin settings.  Setup NetBox plugin.
+.PHONY: setup ## Copy plugin settings.  Setup NetBox plugin.
+setup:
 	-${VENV_PY_PATH} -m pip install --disable-pip-version-check --no-cache-dir -e ${REPO_PATH}
 #-python3 setup.py develop
 
-.PHONY: makemigrations
-makemigrations: ## Run makemigrations
+.PHONY: makemigrations ## Run makemigrations
+makemigrations:
 	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} makemigrations --name ${PLUGIN_NAME}
 
-.PHONY: migrate
-migrate: ## Run migrate
+.PHONY: migrate ## Run migrate
+migrate:
 	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} migrate
 
 .PHONY: startup_scripts
@@ -50,12 +50,12 @@ startup_scripts:
 collectstatic:
 	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} collectstatic --no-input
 
-.PHONY: start
-start: ## Start NetBox
-	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} runserver
+.PHONY: start ## Start NetBox
+start:
+	- cd /opt/netbox/netbox/ && /opt/netbox/docker-entrypoint.sh && /opt/netbox/launch-netbox.sh
 
-.PHONY: all
-all: setup makemigrations migrate collectstatic startup_scripts start ## Run all PLUGIN DEV targets
+.PHONY: all ## Run all PLUGIN DEV targets
+all: setup makemigrations migrate collectstatic startup_scripts start
 
 #.PHONY: test
 #test:

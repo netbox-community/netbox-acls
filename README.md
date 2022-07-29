@@ -12,3 +12,66 @@ Based on the NetBox plugin tutorial by [jeremystretch](https://github.com/jeremy
 All credit should go to Jeremy.  Thanks Jeremy!
 
 This project just looks to build on top of this framework and model presented.
+
+## Compatibility
+
+This plugin was first developed using 3.2.5, and tested with all of 3.2.0.
+
+| NetBox Version | Plugin Version |
+|----------------|----------------|
+|       3.2      |      1.0.0     |
+|       3.3      |       TBD      |
+
+## Installing
+
+For adding to a NetBox Docker setup see [the general instructions for using netbox-docker with plugins](https://github.com/netbox-community/netbox-docker/wiki/Using-Netbox-Plugins).
+
+While this is still in development and not yet on pypi you can install with pip:
+
+```bash
+pip install git+https://github.com/ryanmerolle/netbox-access-lists.git@dev
+```
+
+or by adding to your `local_requirements.txt` or `plugin_requirements.txt` (netbox-docker):
+
+```bash
+git+https://github.com/ryanmerolle/netbox-access-lists.git@dev
+```
+
+Enable the plugin in `/opt/netbox/netbox/netbox/configuration.py` or if you use netbox-docker, your `/configuration/plugins.py` file :
+
+```python
+PLUGINS = [
+    'netbox_access_lists'
+]
+
+PLUGINS_CONFIG = {
+    "netbox_access_lists": {},
+}
+```
+
+## Screenshots
+
+Access List - List View
+![Access List - List View](docs/img/access_lists.png)
+
+Access List (Type Extended) - Individual View
+![Access List Type Extended - Individual View](docs/img/access_list_type_extended.png)
+
+Access List (Type Standard) - Individual View
+![Access List Type Standard - Individual View](docs/img/access_list_type_standard.png)
+
+Extended Access List Rules - List View
+![Extended Access List Rules - List View](docs/img/acl_extended_rules.png)
+
+Standard Access List Rules - List View
+![Standard Access List Rules - List View](docs/img/acl_standard_rules.png)
+
+Access List Interface Assignments- List View
+![Access List Interface Assignments- List View](docs/img/acl_interface_assignments.png)
+
+Host (device, virtual_chassis, virtual_machine) Access Lists - New Card
+![Host Access Lists - New Card](docs/img/acl_host_view.png)
+
+Host Interface (vminterface interface) Access Lists - New Card
+![Host Interface Access Lists - New Card](docs/img/access_list_type_standard.png)

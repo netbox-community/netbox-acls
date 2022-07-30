@@ -178,7 +178,7 @@ class AccessListForm(NetBoxModelForm):
                 name=name,
                 virtual_chassis=virtual_chassis,
             ).exists()
-        elif virtual_machine:
+        else:
             host_type = "virtual_machine"
             existing_acls = AccessList.objects.filter(
                 name=name,

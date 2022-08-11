@@ -1,3 +1,4 @@
+autoflake
 autopep8
 bandit
 black

@@ -19,6 +19,7 @@
 		"vscode": {
 			// Set *default* container specific settings.json values on container create.
 			"settings": {
+				"editor.experimental.stickyScroll.enabled": true,
 				//"[python]": {
 				//	"editor.codeActionsOnSave": {
 				//		"source.organizeImports": true

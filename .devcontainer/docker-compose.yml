@@ -6,7 +6,7 @@ services:
       - postgres
       - redis
       #- redis-cache
-      - netbox-worker
+      #- netbox-worker
     env_file: env/netbox.env
     user: 'unit:root'
     volumes:

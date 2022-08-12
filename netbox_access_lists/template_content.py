@@ -30,9 +30,13 @@ class ACLInterfaceAssignments(PluginTemplateExtension):
             "inc/assigned_interface/access_lists.html",
             extra_context={
                 "acl_interface_assignments": acl_interface_assignments,
-                "type": ctype.model
-                if ctype.model == "device"
-                else ctype.name.replace(" ", "_"),
+                "type": ctype.model,
+                "parent_type": "device"
+                if ctype.model == "interface"
+                else "virtual_machine",
+                "parent_id": obj.device.pk
+                if ctype.model == "interface"
+                else obj.virtual_machine.pk,
             },
         )
 

@@ -74,7 +74,7 @@ class AccessListForm(NetBoxModelForm):
         query_params={
             "region_id": "$region",
             "group_id": "$site_group",
-        }
+        },
     )
     device = DynamicModelChoiceField(
         queryset=Device.objects.all(),

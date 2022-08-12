@@ -31,8 +31,12 @@ class ACLInterfaceAssignments(PluginTemplateExtension):
             extra_context={
                 "acl_interface_assignments": acl_interface_assignments,
                 "type": ctype.model,
-                "parent_type": "device" if ctype.model == "interface" else "virtual_machine",
-                "parent_id": obj.device.pk if ctype.model == "interface" else obj.virtual_machine.pk
+                "parent_type": "device"
+                if ctype.model == "interface"
+                else "virtual_machine",
+                "parent_id": obj.device.pk
+                if ctype.model == "interface"
+                else obj.virtual_machine.pk,
             },
         )
 

@@ -25,18 +25,20 @@ class ACLInterfaceAssignments(PluginTemplateExtension):
                 assigned_object_id=obj.pk,
                 assigned_object_type=ctype,
             )
+        if ctype.model == "interface":
+            parent_type = "device"
+            parent_id = obj.device.pk
+        elif ctype.model == "vminterface":
+            parent_type = "virtual_machine"
+            parent_id = obj.virtual_machine.pk
 
         return self.render(
             "inc/assigned_interface/access_lists.html",
             extra_context={
                 "acl_interface_assignments": acl_interface_assignments,
                 "type": ctype.model,
-                "parent_type": "device"
-                if ctype.model == "interface"
-                else "virtual_machine",
-                "parent_id": obj.device.pk
-                if ctype.model == "interface"
-                else obj.virtual_machine.pk,
+                "parent_type": parent_type,
+                "parent_id": parent_id,
             },
         )
 

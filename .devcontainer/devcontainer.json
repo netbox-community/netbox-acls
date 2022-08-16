@@ -70,19 +70,21 @@
 
 			// Add the IDs of extensions you want installed when the container is created.
 			"extensions": [
+				"DavidAnson.vscode-markdownlint",
+				"GitHub.codespaces",
+				"GitHub.vscode-pull-request-github",
+				"Tyriar.sort-lines",
+				"aaron-bond.better-comments",
+				"batisteo.vscode-django",
+				"codezombiech.gitignore",
+				"esbenp.prettier-vscode",
+				"formulahendry.auto-rename-tag",
+				"mintlify.document",
 				"ms-python.python",
 				"ms-python.vscode-pylance",
-				"DavidAnson.vscode-markdownlint",
+				"mutantdino.resourcemonitor",
 				"searKing.preview-vscode",
-				"esbenp.prettier-vscode",
-				"aaron-bond.better-comments",
-				"GitHub.codespaces",
-				"codezombiech.gitignore",
-				"Tyriar.sort-lines",
-				"GitHub.vscode-pull-request-github",
-				"sourcery.sourcery",
-				"mintlify.document",
-				"batisteo.vscode-django"
+				"sourcery.sourcery"
 			]
 		}
 	},

@@ -25,7 +25,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="netbox-access-lists",
-    version="1.0.0",
+    version="1.1.0",
     # version=get_version("netbox_access_lists/version.py"),
     description="A NetBox plugin for Access List management",
     # long_description=long_description,

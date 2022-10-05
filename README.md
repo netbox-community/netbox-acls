@@ -1,6 +1,16 @@
-# netbox-acls
+# NetBox Access Lists Plugin
 
-A NetBox plugin for Access List management
+A [Netbox](https://github.com/netbox-community/netbox) plugin for Access List management.
+
+## Features
+
+This plugin provides the following models:
+
+- Access Lists
+- Access List to Interface Assignment
+- Access List Rules (abstract model bassis for other rules)
+- Access List Standard Rules
+- Access List Extended Rules
 
 ## Origin
 

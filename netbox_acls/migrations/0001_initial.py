@@ -99,7 +99,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="aclinterfaceassignment",
-                        to="netbox_access_lists.accesslist",
+                        to="netbox_acls.accesslist",
                     ),
                 ),
                 ("direction", models.CharField(max_length=100)),
@@ -171,7 +171,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="aclstandardrules",
-                        to="netbox_access_lists.accesslist",
+                        to="netbox_acls.accesslist",
                     ),
                 ),
                 ("index", models.PositiveIntegerField()),
@@ -228,7 +228,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="aclstandardrules",
-                        to="netbox_access_lists.accesslist",
+                        to="netbox_acls.accesslist",
                     ),
                 ),
                 ("index", models.PositiveIntegerField()),

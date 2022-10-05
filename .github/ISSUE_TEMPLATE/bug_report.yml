@@ -11,11 +11,11 @@ body:
         installation.
 
         - Check the release notes:
-          https://github.com/ryanmerolle/netbox-access-lists/releases
+          https://github.com/ryanmerolle/netbox-acls/releases
         - Look through the issues already resolved:
-          https://github.com/ryanmerolle/netbox-access-lists/issues?q=is%3Aclosed
+          https://github.com/ryanmerolle/netbox-acls/issues?q=is%3Aclosed
         - Post to Github Discussions if you need setup or usage help that is not a bug:
-          https://github.com/ryanmerolle/netbox-access-lists/discussions
+          https://github.com/ryanmerolle/netbox-acls/discussions
         - Join the `#netbox` channel on our Slack:
           https://join.slack.com/t/netdev-community/shared_invite/zt-mtts8g0n-Sm6Wutn62q_M4OdsaIycrQ
 

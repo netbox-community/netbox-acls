@@ -50,7 +50,7 @@ class AccessListTable(NetBoxTable):
         verbose_name="Rule Count",
     )
     tags = columns.TagColumn(
-        url_name="plugins:netbox_access_lists:accesslist_list",
+        url_name="plugins:netbox_acls:accesslist_list",
     )
 
     class Meta(NetBoxTable.Meta):
@@ -99,7 +99,7 @@ class ACLInterfaceAssignmentTable(NetBoxTable):
         verbose_name="Assigned Interface",
     )
     tags = columns.TagColumn(
-        url_name="plugins:netbox_access_lists:aclinterfaceassignment_list",
+        url_name="plugins:netbox_acls:aclinterfaceassignment_list",
     )
 
     class Meta(NetBoxTable.Meta):
@@ -136,7 +136,7 @@ class ACLStandardRuleTable(NetBoxTable):
     )
     action = ChoiceFieldColumn()
     tags = columns.TagColumn(
-        url_name="plugins:netbox_access_lists:aclstandardrule_list",
+        url_name="plugins:netbox_acls:aclstandardrule_list",
     )
 
     class Meta(NetBoxTable.Meta):
@@ -177,7 +177,7 @@ class ACLExtendedRuleTable(NetBoxTable):
     )
     action = ChoiceFieldColumn()
     tags = columns.TagColumn(
-        url_name="plugins:netbox_access_lists:aclextendedrule_list",
+        url_name="plugins:netbox_acls:aclextendedrule_list",
     )
     protocol = ChoiceFieldColumn()
 

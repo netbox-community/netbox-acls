@@ -11,7 +11,7 @@ from utilities.choices import ButtonColorChoices
 
 accesslist_buttons = [
     PluginMenuButton(
-        link="plugins:netbox_access_lists:accesslist_add",
+        link="plugins:netbox_acls:accesslist_add",
         title="Add",
         icon_class="mdi mdi-plus-thick",
         color=ButtonColorChoices.GREEN,
@@ -20,7 +20,7 @@ accesslist_buttons = [
 
 aclstandardrule_butons = [
     PluginMenuButton(
-        link="plugins:netbox_access_lists:aclstandardrule_add",
+        link="plugins:netbox_acls:aclstandardrule_add",
         title="Add",
         icon_class="mdi mdi-plus-thick",
         color=ButtonColorChoices.GREEN,
@@ -29,7 +29,7 @@ aclstandardrule_butons = [
 
 aclextendedrule_butons = [
     PluginMenuButton(
-        link="plugins:netbox_access_lists:aclextendedrule_add",
+        link="plugins:netbox_acls:aclextendedrule_add",
         title="Add",
         icon_class="mdi mdi-plus-thick",
         color=ButtonColorChoices.GREEN,
@@ -38,7 +38,7 @@ aclextendedrule_butons = [
 
 accesslistassignment_buttons = [
     PluginMenuButton(
-        link="plugins:netbox_access_lists:aclinterfaceassignment_add",
+        link="plugins:netbox_acls:aclinterfaceassignment_add",
         title="Add",
         icon_class="mdi mdi-plus-thick",
         color=ButtonColorChoices.GREEN,
@@ -51,24 +51,24 @@ accesslistassignment_buttons = [
 
 menu_items = (
     PluginMenuItem(
-        link="plugins:netbox_access_lists:accesslist_list",
+        link="plugins:netbox_acls:accesslist_list",
         link_text="Access Lists",
         buttons=accesslist_buttons,
     ),
     # Comment out Standard Access List rule to force creation in the ACL view
     PluginMenuItem(
-        link="plugins:netbox_access_lists:aclstandardrule_list",
+        link="plugins:netbox_acls:aclstandardrule_list",
         link_text="ACL Standard Rules",
         buttons=aclstandardrule_butons,
     ),
     # Comment out Extended Access List rule to force creation in the ACL view
     PluginMenuItem(
-        link="plugins:netbox_access_lists:aclextendedrule_list",
+        link="plugins:netbox_acls:aclextendedrule_list",
         link_text="ACL Extended Rules",
         buttons=aclextendedrule_butons,
     ),
     PluginMenuItem(
-        link="plugins:netbox_access_lists:aclinterfaceassignment_list",
+        link="plugins:netbox_acls:aclinterfaceassignment_list",
         link_text="ACL Interface Assignments",
         buttons=accesslistassignment_buttons,
     ),

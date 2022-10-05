@@ -6,7 +6,7 @@
             {% include 'inc/assigned_host/assigned_access_lists.html' %}
         </div>
         <div class="card-footer text-end noprint">
-            <a href="{% url 'plugins:netbox_access_lists:accesslist_add' %}?{{ type }}={{ object.pk }}&return_url={{ object.get_absolute_url }}" class="btn btn-sm btn-primary">
+            <a href="{% url 'plugins:netbox_acls:accesslist_add' %}?{{ type }}={{ object.pk }}&return_url={{ object.get_absolute_url }}" class="btn btn-sm btn-primary">
                 <i class="mdi mdi-plus-thick"></i> Add Access List
             </a>
         </div>

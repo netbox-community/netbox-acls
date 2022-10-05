@@ -1,4 +1,4 @@
-# netbox-access-lists
+# netbox-acls
 
 A NetBox plugin for Access List management
 
@@ -30,13 +30,13 @@ For adding to a NetBox Docker setup see
 While this is still in development and not yet on pypi you can install with pip:
 
 ```bash
-pip install git+https://github.com/ryanmerolle/netbox-access-lists.git@dev
+pip install git+https://github.com/ryanmerolle/netbox-acls.git@dev
 ```
 
 or by adding to your `local_requirements.txt` or `plugin_requirements.txt` (netbox-docker):
 
 ```bash
-git+https://github.com/ryanmerolle/netbox-access-lists.git@dev
+git+https://github.com/ryanmerolle/netbox-acls.git@dev
 ```
 
 Enable the plugin in `/opt/netbox/netbox/netbox/configuration.py`,
@@ -44,11 +44,11 @@ Enable the plugin in `/opt/netbox/netbox/netbox/configuration.py`,
 
 ```python
 PLUGINS = [
-    'netbox_access_lists'
+    'netbox_acls'
 ]
 
 PLUGINS_CONFIG = {
-    "netbox_access_lists": {},
+    "netbox_acls": {},
 }
 ```
 

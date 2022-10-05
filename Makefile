@@ -1,5 +1,5 @@
-PLUGIN_NAME=netbox_access_lists
-REPO_PATH=/opt/netbox/netbox/netbox-access-lists
+PLUGIN_NAME=netbox_acls
+REPO_PATH=/opt/netbox/netbox/netbox-acls
 VENV_PY_PATH=/opt/netbox/venv/bin/python3
 NETBOX_MANAGE_PATH=/opt/netbox/netbox/manage.py
 VERFILE=./version.py
@@ -16,7 +16,7 @@ help:
 #
 #.PHONY: cleanup ## Clean associated docker resources.
 #cleanup:
-#	-docker-compose -p netbox-access-lists_devcontainer rm -fv
+#	-docker-compose -p netbox-acls_devcontainer rm -fv
 
 ##################
 #   PLUGIN DEV   #
@@ -27,7 +27,7 @@ help:
 .PHONY: nbshell ## Run nbshell
 nbshell:
 	${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} nbshell
-	from netbox_access_lists.models import *
+	from netbox_acls.models import *
 
 .PHONY: setup ## Copy plugin settings.  Setup NetBox plugin.
 setup:

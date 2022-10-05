@@ -2,10 +2,10 @@
 blank_issues_enabled: false
 contact_links:
   #- name: 📕 Plugin Documentation
-  #  url: https://netbox-access-lists.readthedocs.io
+  #  url: https://netbox-acls.readthedocs.io
   #  about: "Please refer to the documentation before raising a bug or feature request."
   - name: 📖 Contributing Policy
-    url: https://github.com/ryanmerolle/netbox-access-lists/blob/dev/CONTRIBUTING.md
+    url: https://github.com/ryanmerolle/netbox-acls/blob/dev/CONTRIBUTING.md
     about: "Please read through our contributing policy before opening an issue or pull request"
   - name: 💬 Community Slack
     url: https://netdev.chat/

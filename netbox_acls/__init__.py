@@ -6,7 +6,7 @@ from extras.plugins import PluginConfig
 
 
 class NetBoxAccessListsConfig(PluginConfig):
-    name = "netbox_access_lists"
+    name = "netbox_acls"
     verbose_name = "Access Lists"
     description = "Manage simple ACLs in NetBox"
     version = "1.0.0"

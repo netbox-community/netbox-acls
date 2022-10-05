@@ -1,4 +1,4 @@
-ARG VARIANT=latest
+ARG VARIANT=v3.2-2.1.0
 
 FROM netboxcommunity/netbox:${VARIANT}
 
@@ -21,7 +21,7 @@ ARG USER_GID=$USER_UID
 RUN useradd -md /home/vscode -s /usr/bin/zsh -u $USER_UID $USERNAME \
     && usermod -aG sudo $USERNAME \
     && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
-    && mkdir /opt/netbox/netbox/netbox-access-lists \
+    && mkdir /opt/netbox/netbox/netbox-acls \
     && chown $USERNAME:$USERNAME /opt/netbox /etc/netbox /opt/unit -R
 
 USER $USERNAME
@@ -32,7 +32,7 @@ RUN wget --quiet https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/inst
 COPY .bashrc /home/vscode/.bashrc
 COPY .zshrc /home/vscode/.zshrc
 
-WORKDIR /opt/netbox/netbox/netbox-access-lists
+WORKDIR /opt/netbox/netbox/netbox-acls
 
 USER root
 

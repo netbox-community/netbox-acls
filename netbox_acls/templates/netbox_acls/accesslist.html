@@ -2,24 +2,24 @@
 {% load render_table from django_tables2 %}
 
 {% block breadcrumbs %}
-<li class="breadcrumb-item"><a href="{% url 'plugins:netbox_access_lists:accesslist_list' %}">Access Lists</a></li>
+<li class="breadcrumb-item"><a href="{% url 'plugins:netbox_acls:accesslist_list' %}">Access Lists</a></li>
 {% endblock %}
 {% block controls %}
 <div class="pull-right noprint">
-    {% if perms.netbox_access_lists.change_policy %}
+    {% if perms.netbox_acls.change_policy %}
     {%     if object.type == 'extended' %}
-    <a href="{% url 'plugins:netbox_access_lists:aclextendedrule_add' %}?access_list={{ object.pk }}" class="btn btn-success">
+    <a href="{% url 'plugins:netbox_acls:aclextendedrule_add' %}?access_list={{ object.pk }}" class="btn btn-success">
     {%     elif object.type == 'standard' %}
-    <a href="{% url 'plugins:netbox_access_lists:aclstandardrule_add' %}?access_list={{ object.pk }}" class="btn btn-success">
+    <a href="{% url 'plugins:netbox_acls:aclstandardrule_add' %}?access_list={{ object.pk }}" class="btn btn-success">
     {%     endif %}
         <span class="mdi mdi-plus-thick" aria-hidden="true"></span> Rule
     </a>
-    <a href="{% url 'plugins:netbox_access_lists:accesslist_edit' pk=object.pk %}" class="btn btn-warning">
+    <a href="{% url 'plugins:netbox_acls:accesslist_edit' pk=object.pk %}" class="btn btn-warning">
         <span class="mdi mdi-pencil" aria-hidden="true"></span> Edit
     </a>
     {% endif %}
-    {% if perms.netbox_access_lists.delete_policy %}
-    <a href="{% url 'plugins:netbox_access_lists:accesslist_delete' pk=object.pk %}" class="btn btn-danger">
+    {% if perms.netbox_acls.delete_policy %}
+    <a href="{% url 'plugins:netbox_acls:accesslist_delete' pk=object.pk %}" class="btn btn-danger">
         <span class="mdi mdi-trash-can-outline" aria-hidden="true"></span> Delete
     </a>
     {% endif %}
@@ -34,7 +34,7 @@
     {% endblock tab_items %}
     {% if perms.extras.view_objectchange %}
     <li role="presentation" class="nav-item">
-        <a href="{% url 'plugins:netbox_access_lists:accesslist_changelog' pk=object.pk %}" class="nav-link{% if active_tab == 'changelog'%} active{% endif %}">Change Log</a>
+        <a href="{% url 'plugins:netbox_acls:accesslist_changelog' pk=object.pk %}" class="nav-link{% if active_tab == 'changelog'%} active{% endif %}">Change Log</a>
     </li>
     {% endif %}
 </ul>

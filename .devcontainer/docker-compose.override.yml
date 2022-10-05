@@ -7,6 +7,6 @@ services:
     ports:
       - 8000:8080
     volumes:
-      - ../:/opt/netbox/netbox/netbox-access-lists
+      - ../:/opt/netbox/netbox/netbox-acls
       - ~/.gitconfig:/home/vscode/.gitconfig:z,ro
       - ~/.ssh:/home/vscode/.ssh

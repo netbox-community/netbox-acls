@@ -24,13 +24,13 @@ from setuptools import find_packages, setup
 #
 
 setup(
-    name="netbox-access-lists",
-    version="1.1.0",
-    # version=get_version("netbox_access_lists/version.py"),
+    name="netbox-acls",
+    version="1.0.0",
+    # version=get_version("netbox_acls/version.py"),
     description="A NetBox plugin for Access List management",
     # long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/ryanmerolle/netbox-access-lists",
+    url="https://github.com/ryanmerolle/netbox-acls",
     install_requires=[],
     packages=find_packages(),
     include_package_data=True,

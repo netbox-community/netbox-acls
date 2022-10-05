@@ -27,7 +27,7 @@ class NestedAccessListSerializer(WritableNestedSerializer):
     """
 
     url = serializers.HyperlinkedIdentityField(
-        view_name="plugins-api:netbox_access_lists-api:accesslist-detail",
+        view_name="plugins-api:netbox_acls-api:accesslist-detail",
     )
 
     class Meta:
@@ -45,7 +45,7 @@ class NestedACLInterfaceAssignmentSerializer(WritableNestedSerializer):
     """
 
     url = serializers.HyperlinkedIdentityField(
-        view_name="plugins-api:netbox_access_lists-api:aclinterfaceassignment-detail",
+        view_name="plugins-api:netbox_acls-api:aclinterfaceassignment-detail",
     )
 
     class Meta:
@@ -63,7 +63,7 @@ class NestedACLStandardRuleSerializer(WritableNestedSerializer):
     """
 
     url = serializers.HyperlinkedIdentityField(
-        view_name="plugins-api:netbox_access_lists-api:aclstandardrule-detail",
+        view_name="plugins-api:netbox_acls-api:aclstandardrule-detail",
     )
 
     class Meta:
@@ -81,7 +81,7 @@ class NestedACLExtendedRuleSerializer(WritableNestedSerializer):
     """
 
     url = serializers.HyperlinkedIdentityField(
-        view_name="plugins-api:netbox_access_lists-api:aclextendedrule-detail",
+        view_name="plugins-api:netbox_acls-api:aclextendedrule-detail",
     )
 
     class Meta:

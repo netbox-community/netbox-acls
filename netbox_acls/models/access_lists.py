@@ -73,7 +73,7 @@ class AccessList(NetBoxModel):
         The method is a Django convention; although not strictly required,
         it conveniently returns the absolute URL for any particular object.
         """
-        return reverse("plugins:netbox_access_lists:accesslist", args=[self.pk])
+        return reverse("plugins:netbox_acls:accesslist", args=[self.pk])
 
     def get_default_action_color(self):
         return ACLActionChoices.colors.get(self.default_action)
@@ -135,7 +135,7 @@ class ACLInterfaceAssignment(NetBoxModel):
         it conveniently returns the absolute URL for any particular object.
         """
         return reverse(
-            "plugins:netbox_access_lists:aclinterfaceassignment",
+            "plugins:netbox_acls:aclinterfaceassignment",
             args=[self.pk],
         )
 

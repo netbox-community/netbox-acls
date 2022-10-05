@@ -79,7 +79,7 @@ class AccessListEditView(generic.ObjectEditView):
 
     queryset = models.AccessList.objects.all()
     form = forms.AccessListForm
-    template_name = "netbox_access_lists/accesslist_edit.html"
+    template_name = "netbox_acls/accesslist_edit.html"
 
 
 class AccessListDeleteView(generic.ObjectDeleteView):
@@ -127,7 +127,7 @@ class ACLInterfaceAssignmentEditView(generic.ObjectEditView):
 
     queryset = models.ACLInterfaceAssignment.objects.all()
     form = forms.ACLInterfaceAssignmentForm
-    template_name = "netbox_access_lists/aclinterfaceassignment_edit.html"
+    template_name = "netbox_acls/aclinterfaceassignment_edit.html"
 
 
 class ACLInterfaceAssignmentDeleteView(generic.ObjectDeleteView):

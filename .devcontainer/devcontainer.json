@@ -8,8 +8,8 @@
 		"docker-compose.override.yml"
 	],
 	"service": "netbox",
-	//"workspaceMount": "source=${localWorkspaceFolder},target=/opt/netbox/netbox/netbox-access-lists,type=bind,consistency=cached",
-	"workspaceFolder": "/opt/netbox/netbox/netbox-access-lists",
+	//"workspaceMount": "source=${localWorkspaceFolder},target=/opt/netbox/netbox/netbox-acls,type=bind,consistency=cached",
+	"workspaceFolder": "/opt/netbox/netbox/netbox-acls",
 
 	"overrideCommand":false,
 

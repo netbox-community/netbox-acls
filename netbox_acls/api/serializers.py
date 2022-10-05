@@ -7,7 +7,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from drf_yasg.utils import swagger_serializer_method
 from ipam.api.serializers import NestedPrefixSerializer
-from netbox.api.fields import ContentTypeField
+from netbox.api import ContentTypeField
 from netbox.api.serializers import NetBoxModelSerializer
 from rest_framework import serializers
 from utilities.api import get_serializer_for_model
@@ -51,7 +51,7 @@ class AccessListSerializer(NetBoxModelSerializer):
     """
 
     url = serializers.HyperlinkedIdentityField(
-        view_name="plugins-api:netbox_access_lists-api:accesslist-detail",
+        view_name="plugins-api:netbox_acls-api:accesslist-detail",
     )
     rule_count = serializers.IntegerField(read_only=True)
     assigned_object_type = ContentTypeField(
@@ -133,7 +133,7 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
     """
 
     url = serializers.HyperlinkedIdentityField(
-        view_name="plugins-api:netbox_access_lists-api:aclinterfaceassignment-detail",
+        view_name="plugins-api:netbox_acls-api:aclinterfaceassignment-detail",
     )
     access_list = NestedAccessListSerializer()
     assigned_object_type = ContentTypeField(
@@ -223,7 +223,7 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
     """
 
     url = serializers.HyperlinkedIdentityField(
-        view_name="plugins-api:netbox_access_lists-api:aclstandardrule-detail",
+        view_name="plugins-api:netbox_acls-api:aclstandardrule-detail",
     )
     access_list = NestedAccessListSerializer()
     source_prefix = NestedPrefixSerializer(
@@ -283,7 +283,7 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
     """
 
     url = serializers.HyperlinkedIdentityField(
-        view_name="plugins-api:netbox_access_lists-api:aclextendedrule-detail",
+        view_name="plugins-api:netbox_acls-api:aclextendedrule-detail",
     )
     access_list = NestedAccessListSerializer()
     source_prefix = NestedPrefixSerializer(

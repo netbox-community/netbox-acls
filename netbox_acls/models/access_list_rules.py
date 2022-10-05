@@ -88,7 +88,7 @@ class ACLStandardRule(ACLRule):
         The method is a Django convention; although not strictly required,
         it conveniently returns the absolute URL for any particular object.
         """
-        return reverse("plugins:netbox_access_lists:aclstandardrule", args=[self.pk])
+        return reverse("plugins:netbox_acls:aclstandardrule", args=[self.pk])
 
     class Meta(ACLRule.Meta):
         """
@@ -146,7 +146,7 @@ class ACLExtendedRule(ACLRule):
         The method is a Django convention; although not strictly required,
         it conveniently returns the absolute URL for any particular object.
         """
-        return reverse("plugins:netbox_access_lists:aclextendedrule", args=[self.pk])
+        return reverse("plugins:netbox_acls:aclextendedrule", args=[self.pk])
 
     def get_protocol_color(self):
         return ACLProtocolChoices.colors.get(self.protocol)

@@ -55,7 +55,7 @@ start:
 	- cd /opt/netbox/netbox/ && /opt/netbox/docker-entrypoint.sh && /opt/netbox/launch-netbox.sh
 
 .PHONY: all ## Run all PLUGIN DEV targets
-all: setup makemigrations migrate collectstatic startup_scripts start
+all: setup makemigrations migrate collectstatic start
 
 #.PHONY: test
 #test:

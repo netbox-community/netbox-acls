@@ -5,6 +5,7 @@ FROM netboxcommunity/netbox:${VARIANT}
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Install APT packages
+# hadolint ignore=DL3008
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends  curl git make openssh-client python3.10-dev sudo wget zsh \
     && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
@@ -18,7 +19,7 @@ ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
-RUN useradd -md /home/vscode -s /usr/bin/zsh -u $USER_UID $USERNAME \
+RUN useradd -mdl /home/vscode -s /usr/bin/zsh -u $USER_UID $USERNAME \
     && usermod -aG sudo $USERNAME \
     && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
     && mkdir /opt/netbox/netbox/netbox-acls \
@@ -26,6 +27,7 @@ RUN useradd -md /home/vscode -s /usr/bin/zsh -u $USER_UID $USERNAME \
 
 USER $USERNAME
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # Add oh my zsh
 RUN wget --quiet https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true
 
@@ -34,6 +36,7 @@ COPY .zshrc /home/vscode/.zshrc
 
 WORKDIR /opt/netbox/netbox/netbox-acls
 
+# hadolint ignore=DL3002
 USER root
 
 COPY entrypoint-dev.sh /bin/entrypoint-dev.sh

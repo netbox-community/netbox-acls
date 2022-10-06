@@ -103,10 +103,8 @@ class AccessListSerializer(NetBoxModelSerializer):
                     id=data["assigned_object_id"],
                 )
             except ObjectDoesNotExist:
-                assigned_obj_type = data['assigned_object_type']
-                assigned_obj_id = data['assigned_object_id']
                 # Sets a standard error message for invalid GFK
-                error_message_invalid_gfk = f"Invalid assigned_object {assigned_obj_type} ID {assigned_obj_id}"
+                error_message_invalid_gfk = f"Invalid assigned_object {data['assigned_object_type']} ID {data['assigned_object_id']}"
                 error_message["assigned_object_type"] = [error_message_invalid_gfk]
                 error_message["assigned_object_id"] = [error_message_invalid_gfk]
 
@@ -186,9 +184,7 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
                 )
             except ObjectDoesNotExist:
                 # Sets a standard error message for invalid GFK
-                assigned_obj_type = data['assigned_object_type']
-                assigned_obj_id = data['assigned_object_id']
-                error_message_invalid_gfk = f"Invalid assigned_object {assigned_obj_type} ID {assigned_obj_id}"
+                error_message_invalid_gfk = f"Invalid assigned_object {data['assigned_object_type']} ID {data['assigned_object_id']}"
                 error_message["assigned_object_type"] = [error_message_invalid_gfk]
                 error_message["assigned_object_id"] = [error_message_invalid_gfk]
 

@@ -19,7 +19,7 @@ ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
-RUN useradd -mdl /home/vscode -s /usr/bin/zsh -u $USER_UID $USERNAME \
+RUN useradd -l -md /home/vscode -s /usr/bin/zsh -u $USER_UID $USERNAME \
     && usermod -aG sudo $USERNAME \
     && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
     && mkdir /opt/netbox/netbox/netbox-acls \

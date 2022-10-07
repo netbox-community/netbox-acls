@@ -1,7 +1,12 @@
----
-admin:
-  api_token: 0123456789admin789abcdef01234567admin
+technical_user:
+  api_token: "" # a token is generated automatically unless the value is explicity set to empty
+reader:
+  api_token: "" # a token is generated automatically unless the value is explicity set to empty
+writer:
+  api_token: "" # a token is generated automatically unless the value is explicity set to empty
+jdoe:
+  first_name: John
+  last_name: Doe
   is_active: True
-  is_staff: True
-  is_superuser: True
-  password: admin
+  is_superuser: False
+  is_staff: False

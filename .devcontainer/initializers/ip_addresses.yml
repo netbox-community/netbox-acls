@@ -1,4 +1,21 @@
----
+## Possible Choices:
+##   status:
+##   - active
+##   - reserved
+##   - deprecated
+##   - dhcp
+##   role:
+##   - loopback
+##   - secondary
+##   - anycast
+##   - vip
+##   - vrrp
+##   - hsrp
+##   - glbp
+##   - carp
+##
+## Examples:
+
 - address: 10.1.1.1/24
   device: server01
   interface: to-server02

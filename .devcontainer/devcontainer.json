@@ -88,6 +88,7 @@
 				"ms-python.python",
 				"ms-python.vscode-pylance",
 				"mutantdino.resourcemonitor",
+				"paulomenezes.duplicated-code",
 				"searKing.preview-vscode",
 				"sourcery.sourcery"
 			]

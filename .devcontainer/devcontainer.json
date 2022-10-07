@@ -44,6 +44,10 @@
 				"python.linting.banditPath": "/opt/netbox/venv/bin/bandit",
 				"python.linting.enabled": true,
 				"python.linting.flake8Path": "/opt/netbox/venv/bin/flake8",
+				"python.linting.flake8Args": [
+					"--max-line-length=160",
+					"--ignore=E203"
+				],
 				"python.linting.mypyPath": "//opt/netbox/venv/bin/mypy",
 				"python.linting.pycodestylePath": "/opt/netbox/venv/bin/pycodestyle",
 				"python.linting.pydocstylePath": "/opt/netbox/venv/bin/pydocstyle",
@@ -57,6 +61,7 @@
 				],
 				"python.linting.pylintEnabled": true,
 				"python.linting.pylintPath": "/opt/netbox/venv/bin/pylint",
+				"python.linting.lintOnSave": true,
 				"python.pythonPath": "/opt/netbox/venv/bin/python3",
 				"python.terminal.activateEnvironment": true,
 				"python.venvPath": "/opt/netbox/",
@@ -83,6 +88,7 @@
 				"ms-python.python",
 				"ms-python.vscode-pylance",
 				"mutantdino.resourcemonitor",
+				"paulomenezes.duplicated-code",
 				"searKing.preview-vscode",
 				"sourcery.sourcery"
 			]

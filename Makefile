@@ -34,6 +34,14 @@ setup:
 	-${VENV_PY_PATH} -m pip install --disable-pip-version-check --no-cache-dir -e ${REPO_PATH}
 #-python3 setup.py develop
 
+.PHONY: example_initializers ## Run initializers
+example_initializers:
+	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} copy_initializers_examples --path /opt/netbox/netbox/netbox-acls/.devcontainer/initializers
+
+.PHONY: load_initializers ## Run initializers
+load_initializers:
+	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} load_initializer_data  --path /opt/netbox/netbox/netbox-acls/.devcontainer/initializers
+
 .PHONY: makemigrations ## Run makemigrations
 makemigrations:
 	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} makemigrations --name ${PLUGIN_NAME}
@@ -55,7 +63,7 @@ start:
 	- cd /opt/netbox/netbox/ && /opt/netbox/docker-entrypoint.sh && /opt/netbox/launch-netbox.sh
 
 .PHONY: all ## Run all PLUGIN DEV targets
-all: setup makemigrations migrate collectstatic startup_scripts start
+all: setup makemigrations migrate collectstatic start
 
 #.PHONY: test
 #test:

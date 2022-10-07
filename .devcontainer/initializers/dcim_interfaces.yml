@@ -1,9 +1,0 @@
----
-- device: server01
-  enabled: true
-  type: virtual
-  name: to-server02
-- device: server02
-  enabled: true
-  type: virtual
-  name: to-server01

@@ -1,4 +1,11 @@
----
+## Possible Choices:
+##   status:
+##   - active
+##   - reserved
+##   - deprecated
+##
+## Examples:
+
 - name: vlan1
   site: AMS 1
   status: active

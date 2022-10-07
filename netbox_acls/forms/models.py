@@ -176,17 +176,17 @@ class AccessListForm(NetBoxModelForm):
         if device:
             host_type = "device"
             existing_acls = AccessList.objects.filter(name=name, device=device).exists()
-        elif virtual_chassis:
-            host_type = "virtual_chassis"
-            existing_acls = AccessList.objects.filter(
-                name=name,
-                virtual_chassis=virtual_chassis,
-            ).exists()
         elif virtual_machine:
             host_type = "virtual_machine"
             existing_acls = AccessList.objects.filter(
                 name=name,
                 virtual_machine=virtual_machine,
+            ).exists()
+        else:
+            host_type = "virtual_chassis"
+            existing_acls = AccessList.objects.filter(
+                name=name,
+                virtual_chassis=virtual_chassis,
             ).exists()
 
         # Check if duplicate entry.
@@ -233,9 +233,9 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
     device = DynamicModelChoiceField(
         queryset=Device.objects.all(),
         required=False,
-        query_params={
+        # query_params={
             # Need to pass ACL device to it
-        },
+        # },
     )
     interface = DynamicModelChoiceField(
         queryset=Interface.objects.all(),
@@ -247,6 +247,9 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
     virtual_machine = DynamicModelChoiceField(
         queryset=VirtualMachine.objects.all(),
         required=False,
+        # query_params={
+            # Need to pass ACL device to it
+        # },
         label="Virtual Machine",
     )
     vminterface = DynamicModelChoiceField(
@@ -330,34 +333,14 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         interface = cleaned_data.get("interface")
         vminterface = cleaned_data.get("vminterface")
         assigned_object = cleaned_data.get("assigned_object")
-        if interface:
-            assigned_object = interface
-            assigned_object_type = "interface"
-            host_type = "device"
-            host = Interface.objects.get(pk=assigned_object.pk).device
-        elif vminterface:
-            assigned_object = vminterface
-            assigned_object_type = "vminterface"
-            host_type = "virtual_machine"
-            host = VMInterface.objects.get(pk=assigned_object.pk).virtual_machine
-        if interface or vminterface:
-            assigned_object_id = VMInterface.objects.get(pk=assigned_object.pk).pk
-            assigned_object_type_id = ContentType.objects.get_for_model(
-                assigned_object,
-            ).pk
-        access_list_host = AccessList.objects.get(pk=access_list.pk).assigned_object
 
         # Check if both interface and vminterface are set.
         if interface and vminterface:
             error_too_many_interfaces = "Access Lists must be assigned to one type of interface at a time (VM interface or physical interface)"
-            error_too_many_hosts = "Access Lists must be assigned to one type of device at a time (VM or physical device)."
             error_message |= {
-                "device": [error_too_many_hosts],
                 "interface": [error_too_many_interfaces],
-                "virtual_machine": [error_too_many_hosts],
                 "vminterface": [error_too_many_interfaces],
             }
-        # Check if neither interface or vminterface are set.
         elif not (interface or vminterface):
             error_no_interface = (
                 "An Access List assignment but specify an Interface or VM Interface."
@@ -366,8 +349,27 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
                 "interface": [error_no_interface],
                 "vminterface": [error_no_interface],
             }
+        else:
+            if interface:
+                assigned_object = interface
+                assigned_object_type = "interface"
+                host_type = "device"
+                host = Interface.objects.get(pk=assigned_object.pk).device
+                assigned_object_id = Interface.objects.get(pk=assigned_object.pk).pk
+            else:
+                assigned_object = vminterface
+                assigned_object_type = "vminterface"
+                host_type = "virtual_machine"
+                host = VMInterface.objects.get(pk=assigned_object.pk).virtual_machine
+                assigned_object_id = VMInterface.objects.get(pk=assigned_object.pk).pk
+
+            assigned_object_type_id = ContentType.objects.get_for_model(
+                assigned_object,
+            ).pk
+            access_list_host = AccessList.objects.get(pk=access_list.pk).assigned_object
+
         # Check that an interface's parent device/virtual_machine is assigned to the Access List.
-        elif access_list_host != host:
+        if access_list_host != host:
             error_acl_not_assigned_to_host = "Access List not present on selected host."
             error_message |= {
                 "access_list": [error_acl_not_assigned_to_host],
@@ -375,7 +377,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
                 host_type: [error_acl_not_assigned_to_host],
             }
         # Check for duplicate entry.
-        elif ACLInterfaceAssignment.objects.filter(
+        if ACLInterfaceAssignment.objects.filter(
             access_list=access_list,
             assigned_object_id=assigned_object_id,
             assigned_object_type=assigned_object_type_id,
@@ -388,7 +390,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
                 assigned_object_type: [error_duplicate_entry],
             }
         # Check that the interface does not have an existing ACL applied in the direction already.
-        elif ACLInterfaceAssignment.objects.filter(
+        if ACLInterfaceAssignment.objects.filter(
             assigned_object_id=assigned_object_id,
             assigned_object_type=assigned_object_type_id,
             direction=direction,
@@ -407,10 +409,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
 
     def save(self, *args, **kwargs):
         # Set assigned object
-        self.instance.assigned_object = self.cleaned_data.get(
-            "interface",
-        ) or self.cleaned_data.get("vminterface")
-
+        self.instance.assigned_object = self.cleaned_data.get("interface") or self.cleaned_data.get("vminterface")
         return super().save(*args, **kwargs)
 
 

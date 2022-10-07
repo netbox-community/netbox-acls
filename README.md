@@ -30,7 +30,7 @@ This plugin was first developed using 3.2.5, and tested with all of 3.2.
 | NetBox Version | Plugin Version |
 |----------------|----------------|
 |       3.2      |      1.0.1     |
-|       3.3      |       TBD      |
+|       3.3      |      1.1.0     |
 
 ## Installing
 

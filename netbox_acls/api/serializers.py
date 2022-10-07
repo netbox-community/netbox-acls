@@ -12,10 +12,7 @@ from netbox.api.serializers import NetBoxModelSerializer
 from rest_framework import serializers
 from utilities.api import get_serializer_for_model
 
-from ..constants import (
-    ACL_HOST_ASSIGNMENT_MODELS,
-    ACL_INTERFACE_ASSIGNMENT_MODELS,
-)
+from ..constants import ACL_HOST_ASSIGNMENT_MODELS, ACL_INTERFACE_ASSIGNMENT_MODELS
 from ..models import (
     AccessList,
     ACLExtendedRule,

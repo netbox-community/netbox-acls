@@ -234,7 +234,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         queryset=Device.objects.all(),
         required=False,
         # query_params={
-            # Need to pass ACL device to it
+        # Need to pass ACL device to it
         # },
     )
     interface = DynamicModelChoiceField(
@@ -248,7 +248,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         queryset=VirtualMachine.objects.all(),
         required=False,
         # query_params={
-            # Need to pass ACL device to it
+        # Need to pass ACL device to it
         # },
         label="Virtual Machine",
     )
@@ -409,7 +409,9 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
 
     def save(self, *args, **kwargs):
         # Set assigned object
-        self.instance.assigned_object = self.cleaned_data.get("interface") or self.cleaned_data.get("vminterface")
+        self.instance.assigned_object = self.cleaned_data.get(
+            "interface"
+        ) or self.cleaned_data.get("vminterface")
         return super().save(*args, **kwargs)
 
 

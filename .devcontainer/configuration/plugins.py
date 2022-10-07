@@ -9,7 +9,7 @@ PLUGINS = [
     "netbox_acls",
 ]
 
-PLUGINS_CONFIG = {
+PLUGINS_CONFIG = { # type: ignore
     "netbox_initializers": {},
     "netbox_acls": {},
 }

@@ -1,4 +1,3 @@
----
 - name: power feed 1
   power_panel: power panel AMS 1
   voltage: 208

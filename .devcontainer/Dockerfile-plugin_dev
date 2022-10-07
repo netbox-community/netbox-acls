@@ -1,6 +1,7 @@
-ARG VARIANT=v3.2-2.1.0
+ARG NETBOX_VARIANT=v3.2
+ARG NETBOX_INITIALIZERS_VARIANT=3.2.3
 
-FROM netboxcommunity/netbox:${VARIANT}
+FROM netboxcommunity/netbox:${NETBOX_VARIANT}
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -31,6 +32,8 @@ RUN wget --quiet https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/inst
 
 COPY .bashrc /home/vscode/.bashrc
 COPY .zshrc /home/vscode/.zshrc
+
+RUN /opt/netbox/venv/bin/pip install  --no-warn-script-location netbox-initializers==${NETBOX_INITIALIZERS_VARIANT}
 
 WORKDIR /opt/netbox/netbox/netbox-acls
 

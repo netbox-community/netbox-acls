@@ -1,4 +1,3 @@
----
 - name: cluster1
   type: Hyper-V
   group: Group 1

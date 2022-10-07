@@ -15,10 +15,10 @@ def read(rel_path):
 
 setup(
     name="netbox-acls",
-    version="1.0.1",
+    version="1.1.0",
     # version=get_version("netbox_acls/version.py"),
     description="A NetBox plugin for Access List management",
-    # long_description=long_description,
+    long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/ryanmerolle/netbox-acls",
     install_requires=[],

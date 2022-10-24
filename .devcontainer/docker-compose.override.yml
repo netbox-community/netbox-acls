@@ -1,9 +1,9 @@
 version: '3.4'
 services:
   netbox:
-    image: netbox-plugin_dev
     build:
       dockerfile: Dockerfile-plugin_dev
+      context: .
     ports:
       - 8000:8080
     volumes:

@@ -62,9 +62,12 @@ class ACLTypeChoices(ChoiceSet):
     Defines the choices availble for the Access Lists plugin specific to ACL type.
     """
 
+    TYPE_STANDARD = "standard"
+    TYPE_EXTENDED = "extended"
+
     CHOICES = [
-        ("extended", "Extended", "purple"),
-        ("standard", "Standard", "blue"),
+        (TYPE_EXTENDED, "Extended", "purple"),
+        (TYPE_STANDARD, "Standard", "blue"),
     ]
 
 

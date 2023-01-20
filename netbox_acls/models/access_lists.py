@@ -59,6 +59,11 @@ class AccessList(NetBoxModel):
         blank=True,
     )
 
+    clone_fields = (
+        "type",
+        "default_action",
+    )
+
     class Meta:
         unique_together = ["assigned_object_type", "assigned_object_id", "name"]
         ordering = ["assigned_object_type", "assigned_object_id", "name"]
@@ -112,6 +117,8 @@ class ACLInterfaceAssignment(NetBoxModel):
     comments = models.TextField(
         blank=True,
     )
+
+    clone_fields = ("access_list", "direction")
 
     class Meta:
         unique_together = [

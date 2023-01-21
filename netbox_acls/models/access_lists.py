@@ -139,6 +139,10 @@ class ACLInterfaceAssignment(NetBoxModel):
             args=[self.pk],
         )
 
+    @classmethod
+    def get_prerequisite_models(cls):
+        return [AccessList]
+
     def get_direction_color(self):
         return ACLAssignmentDirectionChoices.colors.get(self.direction)
 

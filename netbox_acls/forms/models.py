@@ -410,7 +410,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
     def save(self, *args, **kwargs):
         # Set assigned object
         self.instance.assigned_object = self.cleaned_data.get(
-            "interface"
+            "interface",
         ) or self.cleaned_data.get("vminterface")
         return super().save(*args, **kwargs)
 

@@ -53,7 +53,7 @@
             </tr>
             <tr>
               <th scope="row">Default Action</th>
-              <td>{{ object.get_default_action_display }}</td>
+              <td>{% badge object.get_default_action_display bg_color=object.get_default_action_color %}</td>
             </tr>
             <tr>
               <th scope="row">Rules</th>

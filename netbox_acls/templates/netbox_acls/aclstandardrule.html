@@ -52,7 +52,7 @@
             </tr>
             <tr>
               <th scope="row">Action</th>
-              <td>{{ object.get_action_display }}</td>
+              <td>{% badge object.get_action_display bg_color=object.get_action_color %}</td>
             </tr>
           </table>
         </div>

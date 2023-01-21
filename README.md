@@ -23,14 +23,24 @@ All credit should go to Jeremy. Thanks, Jeremy!
 
 This project just looks to build on top of this framework and model presented.
 
+## Contributing
+
+This project is currently maintained jointly by:
+
+* [Abhimanyu Saharan](https://github.com/abhi1693)
+* [Ryan Merolle](https://github.com/ryanmerolle)
+
+See the [CONTRIBUTING](CONTRIBUTING.md) for more information.
+
 ## Compatibility
 
-This plugin was first developed using 3.2.5, and tested with all of 3.2.
+Each Plugin Version listed below has been tested with its corresponding NetBox Version.
 
 | NetBox Version | Plugin Version |
 |----------------|----------------|
 |       3.2      |      1.0.1     |
 |       3.3      |      1.1.0     |
+|       3.4      |   Coming Soon  |
 
 ## Installing
 

@@ -22,6 +22,7 @@ from virtualization.models import (
     VMInterface,
 )
 
+from ..choices import ACLTypeChoices
 from ..models import (
     AccessList,
     ACLExtendedRule,
@@ -236,8 +237,12 @@ class AccessListForm(NetBoxModelForm):
                 "name": [error_same_acl_name],
             }
         # Check if Access List has no existing rules before change the Access List's type.
-        if (acl_type == "extended" and self.instance.aclstandardrules.exists()) or (
-            acl_type == "standard" and self.instance.aclextendedrules.exists()
+        if (
+            acl_type == ACLTypeChoices.TYPE_EXTENDED
+            and self.instance.aclstandardrules.exists()
+        ) or (
+            acl_type == ACLTypeChoices.TYPE_STANDARD
+            and self.instance.aclextendedrules.exists()
         ):
             error_message["type"] = [
                 "This ACL has ACL rules associated, CANNOT change ACL type.",
@@ -312,10 +317,6 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         ),
     )
     comments = CommentField()
-    tags = DynamicModelMultipleChoiceField(
-        queryset=Tag.objects.all(),
-        required=False,
-    )
 
     def __init__(self, *args, **kwargs):
 
@@ -355,7 +356,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         """
         Validates form inputs before submitting:
           - Check if both interface and vminterface are set.
-          - Check if neither interface or vminterface are set.
+          - Check if neither interface nor vminterface are set.
           - Check that an interface's parent device/virtual_machine is assigned to the Access List.
           - Check that an interface's parent device/virtual_machine is assigned to the Access List.
           - Check for duplicate entry. (Because of GFK)
@@ -367,7 +368,6 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         direction = cleaned_data.get("direction")
         interface = cleaned_data.get("interface")
         vminterface = cleaned_data.get("vminterface")
-        assigned_object = cleaned_data.get("assigned_object")
 
         # Check if both interface and vminterface are set.
         if interface and vminterface:
@@ -403,40 +403,42 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
             ).pk
             access_list_host = AccessList.objects.get(pk=access_list.pk).assigned_object
 
-        # Check that an interface's parent device/virtual_machine is assigned to the Access List.
-        if access_list_host != host:
-            error_acl_not_assigned_to_host = "Access List not present on selected host."
-            error_message |= {
-                "access_list": [error_acl_not_assigned_to_host],
-                assigned_object_type: [error_acl_not_assigned_to_host],
-                host_type: [error_acl_not_assigned_to_host],
-            }
-        # Check for duplicate entry.
-        if ACLInterfaceAssignment.objects.filter(
-            access_list=access_list,
-            assigned_object_id=assigned_object_id,
-            assigned_object_type=assigned_object_type_id,
-            direction=direction,
-        ).exists():
-            error_duplicate_entry = "An ACL with this name is already associated to this interface & direction."
-            error_message |= {
-                "access_list": [error_duplicate_entry],
-                "direction": [error_duplicate_entry],
-                assigned_object_type: [error_duplicate_entry],
-            }
-        # Check that the interface does not have an existing ACL applied in the direction already.
-        if ACLInterfaceAssignment.objects.filter(
-            assigned_object_id=assigned_object_id,
-            assigned_object_type=assigned_object_type_id,
-            direction=direction,
-        ).exists():
-            error_interface_already_assigned = (
-                "Interfaces can only have 1 Access List assigned in each direction."
-            )
-            error_message |= {
-                "direction": [error_interface_already_assigned],
-                assigned_object_type: [error_interface_already_assigned],
-            }
+            # Check that an interface's parent device/virtual_machine is assigned to the Access List.
+            if access_list_host != host:
+                error_acl_not_assigned_to_host = (
+                    "Access List not present on selected host."
+                )
+                error_message |= {
+                    "access_list": [error_acl_not_assigned_to_host],
+                    assigned_object_type: [error_acl_not_assigned_to_host],
+                    host_type: [error_acl_not_assigned_to_host],
+                }
+            # Check for duplicate entry.
+            if ACLInterfaceAssignment.objects.filter(
+                access_list=access_list,
+                assigned_object_id=assigned_object_id,
+                assigned_object_type=assigned_object_type_id,
+                direction=direction,
+            ).exists():
+                error_duplicate_entry = "An ACL with this name is already associated to this interface & direction."
+                error_message |= {
+                    "access_list": [error_duplicate_entry],
+                    "direction": [error_duplicate_entry],
+                    assigned_object_type: [error_duplicate_entry],
+                }
+            # Check that the interface does not have an existing ACL applied in the direction already.
+            if ACLInterfaceAssignment.objects.filter(
+                assigned_object_id=assigned_object_id,
+                assigned_object_type=assigned_object_type_id,
+                direction=direction,
+            ).exists():
+                error_interface_already_assigned = (
+                    "Interfaces can only have 1 Access List assigned in each direction."
+                )
+                error_message |= {
+                    "direction": [error_interface_already_assigned],
+                    assigned_object_type: [error_interface_already_assigned],
+                }
 
         if error_message:
             raise forms.ValidationError(error_message)
@@ -460,7 +462,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
     access_list = DynamicModelChoiceField(
         queryset=AccessList.objects.all(),
         query_params={
-            "type": "standard",
+            "type": ACLTypeChoices.TYPE_STANDARD,
         },
         help_text=mark_safe(
             "<b>*Note:</b> This field will only display Standard ACLs.",
@@ -472,10 +474,6 @@ class ACLStandardRuleForm(NetBoxModelForm):
         required=False,
         help_text=help_text_acl_rule_logic,
         label="Source Prefix",
-    )
-    tags = DynamicModelMultipleChoiceField(
-        queryset=Tag.objects.all(),
-        required=False,
     )
 
     fieldsets = (
@@ -542,17 +540,14 @@ class ACLExtendedRuleForm(NetBoxModelForm):
     access_list = DynamicModelChoiceField(
         queryset=AccessList.objects.all(),
         query_params={
-            "type": "extended",
+            "type": ACLTypeChoices.TYPE_EXTENDED,
         },
         help_text=mark_safe(
             "<b>*Note:</b> This field will only display Extended ACLs.",
         ),
         label="Access List",
     )
-    tags = DynamicModelMultipleChoiceField(
-        queryset=Tag.objects.all(),
-        required=False,
-    )
+
     source_prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
         required=False,

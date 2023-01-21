@@ -6,7 +6,7 @@ Specifically, all the various interactions with a client.
 from django.db.models import Count
 from netbox.views import generic
 
-from . import filtersets, forms, models, tables
+from . import choices, filtersets, forms, models, tables
 
 __all__ = (
     "AccessListView",
@@ -48,15 +48,22 @@ class AccessListView(generic.ObjectView):
         """
         Depending on the Access List type, the list view will return the required ACL Rule using the previous defined tables in tables.py.
         """
-        if instance.type == "extended":
-            table = tables.ACLExtendedRuleTable(instance.aclextendedrules.all())
-        elif instance.type == "standard":
-            table = tables.ACLStandardRuleTable(instance.aclstandardrules.all())
-        table.configure(request)
 
-        return {
-            "rules_table": table,
-        }
+        if instance.type == choices.ACLTypeChoices.TYPE_EXTENDED:
+            table = tables.ACLExtendedRuleTable(instance.aclextendedrules.all())
+        elif instance.type == choices.ACLTypeChoices.TYPE_STANDARD:
+            table = tables.ACLStandardRuleTable(instance.aclstandardrules.all())
+        else:
+            table = None
+
+        if table:
+            table.columns.hide("access_list")
+            table.configure(request)
+
+            return {
+                "rules_table": table,
+            }
+        return {}
 
 
 class AccessListListView(generic.ObjectListView):
@@ -84,7 +91,7 @@ class AccessListEditView(generic.ObjectEditView):
 
 class AccessListDeleteView(generic.ObjectDeleteView):
     """
-    Defines the delete view for the AccessLists django model.
+    Defines delete view for the AccessLists django model.
     """
 
     queryset = models.AccessList.objects.all()
@@ -129,10 +136,20 @@ class ACLInterfaceAssignmentEditView(generic.ObjectEditView):
     form = forms.ACLInterfaceAssignmentForm
     template_name = "netbox_acls/aclinterfaceassignment_edit.html"
 
+    def get_extra_addanother_params(self, request):
+        """
+        Returns a dictionary of additional parameters to be passed to the "Add Another" button.
+        """
+
+        return {
+            "access_list": request.GET.get("access_list") or request.POST.get("access_list"),
+            "direction": request.GET.get("direction") or request.POST.get("direction"),
+        }
+
 
 class ACLInterfaceAssignmentDeleteView(generic.ObjectDeleteView):
     """
-    Defines the delete view for the ACLInterfaceAssignments django model.
+    Defines delete view for the ACLInterfaceAssignments django model.
     """
 
     queryset = models.ACLInterfaceAssignment.objects.all()
@@ -176,10 +193,19 @@ class ACLStandardRuleEditView(generic.ObjectEditView):
     queryset = models.ACLStandardRule.objects.all()
     form = forms.ACLStandardRuleForm
 
+    def get_extra_addanother_params(self, request):
+        """
+        Returns a dictionary of additional parameters to be passed to the "Add Another" button.
+        """
+
+        return {
+            "access_list": request.GET.get("access_list") or request.POST.get("access_list"),
+        }
+
 
 class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
     """
-    Defines the delete view for the ACLStandardRules django model.
+    Defines delete view for the ACLStandardRules django model.
     """
 
     queryset = models.ACLStandardRule.objects.all()
@@ -223,10 +249,19 @@ class ACLExtendedRuleEditView(generic.ObjectEditView):
     queryset = models.ACLExtendedRule.objects.all()
     form = forms.ACLExtendedRuleForm
 
+    def get_extra_addanother_params(self, request):
+        """
+        Returns a dictionary of additional parameters to be passed to the "Add Another" button.
+        """
+
+        return {
+            "access_list": request.GET.get("access_list") or request.POST.get("access_list"),
+        }
+
 
 class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
     """
-    Defines the delete view for the ACLExtendedRules django model.
+    Defines delete view for the ACLExtendedRules django model.
     """
 
     queryset = models.ACLExtendedRule.objects.all()

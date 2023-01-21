@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile-plugin_dev
       context: .
     ports:
-      - 8000:8080
+      - "8000:8080"
     volumes:
       - ../:/opt/netbox/netbox/netbox-acls
       - ~/.gitconfig:/home/vscode/.gitconfig:z,ro

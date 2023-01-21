@@ -14,7 +14,13 @@ from utilities.forms import (
     DynamicModelChoiceField,
     DynamicModelMultipleChoiceField,
 )
-from virtualization.models import VirtualMachine, VMInterface
+from virtualization.models import (
+    Cluster,
+    ClusterGroup,
+    ClusterType,
+    VirtualMachine,
+    VMInterface,
+)
 
 from ..choices import ACLTypeChoices
 from ..models import (
@@ -60,6 +66,7 @@ class AccessListForm(NetBoxModelForm):
     Requires a device, a name, a type, and a default_action.
     """
 
+    # Device selector
     region = DynamicModelChoiceField(
         queryset=Region.objects.all(),
         required=False,
@@ -86,16 +93,48 @@ class AccessListForm(NetBoxModelForm):
             "site_id": "$site",
         },
     )
+
+    # Virtual Chassis selector
     virtual_chassis = DynamicModelChoiceField(
         queryset=VirtualChassis.objects.all(),
         required=False,
         label="Virtual Chassis",
     )
+
+    # Virtual Machine selector
+    cluster_type = DynamicModelChoiceField(
+        queryset=ClusterType.objects.all(),
+        required=False,
+    )
+
+    cluster_group = DynamicModelChoiceField(
+        queryset=ClusterGroup.objects.all(),
+        required=False,
+        query_params={
+            "type_id": "$cluster_type",
+        },
+    )
+
+    cluster = DynamicModelChoiceField(
+        queryset=Cluster.objects.all(),
+        required=False,
+        query_params={
+            "type_id": "$cluster_type",
+            "group_id": "$cluster_group",
+        },
+    )
+
     virtual_machine = DynamicModelChoiceField(
         queryset=VirtualMachine.objects.all(),
         required=False,
         label="Virtual Machine",
+        query_params={
+            "cluster_type_id": "$cluster_type",
+            "cluster_group_id": "$cluster_group",
+            "cluster_id": "$cluster",
+        },
     )
+
     comments = CommentField()
 
     class Meta:

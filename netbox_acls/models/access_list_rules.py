@@ -52,6 +52,8 @@ class ACLRule(NetBoxModel):
         verbose_name="Source Prefix",
     )
 
+    clone_fields = ("access_list", "action", "source_prefix")
+
     def __str__(self):
         return f"{self.access_list}: Rule {self.index}"
 

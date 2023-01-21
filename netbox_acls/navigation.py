@@ -15,6 +15,7 @@ accesslist_buttons = [
         title="Add",
         icon_class="mdi mdi-plus-thick",
         color=ButtonColorChoices.GREEN,
+        permissions=["netbox_acls.add_accesslist"],
     ),
 ]
 
@@ -24,6 +25,7 @@ aclstandardrule_butons = [
         title="Add",
         icon_class="mdi mdi-plus-thick",
         color=ButtonColorChoices.GREEN,
+        permissions=["netbox_acls.add_aclstandardrule"],
     ),
 ]
 
@@ -33,6 +35,7 @@ aclextendedrule_butons = [
         title="Add",
         icon_class="mdi mdi-plus-thick",
         color=ButtonColorChoices.GREEN,
+        permissions=["netbox_acls.add_aclextendedrule"],
     ),
 ]
 
@@ -42,6 +45,7 @@ accesslistassignment_buttons = [
         title="Add",
         icon_class="mdi mdi-plus-thick",
         color=ButtonColorChoices.GREEN,
+        permissions=["netbox_acls.add_aclinterfaceassignment"],
     ),
 ]
 
@@ -54,22 +58,26 @@ menu_items = (
         link="plugins:netbox_acls:accesslist_list",
         link_text="Access Lists",
         buttons=accesslist_buttons,
+        permissions=["netbox_acls.view_accesslist"],
     ),
     # Comment out Standard Access List rule to force creation in the ACL view
     PluginMenuItem(
         link="plugins:netbox_acls:aclstandardrule_list",
         link_text="ACL Standard Rules",
         buttons=aclstandardrule_butons,
+        permissions=["netbox_acls.view_aclstandardrule"],
     ),
     # Comment out Extended Access List rule to force creation in the ACL view
     PluginMenuItem(
         link="plugins:netbox_acls:aclextendedrule_list",
         link_text="ACL Extended Rules",
         buttons=aclextendedrule_butons,
+        permissions=["netbox_acls.view_aclextendedrule"],
     ),
     PluginMenuItem(
         link="plugins:netbox_acls:aclinterfaceassignment_list",
         link_text="ACL Interface Assignments",
         buttons=accesslistassignment_buttons,
+        permissions=["netbox_acls.view_aclinterfaceassignment"],
     ),
 )

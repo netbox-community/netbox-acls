@@ -37,16 +37,16 @@ This plugin was first developed using 3.2.5, and tested with all of 3.2.
 For adding to a NetBox Docker setup see
 [the general instructions for using netbox-docker with plugins](https://github.com/netbox-community/netbox-docker/wiki/Using-Netbox-Plugins).
 
-While this is still in development and not yet on pypi you can install with pip:
+You can install with pip:
 
 ```bash
-pip install git+https://github.com/ryanmerolle/netbox-acls.git@dev
+pip install netbox-acls
 ```
 
 or by adding to your `local_requirements.txt` or `plugin_requirements.txt` (netbox-docker):
 
 ```bash
-git+https://github.com/ryanmerolle/netbox-acls.git@dev
+netbox-acls
 ```
 
 Enable the plugin in `/opt/netbox/netbox/netbox/configuration.py`,

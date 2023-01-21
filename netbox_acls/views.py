@@ -3,9 +3,11 @@ Defines the business logic for the plugin.
 Specifically, all the various interactions with a client.
 """
 
+from dcim.models import Device, Interface, VirtualChassis
 from django.db.models import Count
 from netbox.views import generic
-from utilities.views import register_model_view
+from utilities.views import ViewTab, register_model_view
+from virtualization.models import VirtualMachine, VMInterface
 
 from . import choices, filtersets, forms, models, tables
 
@@ -107,6 +109,74 @@ class AccessListBulkDeleteView(generic.BulkDeleteView):
     table = tables.AccessListTable
 
 
+class AccessListChildView(generic.ObjectChildrenView):
+    """
+    Defines the child view for the AccessLists model.
+    """
+
+    child_model = models.AccessList
+    table = tables.AccessListTable
+    filterset = filtersets.AccessListFilterSet
+    template_name = "inc/view_tab.html"
+
+    def get_extra_context(self, request, instance):
+        return {
+            "table_config": self.table.__name__,
+            "model_type": self.queryset.model._meta.verbose_name.replace(" ", "_"),
+            "add_url": "plugins:netbox_acls:accesslist_add",
+        }
+
+    def prep_table_data(self, request, queryset, parent):
+        return queryset.annotate(
+            rule_count=Count("aclextendedrules") + Count("aclstandardrules"),
+        )
+
+
+@register_model_view(Device, "access_lists")
+class DeviceAccessListView(AccessListChildView):
+    queryset = Device.objects.all()
+    tab = ViewTab(
+        label="Access Lists",
+        badge=lambda obj: models.AccessList.objects.filter(device=obj).count(),
+        permission="netbox_acls.view_accesslist",
+    )
+
+    def get_children(self, request, parent):
+        return self.child_model.objects.restrict(request.user, "view").filter(
+            device=parent,
+        )
+
+
+@register_model_view(VirtualChassis, "access_lists")
+class VirtualChassisAccessListView(AccessListChildView):
+    queryset = VirtualChassis.objects.all()
+    tab = ViewTab(
+        label="Access Lists",
+        badge=lambda obj: models.AccessList.objects.filter(virtual_chassis=obj).count(),
+        permission="netbox_acls.view_accesslist",
+    )
+
+    def get_children(self, request, parent):
+        return self.child_model.objects.restrict(request.user, "view").filter(
+            virtual_chassis=parent,
+        )
+
+
+@register_model_view(VirtualMachine, "access_lists")
+class VirtualMachineAccessListView(AccessListChildView):
+    queryset = VirtualMachine.objects.all()
+    tab = ViewTab(
+        label="Access Lists",
+        badge=lambda obj: models.AccessList.objects.filter(virtual_machine=obj).count(),
+        permission="netbox_acls.view_accesslist",
+    )
+
+    def get_children(self, request, parent):
+        return self.child_model.objects.restrict(request.user, "view").filter(
+            virtual_machine=parent,
+        )
+
+
 #
 # ACLInterfaceAssignment views
 #
@@ -167,6 +237,60 @@ class ACLInterfaceAssignmentBulkDeleteView(generic.BulkDeleteView):
     queryset = models.ACLInterfaceAssignment.objects.all()
     filterset = filtersets.ACLInterfaceAssignmentFilterSet
     table = tables.ACLInterfaceAssignmentTable
+
+
+class ACLInterfaceAssignmentChildView(generic.ObjectChildrenView):
+    """
+    Defines the child view for the ACLInterfaceAssignments model.
+    """
+
+    child_model = models.ACLInterfaceAssignment
+    table = tables.ACLInterfaceAssignmentTable
+    filterset = filtersets.ACLInterfaceAssignmentFilterSet
+    template_name = "inc/view_tab.html"
+
+    def get_extra_context(self, request, instance):
+        return {
+            "table_config": self.table.__name__,
+            "model_type": self.queryset.model._meta.verbose_name.replace(" ", "_"),
+            "add_url": "plugins:netbox_acls:aclinterfaceassignment_add",
+        }
+
+
+@register_model_view(Interface, "acl_interface_assignments")
+class InterfaceACLInterfaceAssignmentView(ACLInterfaceAssignmentChildView):
+    queryset = Interface.objects.all()
+    tab = ViewTab(
+        label="ACL Interface Assignments",
+        badge=lambda obj: models.ACLInterfaceAssignment.objects.filter(
+            interface=obj,
+        ).count(),
+        permission="netbox_acls.view_aclinterfaceassignment",
+    )
+
+    def get_children(self, request, parent):
+        return self.child_model.objects.restrict(request.user, "view").filter(
+            interface=parent,
+        )
+
+
+@register_model_view(VMInterface, "acl_interface_assignments")
+class VirtualMachineInterfaceACLInterfaceAssignmentView(
+    ACLInterfaceAssignmentChildView,
+):
+    queryset = VMInterface.objects.all()
+    tab = ViewTab(
+        label="ACL Interface Assignments",
+        badge=lambda obj: models.ACLInterfaceAssignment.objects.filter(
+            vminterface=obj,
+        ).count(),
+        permission="netbox_acls.view_aclinterfaceassignment",
+    )
+
+    def get_children(self, request, parent):
+        return self.child_model.objects.restrict(request.user, "view").filter(
+            vminterface=parent,
+        )
 
 
 #

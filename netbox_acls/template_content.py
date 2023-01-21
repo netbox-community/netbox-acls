@@ -31,6 +31,9 @@ class ACLInterfaceAssignments(PluginTemplateExtension):
         elif ctype.model == "vminterface":
             parent_type = "virtual_machine"
             parent_id = obj.virtual_machine.pk
+        else:
+            parent_type = None
+            parent_id = None
 
         return self.render(
             "inc/assigned_interface/access_lists.html",

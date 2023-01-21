@@ -325,7 +325,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         """
         Validates form inputs before submitting:
           - Check if both interface and vminterface are set.
-          - Check if neither interface or vminterface are set.
+          - Check if neither interface nor vminterface are set.
           - Check that an interface's parent device/virtual_machine is assigned to the Access List.
           - Check that an interface's parent device/virtual_machine is assigned to the Access List.
           - Check for duplicate entry. (Because of GFK)
@@ -337,7 +337,6 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         direction = cleaned_data.get("direction")
         interface = cleaned_data.get("interface")
         vminterface = cleaned_data.get("vminterface")
-        assigned_object = cleaned_data.get("assigned_object")
 
         # Check if both interface and vminterface are set.
         if interface and vminterface:
@@ -373,40 +372,42 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
             ).pk
             access_list_host = AccessList.objects.get(pk=access_list.pk).assigned_object
 
-        # Check that an interface's parent device/virtual_machine is assigned to the Access List.
-        if access_list_host != host:
-            error_acl_not_assigned_to_host = "Access List not present on selected host."
-            error_message |= {
-                "access_list": [error_acl_not_assigned_to_host],
-                assigned_object_type: [error_acl_not_assigned_to_host],
-                host_type: [error_acl_not_assigned_to_host],
-            }
-        # Check for duplicate entry.
-        if ACLInterfaceAssignment.objects.filter(
-            access_list=access_list,
-            assigned_object_id=assigned_object_id,
-            assigned_object_type=assigned_object_type_id,
-            direction=direction,
-        ).exists():
-            error_duplicate_entry = "An ACL with this name is already associated to this interface & direction."
-            error_message |= {
-                "access_list": [error_duplicate_entry],
-                "direction": [error_duplicate_entry],
-                assigned_object_type: [error_duplicate_entry],
-            }
-        # Check that the interface does not have an existing ACL applied in the direction already.
-        if ACLInterfaceAssignment.objects.filter(
-            assigned_object_id=assigned_object_id,
-            assigned_object_type=assigned_object_type_id,
-            direction=direction,
-        ).exists():
-            error_interface_already_assigned = (
-                "Interfaces can only have 1 Access List assigned in each direction."
-            )
-            error_message |= {
-                "direction": [error_interface_already_assigned],
-                assigned_object_type: [error_interface_already_assigned],
-            }
+            # Check that an interface's parent device/virtual_machine is assigned to the Access List.
+            if access_list_host != host:
+                error_acl_not_assigned_to_host = (
+                    "Access List not present on selected host."
+                )
+                error_message |= {
+                    "access_list": [error_acl_not_assigned_to_host],
+                    assigned_object_type: [error_acl_not_assigned_to_host],
+                    host_type: [error_acl_not_assigned_to_host],
+                }
+            # Check for duplicate entry.
+            if ACLInterfaceAssignment.objects.filter(
+                access_list=access_list,
+                assigned_object_id=assigned_object_id,
+                assigned_object_type=assigned_object_type_id,
+                direction=direction,
+            ).exists():
+                error_duplicate_entry = "An ACL with this name is already associated to this interface & direction."
+                error_message |= {
+                    "access_list": [error_duplicate_entry],
+                    "direction": [error_duplicate_entry],
+                    assigned_object_type: [error_duplicate_entry],
+                }
+            # Check that the interface does not have an existing ACL applied in the direction already.
+            if ACLInterfaceAssignment.objects.filter(
+                assigned_object_id=assigned_object_id,
+                assigned_object_type=assigned_object_type_id,
+                direction=direction,
+            ).exists():
+                error_interface_already_assigned = (
+                    "Interfaces can only have 1 Access List assigned in each direction."
+                )
+                error_message |= {
+                    "direction": [error_interface_already_assigned],
+                    assigned_object_type: [error_interface_already_assigned],
+                }
 
         if error_message:
             raise forms.ValidationError(error_message)

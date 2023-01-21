@@ -90,7 +90,7 @@ class AccessListEditView(generic.ObjectEditView):
 
 class AccessListDeleteView(generic.ObjectDeleteView):
     """
-    Defines the delete view for the AccessLists django model.
+    Defines delete view for the AccessLists django model.
     """
 
     queryset = models.AccessList.objects.all()
@@ -138,7 +138,7 @@ class ACLInterfaceAssignmentEditView(generic.ObjectEditView):
 
 class ACLInterfaceAssignmentDeleteView(generic.ObjectDeleteView):
     """
-    Defines the delete view for the ACLInterfaceAssignments django model.
+    Defines delete view for the ACLInterfaceAssignments django model.
     """
 
     queryset = models.ACLInterfaceAssignment.objects.all()
@@ -185,7 +185,7 @@ class ACLStandardRuleEditView(generic.ObjectEditView):
 
 class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
     """
-    Defines the delete view for the ACLStandardRules django model.
+    Defines delete view for the ACLStandardRules django model.
     """
 
     queryset = models.ACLStandardRule.objects.all()
@@ -232,7 +232,7 @@ class ACLExtendedRuleEditView(generic.ObjectEditView):
 
 class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
     """
-    Defines the delete view for the ACLExtendedRules django model.
+    Defines delete view for the ACLExtendedRules django model.
     """
 
     queryset = models.ACLExtendedRule.objects.all()

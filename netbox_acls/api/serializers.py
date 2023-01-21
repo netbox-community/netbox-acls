@@ -96,6 +96,7 @@ class AccessListSerializer(NetBoxModelSerializer):
 
         # Check that the GFK object is valid.
         if "assigned_object_type" in data and "assigned_object_id" in data:
+            # TODO: This can removed after https://github.com/netbox-community/netbox/issues/10221 is fixed.
             try:
                 assigned_object = data[  # noqa: F841
                     "assigned_object_type"
@@ -167,15 +168,16 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
 
     def validate(self, data):
         """
-        Validate the AccessList django model model's inputs before allowing it to update the instance.
+        Validate the AccessList django model's inputs before allowing it to update the instance.
           - Check that the GFK object is valid.
           - Check that the associated interface's parent host has the selected ACL defined.
         """
         error_message = {}
         acl_host = data["access_list"].assigned_object
 
-        # Check that the GFK object is vlaid.
+        # Check that the GFK object is valid.
         if "assigned_object_type" in data and "assigned_object_id" in data:
+            # TODO: This can removed after https://github.com/netbox-community/netbox/issues/10221 is fixed.
             try:
                 assigned_object = data[  # noqa: F841
                     "assigned_object_type"
@@ -255,7 +257,7 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
 
     def validate(self, data):
         """
-        Validate the ACLStandardRule django model model's inputs before allowing it to update the instance:
+        Validate the ACLStandardRule django model's inputs before allowing it to update the instance:
           - Check if action set to remark, but no remark set.
           - Check if action set to remark, but source_prefix set.
         """
@@ -324,7 +326,7 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
 
     def validate(self, data):
         """
-        Validate the ACLExtendedRule django model model's inputs before allowing it to update the instance:
+        Validate the ACLExtendedRule django model's inputs before allowing it to update the instance:
           - Check if action set to remark, but no remark set.
           - Check if action set to remark, but source_prefix set.
           - Check if action set to remark, but source_ports set.

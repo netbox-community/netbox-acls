@@ -3,7 +3,7 @@
 # ```
 #   termination_x_name -> name of interface
 #   termination_x_device -> name of the device interface belongs to
-#   termination_x_class -> required if different than 'Interface' which is the default
+#   termination_x_class -> required if different from 'Interface' which is the default
 # ```
 #
 # Supported termination classes: Interface, ConsolePort, ConsoleServerPort, FrontPort, RearPort, PowerPort, PowerOutlet

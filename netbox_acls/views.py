@@ -57,6 +57,7 @@ class AccessListView(generic.ObjectView):
             table = None
 
         if table:
+            table.columns.hide("access_list")
             table.configure(request)
 
             return {

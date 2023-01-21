@@ -77,8 +77,7 @@
       {% include 'inc/panels/comments.html' %}
     </div>
   </div>
-  {% if rules_table %}
-      <div class="row">
+  <div class="row">
     <div class="col col-md-12">
       <div class="card">
         <h5 class="card-header">{{ object.get_type_display }} Rules</h5>
@@ -88,5 +87,4 @@
       </div>
     </div>
   </div>
-    {% endif %}
 {% endblock content %}

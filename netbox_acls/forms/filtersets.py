@@ -248,5 +248,14 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
 
     fieldsets = (
         (None, ("q", "tag")),
-        ("Rule Details", ("access_list", "action", "source_prefix", "desintation_prefix", "protocol")),
+        (
+            "Rule Details",
+            (
+                "access_list",
+                "action",
+                "source_prefix",
+                "desintation_prefix",
+                "protocol",
+            ),
+        ),
     )

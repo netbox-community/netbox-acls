@@ -142,7 +142,8 @@ class ACLInterfaceAssignmentEditView(generic.ObjectEditView):
         """
 
         return {
-            "access_list": request.GET.get("access_list") or request.POST.get("access_list"),
+            "access_list": request.GET.get("access_list")
+            or request.POST.get("access_list"),
             "direction": request.GET.get("direction") or request.POST.get("direction"),
         }
 
@@ -199,7 +200,8 @@ class ACLStandardRuleEditView(generic.ObjectEditView):
         """
 
         return {
-            "access_list": request.GET.get("access_list") or request.POST.get("access_list"),
+            "access_list": request.GET.get("access_list")
+            or request.POST.get("access_list"),
         }
 
 
@@ -255,7 +257,8 @@ class ACLExtendedRuleEditView(generic.ObjectEditView):
         """
 
         return {
-            "access_list": request.GET.get("access_list") or request.POST.get("access_list"),
+            "access_list": request.GET.get("access_list")
+            or request.POST.get("access_list"),
         }
 
 

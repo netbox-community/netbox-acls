@@ -97,10 +97,6 @@ class AccessListForm(NetBoxModelForm):
         label="Virtual Machine",
     )
     comments = CommentField()
-    tags = DynamicModelMultipleChoiceField(
-        queryset=Tag.objects.all(),
-        required=False,
-    )
 
     class Meta:
         model = AccessList
@@ -282,10 +278,6 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         ),
     )
     comments = CommentField()
-    tags = DynamicModelMultipleChoiceField(
-        queryset=Tag.objects.all(),
-        required=False,
-    )
 
     def __init__(self, *args, **kwargs):
 
@@ -444,10 +436,6 @@ class ACLStandardRuleForm(NetBoxModelForm):
         help_text=help_text_acl_rule_logic,
         label="Source Prefix",
     )
-    tags = DynamicModelMultipleChoiceField(
-        queryset=Tag.objects.all(),
-        required=False,
-    )
 
     fieldsets = (
         ("Access List Details", ("access_list", "description", "tags")),
@@ -520,10 +508,7 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         ),
         label="Access List",
     )
-    tags = DynamicModelMultipleChoiceField(
-        queryset=Tag.objects.all(),
-        required=False,
-    )
+
     source_prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
         required=False,

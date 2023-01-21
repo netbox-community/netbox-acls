@@ -200,6 +200,8 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
                 .get_object_for_this_type(id=data["assigned_object_id"])
                 .virtual_machine
             )
+        else:
+            interface_host = None
         # Check that the associated interface's parent host has the selected ACL defined.
         if acl_host != interface_host:
             error_acl_not_assigned_to_host = (

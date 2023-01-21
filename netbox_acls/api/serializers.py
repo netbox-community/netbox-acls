@@ -9,6 +9,7 @@ from drf_yasg.utils import swagger_serializer_method
 from ipam.api.serializers import NestedPrefixSerializer
 from netbox.api.fields import ContentTypeField
 from netbox.api.serializers import NetBoxModelSerializer
+from netbox.constants import NESTED_SERIALIZER_PREFIX
 from rest_framework import serializers
 from utilities.api import get_serializer_for_model
 
@@ -82,7 +83,10 @@ class AccessListSerializer(NetBoxModelSerializer):
 
     @swagger_serializer_method(serializer_or_field=serializers.DictField)
     def get_assigned_object(self, obj):
-        serializer = get_serializer_for_model(obj.assigned_object, prefix="Nested")
+        serializer = get_serializer_for_model(
+            obj.assigned_object,
+            prefix=NESTED_SERIALIZER_PREFIX,
+        )
         context = {"request": self.context["request"]}
         return serializer(obj.assigned_object, context=context).data
 
@@ -162,7 +166,10 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
 
     @swagger_serializer_method(serializer_or_field=serializers.DictField)
     def get_assigned_object(self, obj):
-        serializer = get_serializer_for_model(obj.assigned_object, prefix="Nested")
+        serializer = get_serializer_for_model(
+            obj.assigned_object,
+            prefix=NESTED_SERIALIZER_PREFIX,
+        )
         context = {"request": self.context["request"]}
         return serializer(obj.assigned_object, context=context).data
 

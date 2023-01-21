@@ -46,7 +46,7 @@ class AccessListView(generic.ObjectView):
     Defines the view for the AccessLists django model.
     """
 
-    queryset = models.AccessList.objects.all()
+    queryset = models.AccessList.objects.prefetch_related("tags")
 
     def get_extra_context(self, request, instance):
         """
@@ -77,7 +77,7 @@ class AccessListListView(generic.ObjectListView):
 
     queryset = models.AccessList.objects.annotate(
         rule_count=Count("aclextendedrules") + Count("aclstandardrules"),
-    )
+    ).prefetch_related("tags")
     table = tables.AccessListTable
     filterset = filtersets.AccessListFilterSet
     filterset_form = forms.AccessListFilterForm
@@ -89,7 +89,7 @@ class AccessListEditView(generic.ObjectEditView):
     Defines the edit view for the AccessLists django model.
     """
 
-    queryset = models.AccessList.objects.all()
+    queryset = models.AccessList.objects.prefetch_related("tags")
     form = forms.AccessListForm
     template_name = "netbox_acls/accesslist_edit.html"
 
@@ -100,11 +100,11 @@ class AccessListDeleteView(generic.ObjectDeleteView):
     Defines delete view for the AccessLists django model.
     """
 
-    queryset = models.AccessList.objects.all()
+    queryset = models.AccessList.objects.prefetch_related("tags")
 
 
 class AccessListBulkDeleteView(generic.BulkDeleteView):
-    queryset = models.AccessList.objects.all()
+    queryset = models.AccessList.objects.prefetch_related("tags")
     filterset = filtersets.AccessListFilterSet
     table = tables.AccessListTable
 
@@ -134,7 +134,7 @@ class AccessListChildView(generic.ObjectChildrenView):
 
 @register_model_view(Device, "access_lists")
 class DeviceAccessListView(AccessListChildView):
-    queryset = Device.objects.all()
+    queryset = Device.objects.prefetch_related("tags")
     tab = ViewTab(
         label="Access Lists",
         badge=lambda obj: models.AccessList.objects.filter(device=obj).count(),
@@ -149,7 +149,7 @@ class DeviceAccessListView(AccessListChildView):
 
 @register_model_view(VirtualChassis, "access_lists")
 class VirtualChassisAccessListView(AccessListChildView):
-    queryset = VirtualChassis.objects.all()
+    queryset = VirtualChassis.objects.prefetch_related("tags")
     tab = ViewTab(
         label="Access Lists",
         badge=lambda obj: models.AccessList.objects.filter(virtual_chassis=obj).count(),
@@ -164,7 +164,7 @@ class VirtualChassisAccessListView(AccessListChildView):
 
 @register_model_view(VirtualMachine, "access_lists")
 class VirtualMachineAccessListView(AccessListChildView):
-    queryset = VirtualMachine.objects.all()
+    queryset = VirtualMachine.objects.prefetch_related("tags")
     tab = ViewTab(
         label="Access Lists",
         badge=lambda obj: models.AccessList.objects.filter(virtual_machine=obj).count(),
@@ -188,7 +188,10 @@ class ACLInterfaceAssignmentView(generic.ObjectView):
     Defines the view for the ACLInterfaceAssignments django model.
     """
 
-    queryset = models.ACLInterfaceAssignment.objects.all()
+    queryset = models.ACLInterfaceAssignment.objects.prefetch_related(
+        "access_list",
+        "tags",
+    )
 
 
 class ACLInterfaceAssignmentListView(generic.ObjectListView):
@@ -196,7 +199,10 @@ class ACLInterfaceAssignmentListView(generic.ObjectListView):
     Defines the list view for the ACLInterfaceAssignments django model.
     """
 
-    queryset = models.ACLInterfaceAssignment.objects.all()
+    queryset = models.ACLInterfaceAssignment.objects.prefetch_related(
+        "access_list",
+        "tags",
+    )
     table = tables.ACLInterfaceAssignmentTable
     filterset = filtersets.ACLInterfaceAssignmentFilterSet
     filterset_form = forms.ACLInterfaceAssignmentFilterForm
@@ -208,7 +214,10 @@ class ACLInterfaceAssignmentEditView(generic.ObjectEditView):
     Defines the edit view for the ACLInterfaceAssignments django model.
     """
 
-    queryset = models.ACLInterfaceAssignment.objects.all()
+    queryset = models.ACLInterfaceAssignment.objects.prefetch_related(
+        "access_list",
+        "tags",
+    )
     form = forms.ACLInterfaceAssignmentForm
     template_name = "netbox_acls/aclinterfaceassignment_edit.html"
 
@@ -230,11 +239,17 @@ class ACLInterfaceAssignmentDeleteView(generic.ObjectDeleteView):
     Defines delete view for the ACLInterfaceAssignments django model.
     """
 
-    queryset = models.ACLInterfaceAssignment.objects.all()
+    queryset = models.ACLInterfaceAssignment.objects.prefetch_related(
+        "access_list",
+        "tags",
+    )
 
 
 class ACLInterfaceAssignmentBulkDeleteView(generic.BulkDeleteView):
-    queryset = models.ACLInterfaceAssignment.objects.all()
+    queryset = models.ACLInterfaceAssignment.objects.prefetch_related(
+        "access_list",
+        "tags",
+    )
     filterset = filtersets.ACLInterfaceAssignmentFilterSet
     table = tables.ACLInterfaceAssignmentTable
 
@@ -259,7 +274,7 @@ class ACLInterfaceAssignmentChildView(generic.ObjectChildrenView):
 
 @register_model_view(Interface, "acl_interface_assignments")
 class InterfaceACLInterfaceAssignmentView(ACLInterfaceAssignmentChildView):
-    queryset = Interface.objects.all()
+    queryset = Interface.objects.prefetch_related("device", "tags")
     tab = ViewTab(
         label="ACL Interface Assignments",
         badge=lambda obj: models.ACLInterfaceAssignment.objects.filter(
@@ -278,7 +293,7 @@ class InterfaceACLInterfaceAssignmentView(ACLInterfaceAssignmentChildView):
 class VirtualMachineInterfaceACLInterfaceAssignmentView(
     ACLInterfaceAssignmentChildView,
 ):
-    queryset = VMInterface.objects.all()
+    queryset = VMInterface.objects.prefetch_related("virtual_machine", "tags")
     tab = ViewTab(
         label="ACL Interface Assignments",
         badge=lambda obj: models.ACLInterfaceAssignment.objects.filter(
@@ -304,7 +319,11 @@ class ACLStandardRuleView(generic.ObjectView):
     Defines the view for the ACLStandardRule django model.
     """
 
-    queryset = models.ACLStandardRule.objects.all()
+    queryset = models.ACLStandardRule.objects.prefetch_related(
+        "access_list",
+        "tags",
+        "source_prefix",
+    )
 
 
 class ACLStandardRuleListView(generic.ObjectListView):
@@ -312,7 +331,11 @@ class ACLStandardRuleListView(generic.ObjectListView):
     Defines the list view for the ACLStandardRule django model.
     """
 
-    queryset = models.ACLStandardRule.objects.all()
+    queryset = models.ACLStandardRule.objects.prefetch_related(
+        "access_list",
+        "tags",
+        "source_prefix",
+    )
     table = tables.ACLStandardRuleTable
     filterset = filtersets.ACLStandardRuleFilterSet
     filterset_form = forms.ACLStandardRuleFilterForm
@@ -324,7 +347,11 @@ class ACLStandardRuleEditView(generic.ObjectEditView):
     Defines the edit view for the ACLStandardRule django model.
     """
 
-    queryset = models.ACLStandardRule.objects.all()
+    queryset = models.ACLStandardRule.objects.prefetch_related(
+        "access_list",
+        "tags",
+        "source_prefix",
+    )
     form = forms.ACLStandardRuleForm
 
     def get_extra_addanother_params(self, request):
@@ -344,11 +371,19 @@ class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
     Defines delete view for the ACLStandardRules django model.
     """
 
-    queryset = models.ACLStandardRule.objects.all()
+    queryset = models.ACLStandardRule.objects.prefetch_related(
+        "access_list",
+        "tags",
+        "source_prefix",
+    )
 
 
 class ACLStandardRuleBulkDeleteView(generic.BulkDeleteView):
-    queryset = models.ACLStandardRule.objects.all()
+    queryset = models.ACLStandardRule.objects.prefetch_related(
+        "access_list",
+        "tags",
+        "source_prefix",
+    )
     filterset = filtersets.ACLStandardRuleFilterSet
     table = tables.ACLStandardRuleTable
 
@@ -364,7 +399,12 @@ class ACLExtendedRuleView(generic.ObjectView):
     Defines the view for the ACLExtendedRule django model.
     """
 
-    queryset = models.ACLExtendedRule.objects.all()
+    queryset = models.ACLExtendedRule.objects.prefetch_related(
+        "access_list",
+        "tags",
+        "source_prefix",
+        "destination_prefix",
+    )
 
 
 class ACLExtendedRuleListView(generic.ObjectListView):
@@ -372,7 +412,12 @@ class ACLExtendedRuleListView(generic.ObjectListView):
     Defines the list view for the ACLExtendedRule django model.
     """
 
-    queryset = models.ACLExtendedRule.objects.all()
+    queryset = models.ACLExtendedRule.objects.prefetch_related(
+        "access_list",
+        "tags",
+        "source_prefix",
+        "destination_prefix",
+    )
     table = tables.ACLExtendedRuleTable
     filterset = filtersets.ACLExtendedRuleFilterSet
     filterset_form = forms.ACLExtendedRuleFilterForm
@@ -384,7 +429,12 @@ class ACLExtendedRuleEditView(generic.ObjectEditView):
     Defines the edit view for the ACLExtendedRule django model.
     """
 
-    queryset = models.ACLExtendedRule.objects.all()
+    queryset = models.ACLExtendedRule.objects.prefetch_related(
+        "access_list",
+        "tags",
+        "source_prefix",
+        "destination_prefix",
+    )
     form = forms.ACLExtendedRuleForm
 
     def get_extra_addanother_params(self, request):
@@ -404,10 +454,20 @@ class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
     Defines delete view for the ACLExtendedRules django model.
     """
 
-    queryset = models.ACLExtendedRule.objects.all()
+    queryset = models.ACLExtendedRule.objects.prefetch_related(
+        "access_list",
+        "tags",
+        "source_prefix",
+        "destination_prefix",
+    )
 
 
 class ACLExtendedRuleBulkDeleteView(generic.BulkDeleteView):
-    queryset = models.ACLExtendedRule.objects.all()
+    queryset = models.ACLExtendedRule.objects.prefetch_related(
+        "access_list",
+        "tags",
+        "source_prefix",
+        "destination_prefix",
+    )
     filterset = filtersets.ACLExtendedRuleFilterSet
     table = tables.ACLExtendedRuleTable

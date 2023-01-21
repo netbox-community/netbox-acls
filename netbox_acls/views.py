@@ -5,6 +5,7 @@ Specifically, all the various interactions with a client.
 
 from django.db.models import Count
 from netbox.views import generic
+from utilities.views import register_model_view
 
 from . import choices, filtersets, forms, models, tables
 
@@ -37,6 +38,7 @@ __all__ = (
 #
 
 
+@register_model_view(models.AccessList)
 class AccessListView(generic.ObjectView):
     """
     Defines the view for the AccessLists django model.
@@ -79,6 +81,7 @@ class AccessListListView(generic.ObjectListView):
     filterset_form = forms.AccessListFilterForm
 
 
+@register_model_view(models.AccessList, "edit")
 class AccessListEditView(generic.ObjectEditView):
     """
     Defines the edit view for the AccessLists django model.
@@ -89,6 +92,7 @@ class AccessListEditView(generic.ObjectEditView):
     template_name = "netbox_acls/accesslist_edit.html"
 
 
+@register_model_view(models.AccessList, "delete")
 class AccessListDeleteView(generic.ObjectDeleteView):
     """
     Defines delete view for the AccessLists django model.
@@ -108,6 +112,7 @@ class AccessListBulkDeleteView(generic.BulkDeleteView):
 #
 
 
+@register_model_view(models.ACLInterfaceAssignment)
 class ACLInterfaceAssignmentView(generic.ObjectView):
     """
     Defines the view for the ACLInterfaceAssignments django model.
@@ -127,6 +132,7 @@ class ACLInterfaceAssignmentListView(generic.ObjectListView):
     filterset_form = forms.ACLInterfaceAssignmentFilterForm
 
 
+@register_model_view(models.ACLInterfaceAssignment, "edit")
 class ACLInterfaceAssignmentEditView(generic.ObjectEditView):
     """
     Defines the edit view for the ACLInterfaceAssignments django model.
@@ -148,6 +154,7 @@ class ACLInterfaceAssignmentEditView(generic.ObjectEditView):
         }
 
 
+@register_model_view(models.ACLInterfaceAssignment, "delete")
 class ACLInterfaceAssignmentDeleteView(generic.ObjectDeleteView):
     """
     Defines delete view for the ACLInterfaceAssignments django model.
@@ -167,6 +174,7 @@ class ACLInterfaceAssignmentBulkDeleteView(generic.BulkDeleteView):
 #
 
 
+@register_model_view(models.ACLStandardRule)
 class ACLStandardRuleView(generic.ObjectView):
     """
     Defines the view for the ACLStandardRule django model.
@@ -186,6 +194,7 @@ class ACLStandardRuleListView(generic.ObjectListView):
     filterset_form = forms.ACLStandardRuleFilterForm
 
 
+@register_model_view(models.ACLStandardRule, "edit")
 class ACLStandardRuleEditView(generic.ObjectEditView):
     """
     Defines the edit view for the ACLStandardRule django model.
@@ -205,6 +214,7 @@ class ACLStandardRuleEditView(generic.ObjectEditView):
         }
 
 
+@register_model_view(models.ACLStandardRule, "delete")
 class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
     """
     Defines delete view for the ACLStandardRules django model.
@@ -224,6 +234,7 @@ class ACLStandardRuleBulkDeleteView(generic.BulkDeleteView):
 #
 
 
+@register_model_view(models.ACLExtendedRule)
 class ACLExtendedRuleView(generic.ObjectView):
     """
     Defines the view for the ACLExtendedRule django model.
@@ -243,6 +254,7 @@ class ACLExtendedRuleListView(generic.ObjectListView):
     filterset_form = forms.ACLExtendedRuleFilterForm
 
 
+@register_model_view(models.ACLExtendedRule, "edit")
 class ACLExtendedRuleEditView(generic.ObjectEditView):
     """
     Defines the edit view for the ACLExtendedRule django model.
@@ -262,6 +274,7 @@ class ACLExtendedRuleEditView(generic.ObjectEditView):
         }
 
 
+@register_model_view(models.ACLExtendedRule, "delete")
 class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
     """
     Defines delete view for the ACLExtendedRules django model.

@@ -136,6 +136,16 @@ class ACLInterfaceAssignmentEditView(generic.ObjectEditView):
     form = forms.ACLInterfaceAssignmentForm
     template_name = "netbox_acls/aclinterfaceassignment_edit.html"
 
+    def get_extra_addanother_params(self, request):
+        """
+        Returns a dictionary of additional parameters to be passed to the "Add Another" button.
+        """
+
+        return {
+            "access_list": request.GET.get("access_list") or request.POST.get("access_list"),
+            "direction": request.GET.get("direction") or request.POST.get("direction"),
+        }
+
 
 class ACLInterfaceAssignmentDeleteView(generic.ObjectDeleteView):
     """
@@ -183,6 +193,15 @@ class ACLStandardRuleEditView(generic.ObjectEditView):
     queryset = models.ACLStandardRule.objects.all()
     form = forms.ACLStandardRuleForm
 
+    def get_extra_addanother_params(self, request):
+        """
+        Returns a dictionary of additional parameters to be passed to the "Add Another" button.
+        """
+
+        return {
+            "access_list": request.GET.get("access_list") or request.POST.get("access_list"),
+        }
+
 
 class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
     """
@@ -229,6 +248,15 @@ class ACLExtendedRuleEditView(generic.ObjectEditView):
 
     queryset = models.ACLExtendedRule.objects.all()
     form = forms.ACLExtendedRuleForm
+
+    def get_extra_addanother_params(self, request):
+        """
+        Returns a dictionary of additional parameters to be passed to the "Add Another" button.
+        """
+
+        return {
+            "access_list": request.GET.get("access_list") or request.POST.get("access_list"),
+        }
 
 
 class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):

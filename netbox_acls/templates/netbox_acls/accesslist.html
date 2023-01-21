@@ -31,9 +31,9 @@
                         <tr>
                             <th scope="row">Rules</th>
                             {% if object.type == 'standard' %}
-                                <td>{{ object.aclstandardrules.count|placeholder }}</td>
+                                <td><a href="{% url 'plugins:netbox_acls:aclstandardrule_list' %}?access_list={{ object.pk }}">{{ object.aclstandardrules.count|placeholder }}</a></td>
                             {% elif object.type == 'extended' %}
-                                <td>{{ object.aclextendedrules.count|placeholder }}</td>
+                                <td><a href="{% url 'plugins:netbox_acls:aclextendedrule_list' %}?access_list={{ object.pk }}">{{ object.aclextendedrules.count|placeholder }}</a></td>
                             {% endif %}
                         </tr>
                         <tr>

@@ -183,6 +183,11 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
 
     model = ACLStandardRule
     tag = TagFilterField(model)
+    access_list = forms.ModelMultipleChoiceField(
+        queryset=AccessList.objects.all(),
+        required=False,
+        widget=StaticSelectMultiple(),
+    )
     source_prefix = forms.ModelMultipleChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
@@ -197,7 +202,7 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
     )
     fieldsets = (
         (None, ("q", "tag")),
-        ("Rule Details", ("action", "source_prefix")),
+        ("Rule Details", ("access_list", "action", "source_prefix")),
     )
 
 
@@ -211,6 +216,11 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
         required=False,
     )
     tag = TagFilterField(model)
+    access_list = forms.ModelMultipleChoiceField(
+        queryset=AccessList.objects.all(),
+        required=False,
+        widget=StaticSelectMultiple(),
+    )
     action = forms.ChoiceField(
         choices=add_blank_choice(ACLRuleActionChoices),
         required=False,
@@ -238,5 +248,14 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
 
     fieldsets = (
         (None, ("q", "tag")),
-        ("Rule Details", ("action", "source_prefix", "desintation_prefix", "protocol")),
+        (
+            "Rule Details",
+            (
+                "access_list",
+                "action",
+                "source_prefix",
+                "desintation_prefix",
+                "protocol",
+            ),
+        ),
     )

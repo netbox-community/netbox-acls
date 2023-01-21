@@ -53,11 +53,16 @@ class AccessListView(generic.ObjectView):
             table = tables.ACLExtendedRuleTable(instance.aclextendedrules.all())
         elif instance.type == choices.ACLTypeChoices.TYPE_STANDARD:
             table = tables.ACLStandardRuleTable(instance.aclstandardrules.all())
-        table.configure(request)
+        else:
+            table = None
 
-        return {
-            "rules_table": table,
-        }
+        if table:
+            table.configure(request)
+
+            return {
+                "rules_table": table,
+            }
+        return {}
 
 
 class AccessListListView(generic.ObjectListView):

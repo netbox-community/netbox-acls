@@ -62,11 +62,11 @@
               {% elif object.type == 'extended' %}
               <td>{{ object.aclextendedrules.count|placeholder }}</td>
               {% endif %}
+            </tr>
               <tr>
                 <th scope="row">Assigned Host</th>
                 <td>{{ object.assigned_object|linkify }}</td>
               </tr>
-            </tr>
           </table>
         </div>
       </div>
@@ -77,7 +77,8 @@
       {% include 'inc/panels/comments.html' %}
     </div>
   </div>
-  <div class="row">
+  {% if rules_table %}
+      <div class="row">
     <div class="col col-md-12">
       <div class="card">
         <h5 class="card-header">{{ object.get_type_display }} Rules</h5>
@@ -87,4 +88,5 @@
       </div>
     </div>
   </div>
+    {% endif %}
 {% endblock content %}

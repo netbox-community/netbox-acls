@@ -6,7 +6,7 @@ Specifically, all the various interactions with a client.
 from django.db.models import Count
 from netbox.views import generic
 
-from . import filtersets, forms, models, tables
+from . import choices, filtersets, forms, models, tables
 
 __all__ = (
     "AccessListView",
@@ -48,9 +48,10 @@ class AccessListView(generic.ObjectView):
         """
         Depending on the Access List type, the list view will return the required ACL Rule using the previous defined tables in tables.py.
         """
-        if instance.type == "extended":
+
+        if instance.type == choices.ACLTypeChoices.TYPE_EXTENDED:
             table = tables.ACLExtendedRuleTable(instance.aclextendedrules.all())
-        elif instance.type == "standard":
+        elif instance.type == choices.ACLTypeChoices.TYPE_STANDARD:
             table = tables.ACLStandardRuleTable(instance.aclstandardrules.all())
         table.configure(request)
 

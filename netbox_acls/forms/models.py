@@ -16,6 +16,7 @@ from utilities.forms import (
 )
 from virtualization.models import VirtualMachine, VMInterface
 
+from ..choices import ACLTypeChoices
 from ..models import (
     AccessList,
     ACLExtendedRule,
@@ -201,8 +202,12 @@ class AccessListForm(NetBoxModelForm):
                 "name": [error_same_acl_name],
             }
         # Check if Access List has no existing rules before change the Access List's type.
-        if (acl_type == "extended" and self.instance.aclstandardrules.exists()) or (
-            acl_type == "standard" and self.instance.aclextendedrules.exists()
+        if (
+            acl_type == ACLTypeChoices.TYPE_EXTENDED
+            and self.instance.aclstandardrules.exists()
+        ) or (
+            acl_type == ACLTypeChoices.TYPE_STANDARD
+            and self.instance.aclextendedrules.exists()
         ):
             error_message["type"] = [
                 "This ACL has ACL rules associated, CANNOT change ACL type.",
@@ -425,7 +430,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
     access_list = DynamicModelChoiceField(
         queryset=AccessList.objects.all(),
         query_params={
-            "type": "standard",
+            "type": ACLTypeChoices.TYPE_STANDARD,
         },
         help_text=mark_safe(
             "<b>*Note:</b> This field will only display Standard ACLs.",
@@ -507,7 +512,7 @@ class ACLExtendedRuleForm(NetBoxModelForm):
     access_list = DynamicModelChoiceField(
         queryset=AccessList.objects.all(),
         query_params={
-            "type": "extended",
+            "type": ACLTypeChoices.TYPE_EXTENDED,
         },
         help_text=mark_safe(
             "<b>*Note:</b> This field will only display Extended ACLs.",

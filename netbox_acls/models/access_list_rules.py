@@ -8,7 +8,7 @@ from django.db import models
 from django.urls import reverse
 from netbox.models import NetBoxModel
 
-from ..choices import ACLProtocolChoices, ACLRuleActionChoices
+from ..choices import ACLProtocolChoices, ACLRuleActionChoices, ACLTypeChoices
 from .access_lists import AccessList
 
 __all__ = (
@@ -84,7 +84,7 @@ class ACLStandardRule(ACLRule):
         on_delete=models.CASCADE,
         to=AccessList,
         verbose_name="Standard Access List",
-        limit_choices_to={"type": "standard"},
+        limit_choices_to={"type": ACLTypeChoices.TYPE_STANDARD},
         related_name="aclstandardrules",
     )
 

@@ -51,9 +51,12 @@ class ACLAssignmentDirectionChoices(ChoiceSet):
     Defines the direction of the application of the ACL on an associated interface.
     """
 
+    DIRECTION_INGRESS = "ingress"
+    DIRECTION_EGRESS = "egress"
+
     CHOICES = [
-        ("ingress", "Ingress", "blue"),
-        ("egress", "Egress", "purple"),
+        (DIRECTION_INGRESS, "Ingress", "blue"),
+        (DIRECTION_EGRESS, "Egress", "purple"),
     ]
 
 
@@ -62,9 +65,12 @@ class ACLTypeChoices(ChoiceSet):
     Defines the choices availble for the Access Lists plugin specific to ACL type.
     """
 
+    TYPE_STANDARD = "standard"
+    TYPE_EXTENDED = "extended"
+
     CHOICES = [
-        ("extended", "Extended", "purple"),
-        ("standard", "Standard", "blue"),
+        (TYPE_EXTENDED, "Extended", "purple"),
+        (TYPE_STANDARD, "Standard", "blue"),
     ]
 
 
@@ -73,8 +79,12 @@ class ACLProtocolChoices(ChoiceSet):
     Defines the choices availble for the Access Lists plugin specific to ACL Rule protocol.
     """
 
+    PROTOCOL_ICMP = "icmp"
+    PROTOCOL_TCP = "tcp"
+    PROTOCOL_UDP = "udp"
+
     CHOICES = [
-        ("icmp", "ICMP", "purple"),
-        ("tcp", "TCP", "blue"),
-        ("udp", "UDP", "orange"),
+        (PROTOCOL_ICMP, "ICMP", "purple"),
+        (PROTOCOL_TCP, "TCP", "blue"),
+        (PROTOCOL_UDP, "UDP", "orange"),
     ]

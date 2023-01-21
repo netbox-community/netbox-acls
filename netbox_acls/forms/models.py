@@ -238,6 +238,7 @@ class AccessListForm(NetBoxModelForm):
             }
         if (
             self.instance.pk
+            # Check if Access List has no existing rules before change the Access List's type.
             and (
                 acl_type == ACLTypeChoices.TYPE_EXTENDED
                 and self.instance.aclstandardrules.exists()

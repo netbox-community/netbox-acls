@@ -32,9 +32,7 @@
             </tr>
             <tr>
                 <th scope="row">Direction</th>
-                <td>
-                  {{ object.direction|title }}
-                </td>
+                <td>{% badge object.get_direction_display bg_color=object.get_direction_color %}</td>
             </tr>
           </table>
         </div>

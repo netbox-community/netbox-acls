@@ -2,6 +2,7 @@
 Define the django models for this plugin.
 """
 
+from django.apps import apps
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.urls import reverse
@@ -59,6 +60,10 @@ class ACLRule(NetBoxModel):
     def get_action_color(self):
         return ACLRuleActionChoices.colors.get(self.action)
 
+    @classmethod
+    def get_prerequisite_models(cls):
+        return [apps.get_model("ipam.Prefix"), AccessList]
+
     class Meta:
         """
         Define the common model properties:
@@ -91,6 +96,10 @@ class ACLStandardRule(ACLRule):
         it conveniently returns the absolute URL for any particular object.
         """
         return reverse("plugins:netbox_acls:aclstandardrule", args=[self.pk])
+
+    @classmethod
+    def get_prerequisite_models(cls):
+        return [AccessList]
 
     class Meta(ACLRule.Meta):
         """
@@ -152,6 +161,10 @@ class ACLExtendedRule(ACLRule):
 
     def get_protocol_color(self):
         return ACLProtocolChoices.colors.get(self.protocol)
+
+    @classmethod
+    def get_prerequisite_models(cls):
+        return [apps.get_model("ipam.Prefix"), AccessList]
 
     class Meta(ACLRule.Meta):
         """

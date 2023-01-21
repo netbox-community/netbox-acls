@@ -67,6 +67,9 @@
               {% render_field form.virtual_chassis %}
           </div>
             <div class="tab-pane{% if form.initial.virtual_machine %} active{% endif %}" id="virtualmachine">
+                {% render_field form.cluster_type %}
+                {% render_field form.cluster_group %}
+                {% render_field form.cluster %}
                 {% render_field form.virtual_machine %}
             </div>
     </div>

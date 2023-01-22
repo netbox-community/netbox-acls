@@ -1,3 +1,4 @@
+---
 ## Possible Choices:
 ##   type:
 ##   - text
@@ -23,14 +24,14 @@ text_field:
   required: false
   weight: 0
   on_objects:
-  - dcim.models.Device
-  - dcim.models.Rack
-  - dcim.models.Site
-  - dcim.models.DeviceType
-  - ipam.models.IPAddress
-  - ipam.models.Prefix
-  - tenancy.models.Tenant
-  - virtualization.models.VirtualMachine
+    - dcim.models.Device
+    - dcim.models.Rack
+    - dcim.models.Site
+    - dcim.models.DeviceType
+    - ipam.models.IPAddress
+    - ipam.models.Prefix
+    - tenancy.models.Tenant
+    - virtualization.models.VirtualMachine
 integer_field:
   type: integer
   label: Custom Number
@@ -41,7 +42,7 @@ integer_field:
   validation_maximum: 255
   weight: 10
   on_objects:
-  - tenancy.models.Tenant
+    - tenancy.models.Tenant
 select_field:
   type: select
   label: Choose between items
@@ -50,13 +51,13 @@ select_field:
   weight: 30
   default: First Item
   on_objects:
-  - dcim.models.Device
+    - dcim.models.Device
   choices:
-  - First Item
-  - Second Item
-  - Third Item
-  - Fifth Item
-  - Fourth Item
+    - First Item
+    - Second Item
+    - Third Item
+    - Fifth Item
+    - Fourth Item
 select_field_legacy_format:
   type: select
   label: Choose between items
@@ -64,14 +65,14 @@ select_field_legacy_format:
   filter_logic: loose
   weight: 30
   on_objects:
-  - dcim.models.Device
+    - dcim.models.Device
   choices:
-  - value: A # this is the deprecated format.
-  - value: B # we only use it for the tests.
-  - value: C # please see above for the new format.
-  - value: "D like deprecated"
-    weight: 999
-  - value: E
+    - value: A # this is the deprecated format.
+    - value: B # we only use it for the tests.
+    - value: C # please see above for the new format.
+    - value: "D like deprecated"
+      weight: 999
+    - value: E
 boolean_field:
   type: boolean
   label: Yes Or No?
@@ -80,7 +81,7 @@ boolean_field:
   default: "false" # important: put "false" in quotes!
   weight: 90
   on_objects:
-  - dcim.models.Device
+    - dcim.models.Device
 url_field:
   type: url
   label: Hyperlink
@@ -89,14 +90,14 @@ url_field:
   filter_logic: disabled
   validation_regex: ^https://
   on_objects:
-  - tenancy.models.Tenant
+    - tenancy.models.Tenant
 date_field:
   type: date
   label: Important Date
   required: false
   filter_logic: disabled
   on_objects:
-  - dcim.models.Device
+    - dcim.models.Device
 multiobject_field:
   type: multiobject
   label: Related Objects
@@ -104,7 +105,7 @@ multiobject_field:
   required: true
   filter_logic: loose
   on_objects:
-  - dcim.models.Location
+    - dcim.models.Location
   object_type: ipam.models.IPAddress
 object_field:
   type: object
@@ -113,5 +114,5 @@ object_field:
   required: false
   filter_logic: loose
   on_objects:
-  - dcim.models.Device
+    - dcim.models.Device
   object_type: ipam.models.ASN

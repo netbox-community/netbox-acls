@@ -1,3 +1,4 @@
+---
 - name: Network-Team
   slug: network-team
   description: This is a new contact group for the Network-Team

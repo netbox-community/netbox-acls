@@ -1,3 +1,4 @@
+---
 - name: Provider1
   slug: provider1
   asn: 121

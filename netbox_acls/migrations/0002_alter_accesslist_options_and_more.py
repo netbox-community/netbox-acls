@@ -64,10 +64,11 @@ class Migration(migrations.Migration):
                         models.Q(("app_label", "dcim"), ("model", "device")),
                         models.Q(("app_label", "dcim"), ("model", "virtualchassis")),
                         models.Q(
-                            ("app_label", "virtualization"), ("model", "virtualmachine")
+                            ("app_label", "virtualization"),
+                            ("model", "virtualmachine"),
                         ),
                         _connector="OR",
-                    )
+                    ),
                 ),
                 on_delete=django.db.models.deletion.PROTECT,
                 to="contenttypes.contenttype",
@@ -82,7 +83,7 @@ class Migration(migrations.Migration):
                     django.core.validators.RegexValidator(
                         "^[0-9a-zA-Z,-,_]*$",
                         "Only alphanumeric, hyphens, and underscores characters are allowed.",
-                    )
+                    ),
                 ],
             ),
         ),
@@ -111,7 +112,8 @@ class Migration(migrations.Migration):
             model_name="aclinterfaceassignment",
             name="access_list",
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="netbox_acls.accesslist"
+                on_delete=django.db.models.deletion.CASCADE,
+                to="netbox_acls.accesslist",
             ),
         ),
         migrations.AlterField(
@@ -127,10 +129,11 @@ class Migration(migrations.Migration):
                     models.Q(
                         models.Q(("app_label", "dcim"), ("model", "interface")),
                         models.Q(
-                            ("app_label", "virtualization"), ("model", "vminterface")
+                            ("app_label", "virtualization"),
+                            ("model", "vminterface"),
                         ),
                         _connector="OR",
-                    )
+                    ),
                 ),
                 on_delete=django.db.models.deletion.PROTECT,
                 to="contenttypes.contenttype",

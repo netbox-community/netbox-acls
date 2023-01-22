@@ -1,3 +1,4 @@
+---
 technical_user:
   api_token: "" # a token is generated automatically unless the value is explicity set to empty
 reader:

@@ -50,20 +50,20 @@ makemigrations:
 migrate:
 	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} migrate
 
-.PHONY: startup_scripts
-startup_scripts:
-	-echo "import runpy; runpy.run_path('/opt/netbox/startup_scripts')" | ${NETBOX_MANAGE_PATH} shell --interface python
-
 .PHONY: collectstatic
 collectstatic:
 	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} collectstatic --no-input
+
+.PHONY: initializers
+initializers:
+	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} load_initializer_data --path /opt/netbox/netbox/netbox-acls/.devcontainer/initializers
 
 .PHONY: start ## Start NetBox
 start:
 	- cd /opt/netbox/netbox/ && /opt/netbox/docker-entrypoint.sh && /opt/netbox/launch-netbox.sh
 
 .PHONY: all ## Run all PLUGIN DEV targets
-all: setup makemigrations migrate collectstatic start
+all: setup makemigrations migrate collectstatic initializers start
 
 #.PHONY: test
 #test:

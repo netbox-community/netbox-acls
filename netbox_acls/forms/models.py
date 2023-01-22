@@ -236,17 +236,18 @@ class AccessListForm(NetBoxModelForm):
                 host_type: [error_same_acl_name],
                 "name": [error_same_acl_name],
             }
-        # Check if Access List has no existing rules before change the Access List's type.
-        if (
-            acl_type == ACLTypeChoices.TYPE_EXTENDED
-            and self.instance.aclstandardrules.exists()
-        ) or (
-            acl_type == ACLTypeChoices.TYPE_STANDARD
-            and self.instance.aclextendedrules.exists()
-        ):
-            error_message["type"] = [
-                "This ACL has ACL rules associated, CANNOT change ACL type.",
-            ]
+        if self.instance.pk:
+            # Check if Access List has no existing rules before change the Access List's type.
+            if (
+                    acl_type == ACLTypeChoices.TYPE_EXTENDED
+                    and self.instance.aclstandardrules.exists()
+            ) or (
+                    acl_type == ACLTypeChoices.TYPE_STANDARD
+                    and self.instance.aclextendedrules.exists()
+            ):
+                error_message["type"] = [
+                    "This ACL has ACL rules associated, CANNOT change ACL type.",
+                ]
 
         if error_message:
             raise forms.ValidationError(error_message)

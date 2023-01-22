@@ -19,7 +19,7 @@ class NetBoxACLsConfig(PluginConfig):
     base_url = "access-lists"
     min_version = "3.3.0"
     max_version = "3.3.99"
-    #default_settings = {}
+    # default_settings = {}
 
 
 config = NetBoxACLsConfig

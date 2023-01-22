@@ -3,6 +3,7 @@ Define the NetBox Plugin
 """
 
 from extras.plugins import PluginConfig
+
 from .version import __version__
 
 
@@ -10,6 +11,7 @@ class NetBoxACLsConfig(PluginConfig):
     """
     Plugin specifc configuration
     """
+
     name = "netbox_acls"
     verbose_name = "Access Lists"
     version = __version__

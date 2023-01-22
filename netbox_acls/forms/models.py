@@ -6,14 +6,9 @@ from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChass
 from django import forms
 from django.contrib.contenttypes.models import ContentType
 from django.utils.safestring import mark_safe
-from extras.models import Tag
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelForm
-from utilities.forms import (
-    CommentField,
-    DynamicModelChoiceField,
-    DynamicModelMultipleChoiceField,
-)
+from utilities.forms import CommentField, DynamicModelChoiceField
 from virtualization.models import (
     Cluster,
     ClusterGroup,
@@ -239,11 +234,11 @@ class AccessListForm(NetBoxModelForm):
         if self.instance.pk:
             # Check if Access List has no existing rules before change the Access List's type.
             if (
-                    acl_type == ACLTypeChoices.TYPE_EXTENDED
-                    and self.instance.aclstandardrules.exists()
+                acl_type == ACLTypeChoices.TYPE_EXTENDED
+                and self.instance.aclstandardrules.exists()
             ) or (
-                    acl_type == ACLTypeChoices.TYPE_STANDARD
-                    and self.instance.aclextendedrules.exists()
+                acl_type == ACLTypeChoices.TYPE_STANDARD
+                and self.instance.aclextendedrules.exists()
             ):
                 error_message["type"] = [
                     "This ACL has ACL rules associated, CANNOT change ACL type.",

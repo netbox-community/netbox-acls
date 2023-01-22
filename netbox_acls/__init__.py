@@ -4,13 +4,22 @@ Define the NetBox Plugin
 
 from extras.plugins import PluginConfig
 
+from .version import __version__
 
-class NetBoxAccessListsConfig(PluginConfig):
+
+class NetBoxACLsConfig(PluginConfig):
+    """
+    Plugin specifc configuration
+    """
+
     name = "netbox_acls"
     verbose_name = "Access Lists"
+    version = __version__
     description = "Manage simple ACLs in NetBox"
-    version = "1.0.0"
     base_url = "access-lists"
+    min_version = "3.3.0"
+    max_version = "3.3.99"
+    # default_settings = {}
 
 
-config = NetBoxAccessListsConfig
+config = NetBoxACLsConfig

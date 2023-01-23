@@ -1,3 +1,4 @@
+---
 - name: switch
   slug: switch
   color: Grey

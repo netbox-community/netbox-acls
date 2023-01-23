@@ -1,3 +1,4 @@
+---
 - name: VLAN group 1
   scope_type: dcim.region
   scope: Amsterdam

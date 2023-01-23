@@ -25,11 +25,12 @@
 				//		"source.organizeImports": true
 				//	}
 				//},
-				"python.sortImports.args": [
+				"isort.args": [
 					"--profile=black"
 				],
-				"python.sortImports.path": "/opt/netbox/venv/bin/isort",
+				"isort.path": "/opt/netbox/venv/bin/isort",
 				"python.analysis.typeCheckingMode": "strict",
+				python.Jedi
 				"python.analysis.extraPaths": [
 					"/opt/netbox/netbox"
 				],

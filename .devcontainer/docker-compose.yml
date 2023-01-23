@@ -1,3 +1,4 @@
+---
 version: '3.4'
 services:
   netbox: &netbox
@@ -35,15 +36,15 @@ services:
     image: postgres:14-alpine
     env_file: env/postgres.env
     volumes:
-    - netbox-postgres-data:/var/lib/postgresql/data
+      - netbox-postgres-data:/var/lib/postgresql/data
 
   # redis
   redis:
     image: redis:6-alpine
     command:
-    - sh
-    - -c # this is to evaluate the $REDIS_PASSWORD from the env
-    - redis-server --appendonly yes --requirepass $$REDIS_PASSWORD ## $$ because of docker-compose
+      - sh
+      - -c # this is to evaluate the $REDIS_PASSWORD from the env
+      - redis-server --appendonly yes --requirepass $$REDIS_PASSWORD ## $$ because of docker-compose
     env_file: env/redis.env
     #volumes:
     #  - netbox-redis-data:/data

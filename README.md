@@ -27,8 +27,8 @@ This project just looks to build on top of this framework and model presented.
 
 This project is currently maintained jointly by:
 
-* [Abhimanyu Saharan](https://github.com/abhi1693)
-* [Ryan Merolle](https://github.com/ryanmerolle)
+- [Abhimanyu Saharan](https://github.com/abhi1693)
+- [Ryan Merolle](https://github.com/ryanmerolle)
 
 See the [CONTRIBUTING](CONTRIBUTING.md) for more information.
 
@@ -37,10 +37,14 @@ See the [CONTRIBUTING](CONTRIBUTING.md) for more information.
 Each Plugin Version listed below has been tested with its corresponding NetBox Version.
 
 | NetBox Version | Plugin Version |
+
 |:--------------:|:--------------:|
 |      3.2       |     1.0.1      |
 |      3.3       |     1.1.0      |
-|      3.4       |     1.2.0      |
+|      3.4       |     1.2.0      
+
+
+
 
 ## Installing
 

@@ -37,7 +37,6 @@ See the [CONTRIBUTING](CONTRIBUTING.md) for more information.
 Each Plugin Version listed below has been tested with its corresponding NetBox Version.
 
 | NetBox Version | Plugin Version |
-
 |:--------------:|:--------------:|
 |      3.2       |     1.0.1      |
 |      3.3       |     1.1.0      |

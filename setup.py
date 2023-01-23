@@ -23,7 +23,6 @@ def get_version(rel_path):
 
 setup(
     name="netbox-acls",
-
     version="1.2.0",
     version=get_version("netbox_acls/version.py"),
     description="A NetBox plugin for Access List management",

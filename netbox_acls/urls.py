@@ -2,8 +2,8 @@
 Map Views to URLs.
 """
 
-from django.urls import path
-from netbox.views.generic import ObjectChangeLogView
+from django.urls import include, path
+from utilities.urls import get_model_urls
 
 from . import models, views
 
@@ -33,12 +33,8 @@ urlpatterns = (
         name="accesslist_delete",
     ),
     path(
-        "access-lists/<int:pk>/changelog/",
-        ObjectChangeLogView.as_view(),
-        name="accesslist_changelog",
-        kwargs={
-            "model": models.AccessList,
-        },
+        "access-lists/<int:pk>/",
+        include(get_model_urls("netbox_acls", "accesslist")),
     ),
     # Access List Interface Assignments
     path(
@@ -73,12 +69,8 @@ urlpatterns = (
         name="aclinterfaceassignment_delete",
     ),
     path(
-        "interface-assignments/<int:pk>/changelog/",
-        ObjectChangeLogView.as_view(),
-        name="aclinterfaceassignment_changelog",
-        kwargs={
-            "model": models.ACLInterfaceAssignment,
-        },
+        "interface-assignments/<int:pk>/",
+        include(get_model_urls("netbox_acls", "aclinterfaceassignment")),
     ),
     # Standard Access List Rules
     path(
@@ -112,12 +104,8 @@ urlpatterns = (
         name="aclstandardrule_delete",
     ),
     path(
-        "standard-rules/<int:pk>/changelog/",
-        ObjectChangeLogView.as_view(),
-        name="aclstandardrule_changelog",
-        kwargs={
-            "model": models.ACLStandardRule,
-        },
+        "standard-rules/<int:pk>/",
+        include(get_model_urls("netbox_acls", "aclstandardrule")),
     ),
     # Extended Access List Rules
     path(
@@ -151,11 +139,7 @@ urlpatterns = (
         name="aclextendedrule_delete",
     ),
     path(
-        "extended-rules/<int:pk>/changelog/",
-        ObjectChangeLogView.as_view(),
-        name="aclextendedrule_changelog",
-        kwargs={
-            "model": models.ACLExtendedRule,
-        },
+        "extended-rules/<int:pk>/",
+        include(get_model_urls("netbox_acls", "aclextendedrule")),
     ),
 )

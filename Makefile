@@ -1,7 +1,8 @@
 PLUGIN_NAME=netbox_acls
 REPO_PATH=/opt/netbox/netbox/netbox-acls
 VENV_PY_PATH=/opt/netbox/venv/bin/python3
-NETBOX_MANAGE_PATH=/opt/netbox/netbox/manage.py
+NETBOX_MANAGE_PATH=/opt/netbox/netbox
+NETBOX_INITIALIZER_PATH=${NETBOX_MANAGE_PATH}/netbox_initializers/
 VERFILE=./version.py
 
 .PHONY: help ## Display help message
@@ -26,7 +27,7 @@ help:
 
 .PHONY: nbshell ## Run nbshell
 nbshell:
-	${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} nbshell
+	${VENV_PY_PATH} ${NETBOX_MANAGE_PATH}/manage.py nbshell
 	from netbox_acls.models import *
 
 .PHONY: setup ## Copy plugin settings.  Setup NetBox plugin.
@@ -36,27 +37,31 @@ setup:
 
 .PHONY: example_initializers ## Run initializers
 example_initializers:
-	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} copy_initializers_examples --path /opt/netbox/netbox/netbox-acls/.devcontainer/initializers
+	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH}/manage.py copy_initializers_examples --path /opt/netbox/netbox/netbox-acls/.devcontainer/initializers
 
 .PHONY: load_initializers ## Run initializers
 load_initializers:
-	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} load_initializer_data  --path /opt/netbox/netbox/netbox-acls/.devcontainer/initializers
+	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH}/manage.py load_initializer_data  --path /opt/netbox/netbox/netbox-acls/.devcontainer/initializers
 
 .PHONY: makemigrations ## Run makemigrations
 makemigrations:
-	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} makemigrations --name ${PLUGIN_NAME}
+	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH}/manage.py makemigrations --name ${PLUGIN_NAME}
 
 .PHONY: migrate ## Run migrate
 migrate:
-	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} migrate
+	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH}/manage.py migrate
 
 .PHONY: collectstatic
 collectstatic:
-	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} collectstatic --no-input
+	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH}/manage.py collectstatic --no-input
 
 .PHONY: initializers
 initializers:
-	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH} load_initializer_data --path /opt/netbox/netbox/netbox-acls/.devcontainer/initializers
+	-rm -rf ${NETBOX_INITIALIZER_PATH}
+	-mkdir ${NETBOX_INITIALIZER_PATH}
+	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH}/manage.py copy_initializers_examples --path ${NETBOX_INITIALIZER_PATH}
+	-for file in ${NETBOX_INITIALIZER_PATH}/*.yml; do sed -i "s/^# //g" "$$file"; done
+	-${VENV_PY_PATH} ${NETBOX_MANAGE_PATH}/manage.py load_initializer_data --path ${NETBOX_INITIALIZER_PATH}
 
 .PHONY: start ## Start NetBox
 start:

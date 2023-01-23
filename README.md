@@ -40,10 +40,7 @@ Each Plugin Version listed below has been tested with its corresponding NetBox V
 |:--------------:|:--------------:|
 |      3.2       |     1.0.1      |
 |      3.3       |     1.1.0      |
-|      3.4       |     1.2.0      
-
-
-
+|      3.4       |     1.2.0      |
 
 ## Installing
 
@@ -84,8 +81,8 @@ To develop this plugin further one can use the included .devcontainer configurat
 1. In the WSL terminal, enter `code` to run Visual studio code.
 2. Install the devcontainer extension "ms-vscode-remote.remote-containers"
 3. Press Ctrl+Shift+P and use the "Dev Container: Clone Repository in Container Volume" function to clone this repository. This will take a while depending on your computer
-4. If you'd like the netbox instance to be prepopulated run `make Makefile example_initializers` and `make Makefile load_initializers`
-5. Start the netbox instance using `make Makefile all`
+4. If you'd like the netbox instance to be prepopulated with example data from [netbox-initializers](https://github.com/tobiasge/netbox-initializers) run `make  initializers`
+5. Start the netbox instance using `make all`
 
 Your netbox instance will be served under 0.0.0.0:8000, so it should now be available under localhost:8000.
 

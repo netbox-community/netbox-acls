@@ -3,7 +3,6 @@ Define the plugin menu buttons & the plugin navigation bar enteries.
 """
 
 from django.conf import settings
-
 from extras.plugins import PluginMenu, PluginMenuButton, PluginMenuItem
 from utilities.choices import ButtonColorChoices
 
@@ -71,15 +70,10 @@ menu_buttons = (
     ),
 )
 
-if plugin_settings.get('top_level_menu'):
+if plugin_settings.get("top_level_menu"):
     menu = PluginMenu(
         label="Access Lists",
-        groups=(
-            (
-                "ACLs",
-                menu_buttons
-            ),
-        ),
+        groups=(("ACLs", menu_buttons),),
         icon_class="mdi mdi-lock",
     )
 else:

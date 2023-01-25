@@ -15,28 +15,28 @@ class Migration(migrations.Migration):
             model_name="accesslist",
             name="custom_field_data",
             field=models.JSONField(
-                blank=True, default=dict, encoder=utilities.json.CustomFieldJSONEncoder
+                blank=True, default=dict, encoder=utilities.json.CustomFieldJSONEncoder,
             ),
         ),
         migrations.AlterField(
             model_name="aclextendedrule",
             name="custom_field_data",
             field=models.JSONField(
-                blank=True, default=dict, encoder=utilities.json.CustomFieldJSONEncoder
+                blank=True, default=dict, encoder=utilities.json.CustomFieldJSONEncoder,
             ),
         ),
         migrations.AlterField(
             model_name="aclinterfaceassignment",
             name="custom_field_data",
             field=models.JSONField(
-                blank=True, default=dict, encoder=utilities.json.CustomFieldJSONEncoder
+                blank=True, default=dict, encoder=utilities.json.CustomFieldJSONEncoder,
             ),
         ),
         migrations.AlterField(
             model_name="aclstandardrule",
             name="custom_field_data",
             field=models.JSONField(
-                blank=True, default=dict, encoder=utilities.json.CustomFieldJSONEncoder
+                blank=True, default=dict, encoder=utilities.json.CustomFieldJSONEncoder,
             ),
         ),
     ]

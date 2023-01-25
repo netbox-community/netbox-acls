@@ -2,74 +2,79 @@
 Define the plugin menu buttons & the plugin navigation bar enteries.
 """
 
-from extras.plugins import PluginMenuButton, PluginMenuItem
+from django.conf import settings
+from extras.plugins import PluginMenu, PluginMenuButton, PluginMenuItem
 from utilities.choices import ButtonColorChoices
+
+plugin_settings = settings.PLUGINS_CONFIG["netbox_acls"]
 
 #
 # Define plugin menu buttons
 #
-
-accesslist_buttons = [
-    PluginMenuButton(
-        link="plugins:netbox_acls:accesslist_add",
-        title="Add",
-        icon_class="mdi mdi-plus-thick",
-        color=ButtonColorChoices.GREEN,
-    ),
-]
-
-aclstandardrule_butons = [
-    PluginMenuButton(
-        link="plugins:netbox_acls:aclstandardrule_add",
-        title="Add",
-        icon_class="mdi mdi-plus-thick",
-        color=ButtonColorChoices.GREEN,
-    ),
-]
-
-aclextendedrule_butons = [
-    PluginMenuButton(
-        link="plugins:netbox_acls:aclextendedrule_add",
-        title="Add",
-        icon_class="mdi mdi-plus-thick",
-        color=ButtonColorChoices.GREEN,
-    ),
-]
-
-accesslistassignment_buttons = [
-    PluginMenuButton(
-        link="plugins:netbox_acls:aclinterfaceassignment_add",
-        title="Add",
-        icon_class="mdi mdi-plus-thick",
-        color=ButtonColorChoices.GREEN,
-    ),
-]
-
-#
-# Define navigation bar links including the above buttons defined.
-#
-
-menu_items = (
+menu_buttons = (
     PluginMenuItem(
         link="plugins:netbox_acls:accesslist_list",
         link_text="Access Lists",
-        buttons=accesslist_buttons,
+        permissions=["netbox_acls.view_accesslist"],
+        buttons=(
+            PluginMenuButton(
+                link="plugins:netbox_acls:accesslist_add",
+                title="Add",
+                icon_class="mdi mdi-plus-thick",
+                color=ButtonColorChoices.GREEN,
+                permissions=["netbox_acls.add_accesslist"],
+            ),
+        ),
     ),
-    # Comment out Standard Access List rule to force creation in the ACL view
     PluginMenuItem(
         link="plugins:netbox_acls:aclstandardrule_list",
-        link_text="ACL Standard Rules",
-        buttons=aclstandardrule_butons,
+        link_text="Standard Rules",
+        permissions=["netbox_acls.view_aclstandardrule"],
+        buttons=(
+            PluginMenuButton(
+                link="plugins:netbox_acls:aclstandardrule_add",
+                title="Add",
+                icon_class="mdi mdi-plus-thick",
+                color=ButtonColorChoices.GREEN,
+                permissions=["netbox_acls.add_aclstandardrule"],
+            ),
+        ),
     ),
-    # Comment out Extended Access List rule to force creation in the ACL view
     PluginMenuItem(
         link="plugins:netbox_acls:aclextendedrule_list",
-        link_text="ACL Extended Rules",
-        buttons=aclextendedrule_butons,
+        link_text="Extended Rules",
+        permissions=["netbox_acls.view_aclextendedrule"],
+        buttons=(
+            PluginMenuButton(
+                link="plugins:netbox_acls:aclextendedrule_add",
+                title="Add",
+                icon_class="mdi mdi-plus-thick",
+                color=ButtonColorChoices.GREEN,
+                permissions=["netbox_acls.add_aclextendedrule"],
+            ),
+        ),
     ),
     PluginMenuItem(
         link="plugins:netbox_acls:aclinterfaceassignment_list",
-        link_text="ACL Interface Assignments",
-        buttons=accesslistassignment_buttons,
+        link_text="Interface Assignments",
+        permissions=["netbox_acls.view_aclinterfaceassignment"],
+        buttons=(
+            PluginMenuButton(
+                link="plugins:netbox_acls:aclinterfaceassignment_add",
+                title="Add",
+                icon_class="mdi mdi-plus-thick",
+                color=ButtonColorChoices.GREEN,
+                permissions=["netbox_acls.add_aclinterfaceassignment"],
+            ),
+        ),
     ),
 )
+
+if plugin_settings.get("top_level_menu"):
+    menu = PluginMenu(
+        label="Access Lists",
+        groups=(("ACLs", menu_buttons),),
+        icon_class="mdi mdi-lock",
+    )
+else:
+    menu_items = menu_buttons

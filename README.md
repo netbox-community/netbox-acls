@@ -19,46 +19,60 @@ Based on the NetBox plugin tutorial by [jeremystretch](https://github.com/jeremy
 - [demo repository](https://github.com/netbox-community/netbox-plugin-demo)
 - [tutorial](https://github.com/netbox-community/netbox-plugin-tutorial)
 
-All credit should go to Jeremy.  Thanks Jeremy!
+All credit should go to Jeremy. Thanks, Jeremy!
 
 This project just looks to build on top of this framework and model presented.
 
+## Contributing
+
+This project is currently maintained jointly by:
+
+- [Abhimanyu Saharan](https://github.com/abhi1693)
+- [Ryan Merolle](https://github.com/ryanmerolle)
+
+See the [CONTRIBUTING](CONTRIBUTING.md) for more information.
+
 ## Compatibility
 
-This plugin was first developed using 3.2.5, and tested with all of 3.2.
+Each Plugin Version listed below has been tested with its corresponding NetBox Version.
 
 | NetBox Version | Plugin Version |
-|----------------|----------------|
-|       3.2      |      1.0.1     |
-|       3.3      |      1.1.0     |
+|:--------------:|:--------------:|
+|      3.2       |     1.0.1      |
+|      3.3       |     1.1.0      |
+|      3.4       |     1.2.2      |
 
 ## Installing
 
 For adding to a NetBox Docker setup see
 [the general instructions for using netbox-docker with plugins](https://github.com/netbox-community/netbox-docker/wiki/Using-Netbox-Plugins).
 
-While this is still in development and not yet on pypi you can install with pip:
+You can install with pip:
 
 ```bash
-pip install git+https://github.com/ryanmerolle/netbox-acls.git@dev
+pip install netbox-acls
 ```
 
 or by adding to your `local_requirements.txt` or `plugin_requirements.txt` (netbox-docker):
 
 ```bash
-git+https://github.com/ryanmerolle/netbox-acls.git@dev
+netbox-acls
 ```
+
+## Configuration
 
 Enable the plugin in `/opt/netbox/netbox/netbox/configuration.py`,
  or if you use netbox-docker, your `/configuration/plugins.py` file :
 
 ```python
 PLUGINS = [
-    'netbox_acls'
+    "netbox_acls"
 ]
 
 PLUGINS_CONFIG = {
-    "netbox_acls": {},
+    "netbox_acls": {
+        "top_level_menu": True # If set to True the plugin will add a top level menu item for the plugin. If set to False the plugin will add a menu item under the Plugins menu item.  Default is set to True.
+    },
 }
 ```
 
@@ -69,12 +83,12 @@ PLUGINS_CONFIG = {
 To develop this plugin further one can use the included .devcontainer configuration. This configuration creates a docker container which includes a fully working netbox installation. Currently it should work when using WSL 2. For this to work make sure you have Docker Desktop installed and the WSL 2 integrations activated.
 
 1. In the WSL terminal, enter `code` to run Visual studio code.
-1. Install the devcontainer extension "ms-vscode-remote.remote-containers"
-1. Press Ctrl+Shift+P and use the "Dev Container: Clone Repository in Container Volume" function to clone this repository. This will take a while depending on your computer
-1. If you'd like the netbox instance to be prepopulated run `make Makefile example_initializers` and `make Makefile load_initializers`
-1. Start the netbox instance using `make Makefile all`
+2. Install the devcontainer extension "ms-vscode-remote.remote-containers"
+3. Press Ctrl+Shift+P and use the "Dev Container: Clone Repository in Container Volume" function to clone this repository. This will take a while depending on your computer
+4. If you'd like the netbox instance to be prepopulated with example data from [netbox-initializers](https://github.com/tobiasge/netbox-initializers) run `make  initializers`
+5. Start the netbox instance using `make all`
 
-Your netbox instance will be served under 0.0.0.0:8000 so it should now be available under localhost:8000.
+Your netbox instance will be served under 0.0.0.0:8000, so it should now be available under localhost:8000.
 
 ## Screenshots
 

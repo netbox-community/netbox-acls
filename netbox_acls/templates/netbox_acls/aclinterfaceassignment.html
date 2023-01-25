@@ -1,38 +1,6 @@
 {% extends 'generic/object.html' %}
 {% load render_table from django_tables2 %}
 
-{% block breadcrumbs %}
-<li class="breadcrumb-item"><a href="{% url 'plugins:netbox_acls:aclinterfaceassignment_list' %}">ACL Interface Assignments</a></li>
-{% endblock %}
-{% block controls %}
-<div class="pull-right noprint">
-    {% if perms.netbox_acls.change_policy %}
-    <a href="{% url 'plugins:netbox_acls:aclinterfaceassignment_edit' pk=object.pk %}" class="btn btn-warning">
-        <span class="mdi mdi-pencil" aria-hidden="true"></span> Edit
-    </a>
-    {% endif %}
-    {% if perms.netbox_acls.delete_policy %}
-    <a href="{% url 'plugins:netbox_acls:aclinterfaceassignment_delete' pk=object.pk %}" class="btn btn-danger">
-        <span class="mdi mdi-trash-can-outline" aria-hidden="true"></span> Delete
-    </a>
-    {% endif %}
-</div>
-{% endblock controls %}
-{% block tabs %}
-<ul class="nav nav-tabs px-3">
-    {% block tab_items %}
-    <li class="nav-item" role="presentation">
-        <a class="nav-link{% if not active_tab %} active{% endif %}" href="{{ object.get_absolute_url }}">{{ object|meta:"verbose_name"|bettertitle }}</a>
-    </li>
-    {% endblock tab_items %}
-    {% if perms.extras.view_objectchange %}
-    <li role="presentation" class="nav-item">
-        <a href="{% url 'plugins:netbox_acls:aclinterfaceassignment_changelog' pk=object.pk %}" class="nav-link{% if active_tab == 'changelog'%} active{% endif %}">Change Log</a>
-    </li>
-    {% endif %}
-</ul>
-{% endblock tabs %}
-
 {% block content %}
   <div class="row mb-3">
     <div class="col col-md-6">
@@ -64,9 +32,7 @@
             </tr>
             <tr>
                 <th scope="row">Direction</th>
-                <td>
-                  {{ object.direction|title }}
-                </td>
+                <td>{% badge object.get_direction_display bg_color=object.get_direction_color %}</td>
             </tr>
           </table>
         </div>

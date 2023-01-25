@@ -9,6 +9,7 @@ from drf_yasg.utils import swagger_serializer_method
 from ipam.api.serializers import NestedPrefixSerializer
 from netbox.api.fields import ContentTypeField
 from netbox.api.serializers import NetBoxModelSerializer
+from netbox.constants import NESTED_SERIALIZER_PREFIX
 from rest_framework import serializers
 from utilities.api import get_serializer_for_model
 
@@ -82,7 +83,10 @@ class AccessListSerializer(NetBoxModelSerializer):
 
     @swagger_serializer_method(serializer_or_field=serializers.DictField)
     def get_assigned_object(self, obj):
-        serializer = get_serializer_for_model(obj.assigned_object, prefix="Nested")
+        serializer = get_serializer_for_model(
+            obj.assigned_object,
+            prefix=NESTED_SERIALIZER_PREFIX,
+        )
         context = {"request": self.context["request"]}
         return serializer(obj.assigned_object, context=context).data
 
@@ -96,6 +100,7 @@ class AccessListSerializer(NetBoxModelSerializer):
 
         # Check that the GFK object is valid.
         if "assigned_object_type" in data and "assigned_object_id" in data:
+            # TODO: This can removed after https://github.com/netbox-community/netbox/issues/10221 is fixed.
             try:
                 assigned_object = data[  # noqa: F841
                     "assigned_object_type"
@@ -161,21 +166,25 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
 
     @swagger_serializer_method(serializer_or_field=serializers.DictField)
     def get_assigned_object(self, obj):
-        serializer = get_serializer_for_model(obj.assigned_object, prefix="Nested")
+        serializer = get_serializer_for_model(
+            obj.assigned_object,
+            prefix=NESTED_SERIALIZER_PREFIX,
+        )
         context = {"request": self.context["request"]}
         return serializer(obj.assigned_object, context=context).data
 
     def validate(self, data):
         """
-        Validate the AccessList django model model's inputs before allowing it to update the instance.
+        Validate the AccessList django model's inputs before allowing it to update the instance.
           - Check that the GFK object is valid.
           - Check that the associated interface's parent host has the selected ACL defined.
         """
         error_message = {}
         acl_host = data["access_list"].assigned_object
 
-        # Check that the GFK object is vlaid.
+        # Check that the GFK object is valid.
         if "assigned_object_type" in data and "assigned_object_id" in data:
+            # TODO: This can removed after https://github.com/netbox-community/netbox/issues/10221 is fixed.
             try:
                 assigned_object = data[  # noqa: F841
                     "assigned_object_type"
@@ -200,6 +209,8 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
                 .get_object_for_this_type(id=data["assigned_object_id"])
                 .virtual_machine
             )
+        else:
+            interface_host = None
         # Check that the associated interface's parent host has the selected ACL defined.
         if acl_host != interface_host:
             error_acl_not_assigned_to_host = (
@@ -253,7 +264,7 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
 
     def validate(self, data):
         """
-        Validate the ACLStandardRule django model model's inputs before allowing it to update the instance:
+        Validate the ACLStandardRule django model's inputs before allowing it to update the instance:
           - Check if action set to remark, but no remark set.
           - Check if action set to remark, but source_prefix set.
         """
@@ -322,7 +333,7 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
 
     def validate(self, data):
         """
-        Validate the ACLExtendedRule django model model's inputs before allowing it to update the instance:
+        Validate the ACLExtendedRule django model's inputs before allowing it to update the instance:
           - Check if action set to remark, but no remark set.
           - Check if action set to remark, but source_prefix set.
           - Check if action set to remark, but source_ports set.

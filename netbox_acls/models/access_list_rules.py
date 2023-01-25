@@ -2,12 +2,13 @@
 Define the django models for this plugin.
 """
 
+from django.apps import apps
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.urls import reverse
 from netbox.models import NetBoxModel
 
-from ..choices import ACLProtocolChoices, ACLRuleActionChoices
+from ..choices import ACLProtocolChoices, ACLRuleActionChoices, ACLTypeChoices
 from .access_lists import AccessList
 
 __all__ = (
@@ -51,11 +52,17 @@ class ACLRule(NetBoxModel):
         verbose_name="Source Prefix",
     )
 
+    clone_fields = ("access_list", "action", "source_prefix")
+
     def __str__(self):
         return f"{self.access_list}: Rule {self.index}"
 
     def get_action_color(self):
         return ACLRuleActionChoices.colors.get(self.action)
+
+    @classmethod
+    def get_prerequisite_models(cls):
+        return [apps.get_model("ipam.Prefix"), AccessList]
 
     class Meta:
         """
@@ -79,7 +86,7 @@ class ACLStandardRule(ACLRule):
         on_delete=models.CASCADE,
         to=AccessList,
         verbose_name="Standard Access List",
-        limit_choices_to={"type": "standard"},
+        limit_choices_to={"type": ACLTypeChoices.TYPE_STANDARD},
         related_name="aclstandardrules",
     )
 
@@ -89,6 +96,10 @@ class ACLStandardRule(ACLRule):
         it conveniently returns the absolute URL for any particular object.
         """
         return reverse("plugins:netbox_acls:aclstandardrule", args=[self.pk])
+
+    @classmethod
+    def get_prerequisite_models(cls):
+        return [AccessList]
 
     class Meta(ACLRule.Meta):
         """
@@ -150,6 +161,10 @@ class ACLExtendedRule(ACLRule):
 
     def get_protocol_color(self):
         return ACLProtocolChoices.colors.get(self.protocol)
+
+    @classmethod
+    def get_prerequisite_models(cls):
+        return [apps.get_model("ipam.Prefix"), AccessList]
 
     class Meta(ACLRule.Meta):
         """

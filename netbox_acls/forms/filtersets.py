@@ -9,8 +9,7 @@ from netbox.forms import NetBoxModelFilterSetForm
 from utilities.forms import (
     ChoiceField,
     DynamicModelChoiceField,
-    StaticSelect,
-    StaticSelectMultiple,
+    DynamicModelMultipleChoiceField,
     TagFilterField,
     add_blank_choice,
 )
@@ -56,11 +55,12 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
     site = DynamicModelChoiceField(
         queryset=Site.objects.all(),
         required=False,
+        query_params={"region_id": "$region", "group_id": "$site_group"},
     )
     device = DynamicModelChoiceField(
         queryset=Device.objects.all(),
         query_params={
-            "region": "$region",
+            "region_id": "$region",
             "group_id": "$site_group",
             "site_id": "$site",
         },
@@ -77,14 +77,10 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
     type = ChoiceField(
         choices=add_blank_choice(ACLTypeChoices),
         required=False,
-        initial="",
-        widget=StaticSelect(),
     )
     default_action = ChoiceField(
         choices=add_blank_choice(ACLActionChoices),
         required=False,
-        initial="",
-        widget=StaticSelect(),
         label="Default Action",
     )
     tag = TagFilterField(model)
@@ -124,11 +120,12 @@ class ACLInterfaceAssignmentFilterForm(NetBoxModelFilterSetForm):
     site = DynamicModelChoiceField(
         queryset=Site.objects.all(),
         required=False,
+        query_params={"region_id": "$region", "group_id": "$site_group"},
     )
     device = DynamicModelChoiceField(
         queryset=Device.objects.all(),
         query_params={
-            "region": "$region",
+            "region_id": "$region",
             "group_id": "$site_group",
             "site_id": "$site",
         },
@@ -164,8 +161,6 @@ class ACLInterfaceAssignmentFilterForm(NetBoxModelFilterSetForm):
     direction = ChoiceField(
         choices=add_blank_choice(ACLAssignmentDirectionChoices),
         required=False,
-        initial="",
-        widget=StaticSelect(),
     )
     tag = TagFilterField(model)
 
@@ -183,21 +178,22 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
 
     model = ACLStandardRule
     tag = TagFilterField(model)
-    source_prefix = forms.ModelMultipleChoiceField(
+    access_list = DynamicModelMultipleChoiceField(
+        queryset=AccessList.objects.all(),
+        required=False,
+    )
+    source_prefix = DynamicModelMultipleChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
-        widget=StaticSelectMultiple(),
         label="Source Prefix",
     )
-    action = forms.ChoiceField(
+    action = ChoiceField(
         choices=add_blank_choice(ACLRuleActionChoices),
         required=False,
-        initial="",
-        widget=StaticSelect(),
     )
     fieldsets = (
         (None, ("q", "tag")),
-        ("Rule Details", ("action", "source_prefix")),
+        ("Rule Details", ("access_list", "action", "source_prefix")),
     )
 
 
@@ -211,32 +207,39 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
         required=False,
     )
     tag = TagFilterField(model)
-    action = forms.ChoiceField(
+    access_list = DynamicModelMultipleChoiceField(
+        queryset=AccessList.objects.all(),
+        required=False,
+    )
+    action = ChoiceField(
         choices=add_blank_choice(ACLRuleActionChoices),
         required=False,
-        widget=StaticSelect(),
-        initial="",
     )
-    source_prefix = forms.ModelMultipleChoiceField(
+    source_prefix = DynamicModelMultipleChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
-        widget=StaticSelectMultiple(),
         label="Source Prefix",
     )
-    desintation_prefix = forms.ModelMultipleChoiceField(
+    desintation_prefix = DynamicModelMultipleChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
-        widget=StaticSelectMultiple(),
         label="Destination Prefix",
     )
     protocol = ChoiceField(
         choices=add_blank_choice(ACLProtocolChoices),
         required=False,
-        widget=StaticSelect(),
-        initial="",
     )
 
     fieldsets = (
         (None, ("q", "tag")),
-        ("Rule Details", ("action", "source_prefix", "desintation_prefix", "protocol")),
+        (
+            "Rule Details",
+            (
+                "access_list",
+                "action",
+                "source_prefix",
+                "desintation_prefix",
+                "protocol",
+            ),
+        ),
     )

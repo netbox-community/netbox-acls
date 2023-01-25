@@ -1,90 +1,63 @@
 {% extends 'generic/object.html' %}
 {% load render_table from django_tables2 %}
 
-{% block breadcrumbs %}
-<li class="breadcrumb-item"><a href="{% url 'plugins:netbox_acls:accesslist_list' %}">Access Lists</a></li>
-{% endblock %}
-{% block controls %}
-<div class="pull-right noprint">
+{% block extra_controls %}
     {% if perms.netbox_acls.change_policy %}
-    {%     if object.type == 'extended' %}
-    <a href="{% url 'plugins:netbox_acls:aclextendedrule_add' %}?access_list={{ object.pk }}" class="btn btn-success">
-    {%     elif object.type == 'standard' %}
-    <a href="{% url 'plugins:netbox_acls:aclstandardrule_add' %}?access_list={{ object.pk }}" class="btn btn-success">
-    {%     endif %}
-        <span class="mdi mdi-plus-thick" aria-hidden="true"></span> Rule
-    </a>
-    <a href="{% url 'plugins:netbox_acls:accesslist_edit' pk=object.pk %}" class="btn btn-warning">
-        <span class="mdi mdi-pencil" aria-hidden="true"></span> Edit
+        {% if object.type == 'extended' %}
+            <a href="{% url 'plugins:netbox_acls:aclextendedrule_add' %}?access_list={{ object.pk }}" class="btn btn-sm btn-primary">
+        {% elif object.type == 'standard' %}
+            <a href="{% url 'plugins:netbox_acls:aclstandardrule_add' %}?access_list={{ object.pk }}" class="btn btn-sm btn-primary">
+        {% endif %}
+    <span class="mdi mdi-plus-thick" aria-hidden="true"></span> Rule
     </a>
     {% endif %}
-    {% if perms.netbox_acls.delete_policy %}
-    <a href="{% url 'plugins:netbox_acls:accesslist_delete' pk=object.pk %}" class="btn btn-danger">
-        <span class="mdi mdi-trash-can-outline" aria-hidden="true"></span> Delete
-    </a>
-    {% endif %}
-</div>
-{% endblock controls %}
-{% block tabs %}
-<ul class="nav nav-tabs px-3">
-    {% block tab_items %}
-    <li class="nav-item" role="presentation">
-        <a class="nav-link{% if not active_tab %} active{% endif %}" href="{{ object.get_absolute_url }}">{{ object|meta:"verbose_name"|bettertitle }}</a>
-    </li>
-    {% endblock tab_items %}
-    {% if perms.extras.view_objectchange %}
-    <li role="presentation" class="nav-item">
-        <a href="{% url 'plugins:netbox_acls:accesslist_changelog' pk=object.pk %}" class="nav-link{% if active_tab == 'changelog'%} active{% endif %}">Change Log</a>
-    </li>
-    {% endif %}
-</ul>
-{% endblock tabs %}
+{% endblock extra_controls %}
 
 {% block content %}
-  <div class="row mb-3">
-    <div class="col col-md-6">
-      <div class="card">
-        <h5 class="card-header">Access List</h5>
-        <div class="card-body">
-          <table class="table table-hover attr-table">
-            <tr>
-              <th scope="row">Type</th>
-              <td>{{ object.get_type_display }}</td>
-            </tr>
-            <tr>
-              <th scope="row">Default Action</th>
-              <td>{{ object.get_default_action_display }}</td>
-            </tr>
-            <tr>
-              <th scope="row">Rules</th>
-              {% if object.type == 'standard' %}
-              <td>{{ object.aclstandardrules.count|placeholder }}</td>
-              {% elif object.type == 'extended' %}
-              <td>{{ object.aclextendedrules.count|placeholder }}</td>
-              {% endif %}
-              <tr>
-                <th scope="row">Assigned Host</th>
-                <td>{{ object.assigned_object|linkify }}</td>
-              </tr>
-            </tr>
-          </table>
+    <div class="row mb-3">
+        <div class="col col-md-6">
+            <div class="card">
+                <h5 class="card-header">Access List</h5>
+                <div class="card-body">
+                    <table class="table table-hover attr-table">
+                        <tr>
+                            <th scope="row">Type</th>
+                            <td>{{ object.get_type_display }}</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Default Action</th>
+                            <td>{% badge object.get_default_action_display bg_color=object.get_default_action_color %}</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Rules</th>
+                            {% if object.type == 'standard' %}
+                                <td><a href="{% url 'plugins:netbox_acls:aclstandardrule_list' %}?access_list={{ object.pk }}">{{ object.aclstandardrules.count|placeholder }}</a></td>
+                            {% elif object.type == 'extended' %}
+                                <td><a href="{% url 'plugins:netbox_acls:aclextendedrule_list' %}?access_list={{ object.pk }}">{{ object.aclextendedrules.count|placeholder }}</a></td>
+                            {% endif %}
+                        </tr>
+                        <tr>
+                            <th scope="row">Assigned Host</th>
+                            <td>{{ object.assigned_object|linkify }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            {% include 'inc/panels/custom_fields.html' %}
         </div>
-      </div>
-      {% include 'inc/panels/custom_fields.html' %}
-    </div>
-    <div class="col col-md-6">
-      {% include 'inc/panels/tags.html' %}
-      {% include 'inc/panels/comments.html' %}
-    </div>
-  </div>
-  <div class="row">
-    <div class="col col-md-12">
-      <div class="card">
-        <h5 class="card-header">{{ object.get_type_display }} Rules</h5>
-        <div class="card-body table-responsive">
-          {% render_table rules_table %}
+        <div class="col col-md-6">
+            {% include 'inc/panels/tags.html' %}
+            {% include 'inc/panels/comments.html' %}
         </div>
-      </div>
     </div>
-  </div>
+    <div class="row">
+        <div class="col col-md-12">
+            <div class="card">
+                <h5 class="card-header">{{ object.get_type_display }} Rules</h5>
+                <div class="card-body table-responsive">
+                    {% render_table rules_table %}
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock content %}

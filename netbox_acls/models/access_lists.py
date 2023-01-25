@@ -59,6 +59,11 @@ class AccessList(NetBoxModel):
         blank=True,
     )
 
+    clone_fields = (
+        "type",
+        "default_action",
+    )
+
     class Meta:
         unique_together = ["assigned_object_type", "assigned_object_id", "name"]
         ordering = ["assigned_object_type", "assigned_object_id", "name"]
@@ -113,6 +118,8 @@ class ACLInterfaceAssignment(NetBoxModel):
         blank=True,
     )
 
+    clone_fields = ("access_list", "direction")
+
     class Meta:
         unique_together = [
             "assigned_object_type",
@@ -138,6 +145,10 @@ class ACLInterfaceAssignment(NetBoxModel):
             "plugins:netbox_acls:aclinterfaceassignment",
             args=[self.pk],
         )
+
+    @classmethod
+    def get_prerequisite_models(cls):
+        return [AccessList]
 
     def get_direction_color(self):
         return ACLAssignmentDirectionChoices.colors.get(self.direction)

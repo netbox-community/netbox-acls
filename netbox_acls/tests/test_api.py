@@ -1,11 +1,10 @@
 from dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
-from rest_framework import status
-from utilities.testing import APITestCase, APIViewTestCases
-
 from netbox_acls.choices import *
 from netbox_acls.models import *
+from rest_framework import status
+from utilities.testing import APITestCase, APIViewTestCases
 
 
 class AppTest(APITestCase):

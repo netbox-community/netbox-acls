@@ -72,6 +72,15 @@ PLUGINS_CONFIG = {
 }
 ```
 
+## Configuration
+
+The following options are available in the configuration file:
+
+- `top_level_menu`
+  - - __Type__: `Boolean`
+  - - __Default__: `True`
+  - __Description__: If set to `True` the plugin will add a top level menu item for the plugin. If set to `False` the plugin will add a menu item under the `Plugins` menu item.
+
 ## Developing
 
 ### VSCode + Docker + Dev Containers

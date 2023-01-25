@@ -155,6 +155,9 @@ CORS_ORIGIN_REGEX_WHITELIST = [
 # on a production system.
 DEBUG = environ.get("DEBUG", "False").lower() == "true"
 
+# Set to True to enable DEVELOPER Mode. WARNING: ONLY netbox developers or plugin developers need this access.
+DEVELOPER = environ.get("DEVELOPER_MODE", "False").lower() == "true"
+
 # Email settings
 EMAIL = {
     "SERVER": environ.get("EMAIL_SERVER", "localhost"),

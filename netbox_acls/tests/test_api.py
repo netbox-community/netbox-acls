@@ -1,7 +1,6 @@
 from dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
-
 from rest_framework import status
 from utilities.testing import APITestCase, APIViewTestCases
 
@@ -34,16 +33,22 @@ class ACLTestCase(
     def setUpTestData(cls):
         site = Site.objects.create(name="Site 1", slug="site-1")
         manufacturer = Manufacturer.objects.create(
-            name="Manufacturer 1", slug="manufacturer-1",
+            name="Manufacturer 1",
+            slug="manufacturer-1",
         )
         devicetype = DeviceType.objects.create(
-            manufacturer=manufacturer, model="Device Type 1",
+            manufacturer=manufacturer,
+            model="Device Type 1",
         )
         devicerole = DeviceRole.objects.create(
-            name="Device Role 1", slug="device-role-1",
+            name="Device Role 1",
+            slug="device-role-1",
         )
         device = Device.objects.create(
-            name="Device 1", site=site, device_type=devicetype, device_role=devicerole,
+            name="Device 1",
+            site=site,
+            device_type=devicetype,
+            device_role=devicerole,
         )
 
         access_lists = (

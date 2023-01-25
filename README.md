@@ -40,7 +40,7 @@ Each Plugin Version listed below has been tested with its corresponding NetBox V
 |:--------------:|:--------------:|
 |      3.2       |     1.0.1      |
 |      3.3       |     1.1.0      |
-|      3.4       |     1.2.0      |
+|      3.4       |     1.2.1      |
 
 ## Installing
 
@@ -59,16 +59,20 @@ or by adding to your `local_requirements.txt` or `plugin_requirements.txt` (netb
 netbox-acls
 ```
 
+## Configuration
+
 Enable the plugin in `/opt/netbox/netbox/netbox/configuration.py`,
  or if you use netbox-docker, your `/configuration/plugins.py` file :
 
 ```python
 PLUGINS = [
-    'netbox_acls'
+    "netbox_acls"
 ]
 
 PLUGINS_CONFIG = {
-    "netbox_acls": {},
+    "netbox_acls": {
+        "top_level_menu": True # If set to True the plugin will add a top level menu item for the plugin. If set to False the plugin will add a menu item under the Plugins menu item.  Default is set to True.
+    },
 }
 ```
 

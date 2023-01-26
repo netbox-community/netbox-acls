@@ -10,6 +10,7 @@ from os.path import abspath, dirname
 # For reference see https://netbox.readthedocs.io/en/stable/configuration/
 # Based on https://github.com/netbox-community/netbox/blob/master/netbox/netbox/configuration.example.py
 
+
 # Read secret from file
 def _read_secret(secret_name, default=None):
     try:

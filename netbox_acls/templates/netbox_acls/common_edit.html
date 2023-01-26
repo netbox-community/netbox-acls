@@ -1,0 +1,13 @@
+{% load form_helpers %}
+<div class="field-group">
+    <h4>Comments</h4>
+    {% render_field form.comments %}
+</div>
+{% if form.custom_fields %}
+    <div class="card">
+        <h5 class="card-header">Custom Fields</h5>
+        <div class="card-body">
+            {% render_custom_fields form %}
+        </div>
+    </div>
+{% endif %}

@@ -5,7 +5,7 @@ Map Views to URLs.
 from django.urls import include, path
 from utilities.urls import get_model_urls
 
-from . import models, views
+from . import views
 
 urlpatterns = (
     # Access Lists

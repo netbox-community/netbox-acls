@@ -239,17 +239,20 @@ class AccessListForm(NetBoxModelForm):
                 "name": [error_same_acl_name],
             }
         # Check if Access List has no existing rules before change the Access List's type.
-        if self.instance.pk:
-            if (
+        if (
+            self.instance.pk
+            and (
                 acl_type == ACLTypeChoices.TYPE_EXTENDED
                 and self.instance.aclstandardrules.exists()
-            ) or (
+            )
+            or (
                 acl_type == ACLTypeChoices.TYPE_STANDARD
                 and self.instance.aclextendedrules.exists()
-            ):
-                error_message["type"] = [
-                    "This ACL has ACL rules associated, CANNOT change ACL type.",
-                ]
+            )
+        ):
+            error_message["type"] = [
+                "This ACL has ACL rules associated, CANNOT change ACL type.",
+            ]
 
         if error_message:
             raise forms.ValidationError(error_message)
@@ -642,38 +645,41 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         # No need to check for unique_together since there is no usage of GFK
 
         if cleaned_data.get("action") == "remark":
-            # Check if action set to remark, but no remark set.
-            if not cleaned_data.get("remark"):
-                error_message["remark"] = [ERROR_MESSAGE_NO_REMARK]
-            # Check if action set to remark, but source_prefix set.
-            if cleaned_data.get("source_prefix"):
-                error_message["source_prefix"] = [
-                    ERROR_MESSAGE_ACTION_REMARK_SOURCE_PREFIX_SET,
-                ]
-            # Check if action set to remark, but source_ports set.
-            if cleaned_data.get("source_ports"):
-                error_message["source_ports"] = [
-                    "Action is set to remark, Source Ports CANNOT be set.",
-                ]
-            # Check if action set to remark, but destination_prefix set.
-            if cleaned_data.get("destination_prefix"):
-                error_message["destination_prefix"] = [
-                    "Action is set to remark, Destination Prefix CANNOT be set.",
-                ]
-            # Check if action set to remark, but destination_ports set.
-            if cleaned_data.get("destination_ports"):
-                error_message["destination_ports"] = [
-                    "Action is set to remark, Destination Ports CANNOT be set.",
-                ]
-            # Check if action set to remark, but protocol set.
-            if cleaned_data.get("protocol"):
-                error_message["protocol"] = [
-                    "Action is set to remark, Protocol CANNOT be set.",
-                ]
-        # Check if action not set to remark, but remark set.
+            self._extracted_from_clean_20(cleaned_data, error_message)
         elif cleaned_data.get("remark"):
             error_message["remark"] = [ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK]
 
         if error_message:
             raise forms.ValidationError(error_message)
         return cleaned_data
+
+    # TODO: Consolidate this function with the one in ACLStandardRuleForm
+    def _extracted_from_clean_20(self, cleaned_data, error_message):
+        # Check if action set to remark, but no remark set.
+        if not cleaned_data.get("remark"):
+            error_message["remark"] = [ERROR_MESSAGE_NO_REMARK]
+        # Check if action set to remark, but source_prefix set.
+        if cleaned_data.get("source_prefix"):
+            error_message["source_prefix"] = [
+                ERROR_MESSAGE_ACTION_REMARK_SOURCE_PREFIX_SET,
+            ]
+        # Check if action set to remark, but source_ports set.
+        if cleaned_data.get("source_ports"):
+            error_message["source_ports"] = [
+                "Action is set to remark, Source Ports CANNOT be set.",
+            ]
+        # Check if action set to remark, but destination_prefix set.
+        if cleaned_data.get("destination_prefix"):
+            error_message["destination_prefix"] = [
+                "Action is set to remark, Destination Prefix CANNOT be set.",
+            ]
+        # Check if action set to remark, but destination_ports set.
+        if cleaned_data.get("destination_ports"):
+            error_message["destination_ports"] = [
+                "Action is set to remark, Destination Ports CANNOT be set.",
+            ]
+        # Check if action set to remark, but protocol set.
+        if cleaned_data.get("protocol"):
+            error_message["protocol"] = [
+                "Action is set to remark, Protocol CANNOT be set.",
+            ]

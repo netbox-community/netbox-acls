@@ -243,11 +243,7 @@ class AccessListForm(NetBoxModelForm):
             if (
                 acl_type == ACLTypeChoices.TYPE_EXTENDED
                 and self.instance.aclstandardrules.exists()
-            ):
-                error_message["type"] = [
-                    "This ACL has ACL rules associated, CANNOT change ACL type.",
-                ]
-            elif (
+            ) or (
                 acl_type == ACLTypeChoices.TYPE_STANDARD
                 and self.instance.aclextendedrules.exists()
             ):

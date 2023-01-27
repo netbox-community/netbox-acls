@@ -29,18 +29,19 @@ __all__ = [
     "ACLExtendedRuleSerializer",
 ]
 
+# TODO: Check Constants across codebase for consistency.
 # Sets a standard error message for ACL rules with an action of remark, but no remark set.
-error_message_no_remark = "Action is set to remark, you MUST add a remark."
+ERROR_MESSAGE_NO_REMARK = "Action is set to remark, you MUST add a remark."
 # Sets a standard error message for ACL rules with an action of remark, but no source_prefix is set.
-error_message_action_remark_source_prefix_set = (
+ERROR_MESSAGE_ACTION_REMARK_SOURCE_PREFIX_SET = (
     "Action is set to remark, Source Prefix CANNOT be set."
 )
 # Sets a standard error message for ACL rules with an action not set to remark, but no remark is set.
-error_message_remark_without_action_remark = (
+ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK = (
     "CANNOT set remark unless action is set to remark."
 )
 # Sets a standard error message for ACL rules no associated to an ACL of the same type.
-error_message_acl_type = "Provided parent Access List is not of right type."
+ERROR_MESSAGE_ACL_TYPE = "Provided parent Access List is not of right type."
 
 
 class AccessListSerializer(NetBoxModelSerializer):
@@ -83,6 +84,9 @@ class AccessListSerializer(NetBoxModelSerializer):
 
     @swagger_serializer_method(serializer_or_field=serializers.DictField)
     def get_assigned_object(self, obj):
+        """
+        Returns the assigned object for the Access List.
+        """
         serializer = get_serializer_for_model(
             obj.assigned_object,
             prefix=NESTED_SERIALIZER_PREFIX,
@@ -166,6 +170,9 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
 
     @swagger_serializer_method(serializer_or_field=serializers.DictField)
     def get_assigned_object(self, obj):
+        """
+        Returns the assigned object for the ACLInterfaceAssignment.
+        """
         serializer = get_serializer_for_model(
             obj.assigned_object,
             prefix=NESTED_SERIALIZER_PREFIX,
@@ -272,11 +279,11 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
 
         # Check if action set to remark, but no remark set.
         if data.get("action") == "remark" and data.get("remark") is None:
-            error_message["remark"] = [error_message_no_remark]
+            error_message["remark"] = [ERROR_MESSAGE_NO_REMARK]
         # Check if action set to remark, but source_prefix set.
         if data.get("source_prefix"):
             error_message["source_prefix"] = [
-                error_message_action_remark_source_prefix_set,
+                ERROR_MESSAGE_ACTION_REMARK_SOURCE_PREFIX_SET,
             ]
 
         if error_message:
@@ -346,11 +353,11 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
 
         # Check if action set to remark, but no remark set.
         if data.get("action") == "remark" and data.get("remark") is None:
-            error_message["remark"] = [error_message_no_remark]
+            error_message["remark"] = [ERROR_MESSAGE_NO_REMARK]
         # Check if action set to remark, but source_prefix set.
         if data.get("source_prefix"):
             error_message["source_prefix"] = [
-                error_message_action_remark_source_prefix_set,
+                ERROR_MESSAGE_ACTION_REMARK_SOURCE_PREFIX_SET,
             ]
         # Check if action set to remark, but source_ports set.
         if data.get("source_ports"):

@@ -55,13 +55,22 @@ class BaseACLRule(NetBoxModel):
     clone_fields = ("access_list", "action", "source_prefix")
 
     def __str__(self):
+        """
+        Return a string representation of the model.
+        """
         return f"{self.access_list}: Rule {self.index}"
 
     def get_action_color(self):
+        """
+        Return the color for the action.
+        """
         return ACLRuleActionChoices.colors.get(self.action)
 
     @classmethod
     def get_prerequisite_models(cls):
+        """
+        Return a list of prerequisite models for this model.
+        """
         return [apps.get_model("ipam.Prefix"), AccessList]
 
     class Meta:
@@ -99,6 +108,9 @@ class ACLStandardRule(BaseACLRule):
 
     @classmethod
     def get_prerequisite_models(cls):
+        """
+        Return a list of prerequisite models for this model.
+        """
         return [AccessList]
 
     class Meta(BaseACLRule.Meta):
@@ -160,10 +172,16 @@ class ACLExtendedRule(BaseACLRule):
         return reverse("plugins:netbox_acls:aclextendedrule", args=[self.pk])
 
     def get_protocol_color(self):
+        """
+        Return the color for the protocol.
+        """
         return ACLProtocolChoices.colors.get(self.protocol)
 
     @classmethod
     def get_prerequisite_models(cls):
+        """
+        Return a list of prerequisite models for this model.
+        xs"""
         return [apps.get_model("ipam.Prefix"), AccessList]
 
     class Meta(BaseACLRule.Meta):

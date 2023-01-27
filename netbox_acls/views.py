@@ -104,6 +104,10 @@ class AccessListDeleteView(generic.ObjectDeleteView):
 
 
 class AccessListBulkDeleteView(generic.BulkDeleteView):
+    """
+    Defines the bulk delete view for the AccessLists django model.
+    """
+
     queryset = models.AccessList.objects.prefetch_related("tags")
     filterset = filtersets.AccessListFilterSet
     table = tables.AccessListTable
@@ -120,6 +124,9 @@ class AccessListChildView(generic.ObjectChildrenView):
     template_name = "inc/view_tab.html"
 
     def get_extra_context(self, request, instance):
+        """
+        Returns the extra context for the child view.
+        """
         return {
             "table_config": self.table.__name__,
             "model_type": self.queryset.model._meta.verbose_name.replace(" ", "_"),
@@ -127,6 +134,9 @@ class AccessListChildView(generic.ObjectChildrenView):
         }
 
     def prep_table_data(self, request, queryset, parent):
+        """
+        Prepares the table data for the child view.
+        """
         return queryset.annotate(
             rule_count=Count("aclextendedrules") + Count("aclstandardrules"),
         )
@@ -134,6 +144,10 @@ class AccessListChildView(generic.ObjectChildrenView):
 
 @register_model_view(Device, "access_lists")
 class DeviceAccessListView(AccessListChildView):
+    """
+    Defines the child view for the AccessLists model.
+    """
+
     queryset = Device.objects.prefetch_related("tags")
     tab = ViewTab(
         label="Access Lists",
@@ -142,6 +156,9 @@ class DeviceAccessListView(AccessListChildView):
     )
 
     def get_children(self, request, parent):
+        """
+        Returns the children of the parent object.
+        """
         return self.child_model.objects.restrict(request.user, "view").filter(
             device=parent,
         )
@@ -149,6 +166,10 @@ class DeviceAccessListView(AccessListChildView):
 
 @register_model_view(VirtualChassis, "access_lists")
 class VirtualChassisAccessListView(AccessListChildView):
+    """
+    Defines the child view for the AccessLists model.
+    """
+
     queryset = VirtualChassis.objects.prefetch_related("tags")
     tab = ViewTab(
         label="Access Lists",
@@ -157,6 +178,9 @@ class VirtualChassisAccessListView(AccessListChildView):
     )
 
     def get_children(self, request, parent):
+        """
+        Returns the children of the parent object.
+        """
         return self.child_model.objects.restrict(request.user, "view").filter(
             virtual_chassis=parent,
         )
@@ -164,6 +188,10 @@ class VirtualChassisAccessListView(AccessListChildView):
 
 @register_model_view(VirtualMachine, "access_lists")
 class VirtualMachineAccessListView(AccessListChildView):
+    """
+    Defines the child view for the AccessLists model.
+    """
+
     queryset = VirtualMachine.objects.prefetch_related("tags")
     tab = ViewTab(
         label="Access Lists",
@@ -172,6 +200,9 @@ class VirtualMachineAccessListView(AccessListChildView):
     )
 
     def get_children(self, request, parent):
+        """
+        Returns the children of the parent object.
+        """
         return self.child_model.objects.restrict(request.user, "view").filter(
             virtual_machine=parent,
         )
@@ -246,6 +277,10 @@ class ACLInterfaceAssignmentDeleteView(generic.ObjectDeleteView):
 
 
 class ACLInterfaceAssignmentBulkDeleteView(generic.BulkDeleteView):
+    """
+    Defines the bulk delete view for the ACLInterfaceAssignments django model.
+    """
+
     queryset = models.ACLInterfaceAssignment.objects.prefetch_related(
         "access_list",
         "tags",
@@ -265,6 +300,9 @@ class ACLInterfaceAssignmentChildView(generic.ObjectChildrenView):
     template_name = "inc/view_tab.html"
 
     def get_extra_context(self, request, instance):
+        """
+        Returns the extra context for the view.
+        """
         return {
             "table_config": self.table.__name__,
             "model_type": self.queryset.model._meta.verbose_name.replace(" ", "_"),
@@ -274,6 +312,10 @@ class ACLInterfaceAssignmentChildView(generic.ObjectChildrenView):
 
 @register_model_view(Interface, "acl_interface_assignments")
 class InterfaceACLInterfaceAssignmentView(ACLInterfaceAssignmentChildView):
+    """
+    Defines the child view for the ACLInterfaceAssignments model.
+    """
+
     queryset = Interface.objects.prefetch_related("device", "tags")
     tab = ViewTab(
         label="ACL Interface Assignments",
@@ -284,6 +326,9 @@ class InterfaceACLInterfaceAssignmentView(ACLInterfaceAssignmentChildView):
     )
 
     def get_children(self, request, parent):
+        """
+        Returns the children of the parent object.
+        """
         return self.child_model.objects.restrict(request.user, "view").filter(
             interface=parent,
         )
@@ -293,6 +338,10 @@ class InterfaceACLInterfaceAssignmentView(ACLInterfaceAssignmentChildView):
 class VirtualMachineInterfaceACLInterfaceAssignmentView(
     ACLInterfaceAssignmentChildView,
 ):
+    """
+    Defines the child view for the ACLInterfaceAssignments model.
+    """
+
     queryset = VMInterface.objects.prefetch_related("virtual_machine", "tags")
     tab = ViewTab(
         label="ACL Interface Assignments",
@@ -303,6 +352,9 @@ class VirtualMachineInterfaceACLInterfaceAssignmentView(
     )
 
     def get_children(self, request, parent):
+        """
+        Returns the children of the parent object.
+        """
         return self.child_model.objects.restrict(request.user, "view").filter(
             vminterface=parent,
         )
@@ -379,6 +431,10 @@ class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
 
 
 class ACLStandardRuleBulkDeleteView(generic.BulkDeleteView):
+    """
+    Defines the bulk delete view for the ACLStandardRule django model.
+    """
+
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
         "tags",
@@ -463,6 +519,10 @@ class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
 
 
 class ACLExtendedRuleBulkDeleteView(generic.BulkDeleteView):
+    """
+    Defines bulk delete view for the ACLExtendedRules django model.
+    """
+
     queryset = models.ACLExtendedRule.objects.prefetch_related(
         "access_list",
         "tags",

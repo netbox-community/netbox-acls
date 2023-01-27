@@ -65,12 +65,19 @@ class AccessList(NetBoxModel):
     )
 
     class Meta:
+        """
+        Define the ordering, unique constraints, and verbose names for the model.
+        """
+
         unique_together = ["assigned_object_type", "assigned_object_id", "name"]
         ordering = ["assigned_object_type", "assigned_object_id", "name"]
         verbose_name = "Access List"
         verbose_name_plural = "Access Lists"
 
     def __str__(self):
+        """
+        Return a string representation of the model.
+        """
         return self.name
 
     def get_absolute_url(self):
@@ -81,9 +88,15 @@ class AccessList(NetBoxModel):
         return reverse("plugins:netbox_acls:accesslist", args=[self.pk])
 
     def get_default_action_color(self):
+        """
+        Define the color of the default action.
+        """
         return ACLActionChoices.colors.get(self.default_action)
 
     def get_type_color(self):
+        """
+        Define the color of the type.
+        """
         return ACLTypeChoices.colors.get(self.type)
 
 
@@ -121,6 +134,10 @@ class ACLInterfaceAssignment(NetBoxModel):
     clone_fields = ("access_list", "direction")
 
     class Meta:
+        """
+        Define the ordering, unique constraints, and verbose names for the model.
+        """
+
         unique_together = [
             "assigned_object_type",
             "assigned_object_id",
@@ -148,9 +165,15 @@ class ACLInterfaceAssignment(NetBoxModel):
 
     @classmethod
     def get_prerequisite_models(cls):
+        """
+        Return a list of models that must be defined before this model.
+        """
         return [AccessList]
 
     def get_direction_color(self):
+        """
+        Define the color of the direction.
+        """
         return ACLAssignmentDirectionChoices.colors.get(self.direction)
 
 

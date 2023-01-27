@@ -54,6 +54,10 @@ class AccessListTable(NetBoxTable):
     )
 
     class Meta(NetBoxTable.Meta):
+        """
+        Defines the table view for the AccessList model.
+        """
+
         model = AccessList
         fields = (
             "pk",
@@ -103,6 +107,10 @@ class ACLInterfaceAssignmentTable(NetBoxTable):
     )
 
     class Meta(NetBoxTable.Meta):
+        """
+        Defines the table view for the ACLInterfaceAssignment model.
+        """
+
         model = ACLInterfaceAssignment
         fields = (
             "pk",
@@ -140,6 +148,10 @@ class ACLStandardRuleTable(NetBoxTable):
     )
 
     class Meta(NetBoxTable.Meta):
+        """
+        Defines the table view for the ACLStandardRule model.
+        """
+
         model = ACLStandardRule
         fields = (
             "pk",
@@ -182,6 +194,10 @@ class ACLExtendedRuleTable(NetBoxTable):
     protocol = ChoiceFieldColumn()
 
     class Meta(NetBoxTable.Meta):
+        """
+        Defines the table view for the ACLExtendedRule model.
+        """
+
         model = ACLExtendedRule
         fields = (
             "pk",

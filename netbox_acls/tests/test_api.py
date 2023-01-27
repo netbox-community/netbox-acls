@@ -9,7 +9,14 @@ from netbox_acls.models import *
 
 
 class AppTest(APITestCase):
+    """
+    Test the API root
+    """
+
     def test_root(self):
+        """
+        Test the API root
+        """
         url = reverse("plugins-api:netbox_acls-api:api-root")
         response = self.client.get(f"{url}?format=api", **self.header)
 
@@ -23,7 +30,9 @@ class ACLTestCase(
     APIViewTestCases.UpdateObjectViewTestCase,
     APIViewTestCases.DeleteObjectViewTestCase,
 ):
-    """Test the AccessList Test"""
+    """
+    Test the AccessList Test
+    """
 
     model = AccessList
     view_namespace = "plugins-api:netbox_acls"
@@ -31,6 +40,9 @@ class ACLTestCase(
 
     @classmethod
     def setUpTestData(cls):
+        """
+        Create a test site, manufacturer, device type, device role, and device
+        """
         site = Site.objects.create(name="Site 1", slug="site-1")
         manufacturer = Manufacturer.objects.create(
             name="Manufacturer 1",

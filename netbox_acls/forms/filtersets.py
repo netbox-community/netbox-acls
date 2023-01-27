@@ -44,6 +44,10 @@ class BaseACLFilterForm(NetBoxModelFilterSetForm):
     """
 
     class Meta:
+        """
+        Sets the parent class as an abstract class to be inherited by other classes.
+        """
+
         abstract = True
 
     model = AccessList
@@ -163,6 +167,10 @@ class BaseACLRuleFilterForm(NetBoxModelFilterSetForm):
     """
 
     class Meta:
+        """
+        Sets the parent class as an abstract class to be inherited by other classes.
+        """
+
         abstract = True
 
     model = BaseACLRule

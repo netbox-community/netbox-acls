@@ -19,11 +19,13 @@ repos:
       - id: isort
         args:
           - "--profile=black"
+        exclude: ^.devcontainer/
   - repo: https://github.com/psf/black
     rev: 22.12.0
     hooks:
       - id: black
         language_version: python3
+        exclude: ^.devcontainer/
   - repo: https://github.com/asottile/add-trailing-comma
     rev: v2.4.0
     hooks:
@@ -34,6 +36,7 @@ repos:
     rev: 6.0.0
     hooks:
       - id: flake8
+        exclude: ^.devcontainer/
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.3.1
     hooks:
@@ -44,6 +47,12 @@ repos:
     rev: v1.29.0
     hooks:
       - id: yamllint
+  - repo: https://github.com/econchick/interrogate
+    rev: 1.5.0
+    hooks:
+      - id: interrogate
+        args: [--fail-under=90, --verbose]
+        exclude: (^.devcontainer/|^netbox_acls/migrations/)
   #- repo: https://github.com/Lucas-C/pre-commit-hooks-nodejs
   #  rev: v1.1.2
   #  hooks:

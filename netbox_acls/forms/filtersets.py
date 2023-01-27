@@ -222,12 +222,9 @@ class ACLExtendedRuleFilterForm(BaseACLRuleFilterForm):
         choices=add_blank_choice(ACLProtocolChoices),
         required=False,
     )
-    fieldsets = BaseACLRuleFilterForm.fieldsets + (
+    fieldsets = BaseACLRuleFilterForm.fieldsets[:-1] + (
         (
             "Rule Details",
-            (
-                "destination_prefix",
-                "protocol",
-            ),
+            BaseACLRuleFilterForm.fieldsets[-1][1] + ("destination_prefix", "protocol"),
         ),
     )

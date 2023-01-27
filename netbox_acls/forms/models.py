@@ -33,7 +33,7 @@ __all__ = (
 )
 
 # Sets a standard mark_safe help_text value to be used by the various classes
-help_text_acl_rule_logic = mark_safe(
+HELP_TEXT_ACL_RULE_LOGIC = mark_safe(
     "<b>*Note:</b> CANNOT be set if action is set to remark.",
 )
 # Sets a standard help_text value to be used by the various classes for acl action
@@ -488,7 +488,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
     source_prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
-        help_text=help_text_acl_rule_logic,
+        help_text=HELP_TEXT_ACL_RULE_LOGIC,
         label="Source Prefix",
     )
 
@@ -571,13 +571,13 @@ class ACLExtendedRuleForm(NetBoxModelForm):
     source_prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
-        help_text=help_text_acl_rule_logic,
+        help_text=HELP_TEXT_ACL_RULE_LOGIC,
         label="Source Prefix",
     )
     destination_prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
-        help_text=help_text_acl_rule_logic,
+        help_text=HELP_TEXT_ACL_RULE_LOGIC,
         label="Destination Prefix",
     )
     fieldsets = (
@@ -618,13 +618,13 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         )
         help_texts = {
             "action": HELP_TEXT_ACL_ACTION,
-            "destination_ports": help_text_acl_rule_logic,
+            "destination_ports": HELP_TEXT_ACL_RULE_LOGIC,
             "index": HELP_TEXT_ACL_RULE_INDEX,
-            "protocol": help_text_acl_rule_logic,
+            "protocol": HELP_TEXT_ACL_RULE_LOGIC,
             "remark": mark_safe(
                 "<b>*Note:</b> CANNOT be set if action is not set to remark.",
             ),
-            "source_ports": help_text_acl_rule_logic,
+            "source_ports": HELP_TEXT_ACL_RULE_LOGIC,
         }
 
     def clean(self):

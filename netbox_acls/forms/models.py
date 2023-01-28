@@ -214,7 +214,7 @@ class AccessListForm(NetBoxModelForm):
 
     def validate_host_types(self, host_types):
         """
-        Check if more than one host type selected.
+        Check number of host types selected.
         """
         if len(host_types) > 1:
             raise forms.ValidationError(
@@ -434,19 +434,19 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
                     assigned_object_type: [error_acl_not_assigned_to_host],
                     host_type: [error_acl_not_assigned_to_host],
                 }
-            ## Check for duplicate entry.
-            # if ACLInterfaceAssignment.objects.filter(
-            #    access_list=access_list,
-            #    assigned_object_id=assigned_object_id,
-            #    assigned_object_type=assigned_object_type_id,
-            #    direction=direction,
-            # ).exists():
-            #    error_duplicate_entry = "An ACL with this name is already associated to this interface & direction."
-            #    error_message |= {
-            #        "access_list": [error_duplicate_entry],
-            #        "direction": [error_duplicate_entry],
-            #        assigned_object_type: [error_duplicate_entry],
-            #    }
+            # Check for duplicate entry.
+             if ACLInterfaceAssignment.objects.filter(
+                access_list=access_list,
+                assigned_object_id=assigned_object_id,
+                assigned_object_type=assigned_object_type_id,
+                direction=direction,
+             ).exists():
+                error_duplicate_entry = "An ACL with this name is already associated to this interface & direction."
+                error_message |= {
+                    "access_list": [error_duplicate_entry],
+                    "direction": [error_duplicate_entry],
+                    assigned_object_type: [error_duplicate_entry],
+                }
             # Check that the interface does not have an existing ACL applied in the direction already.
             if ACLInterfaceAssignment.objects.filter(
                 assigned_object_id=assigned_object_id,

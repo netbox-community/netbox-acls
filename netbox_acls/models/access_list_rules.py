@@ -135,7 +135,7 @@ class ACLExtendedRule(BaseACLRule):
         on_delete=models.CASCADE,
         to=AccessList,
         verbose_name="Extended Access List",
-        limit_choices_to={"type": "extended"},
+        limit_choices_to={"type": ACLTypeChoices.TYPE_EXTENDED},
         related_name="aclextendedrules",
     )
     source_ports = ArrayField(

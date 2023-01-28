@@ -167,10 +167,10 @@ class AccessListForm(NetBoxModelForm):
     def clean(self):
         """
         Validates form inputs before submitting:
-          - Check if more than one host type selected.
-          - Check if no hosts selected.
-          - Check if duplicate entry. (Because of GFK.)
-          - Check if Access List has no existing rules before change the Access List's type.
+            - Check if more than one host type selected.
+            - Check if no hosts selected.
+            - Check if duplicate entry. (Because of GFK.)
+            - Check if Access List has no existing rules before change the Access List's type.
         """
         cleaned_data = super().clean()
         error_message = {}
@@ -376,12 +376,12 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
     def clean(self):
         """
         Validates form inputs before submitting:
-          - Check if both interface and vminterface are set.
-          - Check if neither interface nor vminterface are set.
-          - Check that an interface's parent device/virtual_machine is assigned to the Access List.
-          - Check that an interface's parent device/virtual_machine is assigned to the Access List.
-          - Check for duplicate entry. (Because of GFK)
-          - Check that the interface does not have an existing ACL applied in the direction already.
+            - Check if both interface and vminterface are set.
+            - Check if neither interface nor vminterface are set.
+            - Check that an interface's parent device/virtual_machine is assigned to the Access List.
+            - Check that an interface's parent device/virtual_machine is assigned to the Access List.
+            - Check for duplicate entry. (Because of GFK)
+            - Check that the interface does not have an existing ACL applied in the direction already.
         """
         cleaned_data = super().clean()
         error_message = {}

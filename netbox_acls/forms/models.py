@@ -176,43 +176,63 @@ class AccessListForm(NetBoxModelForm):
         error_message = {}
         if self.errors.get("name"):
             return cleaned_data
+
         name = cleaned_data.get("name")
         acl_type = cleaned_data.get("type")
-        device = cleaned_data.get("device")
-        virtual_chassis = cleaned_data.get("virtual_chassis")
-        virtual_machine = cleaned_data.get("virtual_machine")
 
         # Check if more than one host type selected.
-        if (
-            (device and virtual_chassis)
-            or (device and virtual_machine)
-            or (virtual_chassis and virtual_machine)
-        ):
+        host_types = self.get_host_types()
+
+        # Check if no hosts selected.
+        self.validate_host_types(host_types)
+
+        host_type, host = host_types[0]
+
+        # Check if duplicate entry.
+        self.validate_duplicate_entry(name, host_type, host, error_message)
+        # Check if Access List has no existing rules before change the Access List's type.
+        self.validate_acl_type_change(acl_type, error_message)
+
+        if error_message:
+            raise forms.ValidationError(error_message)
+
+        return cleaned_data
+
+    def get_host_types(self):
+        """
+        Get host type assigned to the Access List.
+        """
+        device = self.cleaned_data.get("device")
+        virtual_chassis = self.cleaned_data.get("virtual_chassis")
+        virtual_machine = self.cleaned_data.get("virtual_machine")
+        host_types = [
+            ("device", device),
+            ("virtual_chassis", virtual_chassis),
+            ("virtual_machine", virtual_machine),
+        ]
+        return [x for x in host_types if x[1]]
+
+    def validate_host_types(self, host_types):
+        """
+        Check if more than one host type selected.
+        """
+        if len(host_types) > 1:
             raise forms.ValidationError(
                 "Access Lists must be assigned to one host (either a device, virtual chassis or virtual machine) at a time.",
             )
         # Check if no hosts selected.
-        if not device and not virtual_chassis and not virtual_machine:
+        if not host_types:
             raise forms.ValidationError(
                 "Access Lists must be assigned to a device, virtual chassis or virtual machine.",
             )
 
-        if device:
-            host_type = "device"
-            existing_acls = AccessList.objects.filter(name=name, device=device).exists()
-        elif virtual_machine:
-            host_type = "virtual_machine"
-            existing_acls = AccessList.objects.filter(
-                name=name,
-                virtual_machine=virtual_machine,
-            ).exists()
-        else:
-            host_type = "virtual_chassis"
-            existing_acls = AccessList.objects.filter(
-                name=name,
-                virtual_chassis=virtual_chassis,
-            ).exists()
-
+    def validate_duplicate_entry(self, name, host_type, host, error_message):
+        """
+        Check if duplicate entry. (Because of GFK.)
+        """
+        existing_acls = AccessList.objects.filter(
+            name=name, **{host_type: host}
+        ).exists()
         # Check if duplicate entry.
         if (
             "name" in self.changed_data or host_type in self.changed_data
@@ -224,7 +244,11 @@ class AccessListForm(NetBoxModelForm):
                 host_type: [error_same_acl_name],
                 "name": [error_same_acl_name],
             }
-        # Check if Access List has no existing rules before change the Access List's type.
+
+    def validate_acl_type_change(self, acl_type, error_message):
+        """
+        Check if Access List has no existing rules before change the Access List's type.
+        """
         if self.instance.pk and (
             (
                 acl_type == ACLTypeChoices.TYPE_EXTENDED
@@ -241,8 +265,6 @@ class AccessListForm(NetBoxModelForm):
 
         if error_message:
             raise forms.ValidationError(error_message)
-
-        return cleaned_data
 
     def save(self, *args, **kwargs):
         """
@@ -412,19 +434,19 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
                     assigned_object_type: [error_acl_not_assigned_to_host],
                     host_type: [error_acl_not_assigned_to_host],
                 }
-            # Check for duplicate entry.
-            if ACLInterfaceAssignment.objects.filter(
-                access_list=access_list,
-                assigned_object_id=assigned_object_id,
-                assigned_object_type=assigned_object_type_id,
-                direction=direction,
-            ).exists():
-                error_duplicate_entry = "An ACL with this name is already associated to this interface & direction."
-                error_message |= {
-                    "access_list": [error_duplicate_entry],
-                    "direction": [error_duplicate_entry],
-                    assigned_object_type: [error_duplicate_entry],
-                }
+            ## Check for duplicate entry.
+            # if ACLInterfaceAssignment.objects.filter(
+            #    access_list=access_list,
+            #    assigned_object_id=assigned_object_id,
+            #    assigned_object_type=assigned_object_type_id,
+            #    direction=direction,
+            # ).exists():
+            #    error_duplicate_entry = "An ACL with this name is already associated to this interface & direction."
+            #    error_message |= {
+            #        "access_list": [error_duplicate_entry],
+            #        "direction": [error_duplicate_entry],
+            #        assigned_object_type: [error_duplicate_entry],
+            #    }
             # Check that the interface does not have an existing ACL applied in the direction already.
             if ACLInterfaceAssignment.objects.filter(
                 assigned_object_id=assigned_object_id,
@@ -454,9 +476,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
 
 
 class BaseACLRuleForm(NetBoxModelForm):
-    """
-    GUI form to add or edit Access List Rules to be inherited by other classes
-    """
+    """GUI form to add or edit Access List Rules to be inherited by other classes"""
 
     access_list = DynamicModelChoiceField(
         queryset=AccessList.objects.all(),
@@ -464,7 +484,7 @@ class BaseACLRuleForm(NetBoxModelForm):
             "type": ACLTypeChoices.TYPE_STANDARD,
         },
         help_text=mark_safe(
-            "<b>*Note:</b> This field will only display Standard ACLs.",
+            "<b>*Note:</b> This field will only display Standard ACLs."
         ),
         label="Access List",
     )
@@ -481,9 +501,7 @@ class BaseACLRuleForm(NetBoxModelForm):
     )
 
     class Meta:
-        """
-        Defines the Model and fields to be used by the form.
-        """
+        """Defines the Model and fields to be used by the form."""
 
         model = ACLStandardRule
         fields = (
@@ -496,11 +514,14 @@ class BaseACLRuleForm(NetBoxModelForm):
             "description",
         )
         help_texts = {
-            "index": HELP_TEXT_ACL_RULE_INDEX,
             "action": HELP_TEXT_ACL_ACTION,
+            "destination_ports": HELP_TEXT_ACL_RULE_LOGIC,
+            "index": HELP_TEXT_ACL_RULE_INDEX,
+            "protocol": HELP_TEXT_ACL_RULE_LOGIC,
             "remark": mark_safe(
-                "<b>*Note:</b> CANNOT be set if source prefix OR action is set.",
+                "<b>*Note:</b> CANNOT be set if action is not set to remark."
             ),
+            "source_ports": HELP_TEXT_ACL_RULE_LOGIC,
         }
 
     def clean(self):
@@ -519,7 +540,6 @@ class BaseACLRuleForm(NetBoxModelForm):
             raise forms.ValidationError(error_message)
         return cleaned_data
 
-
     def _extracted_from_clean_20(self, cleaned_data, error_message, rule_type):
         """
         Validates form inputs before submitting:
@@ -537,13 +557,13 @@ class BaseACLRuleForm(NetBoxModelForm):
         # Check if action set to remark, but source_prefix set.
         if cleaned_data.get("source_prefix"):
             error_message["source_prefix"] = [
-                ERROR_MESSAGE_ACTION_REMARK_SOURCE_PREFIX_SET,
+                ERROR_MESSAGE_ACTION_REMARK_SOURCE_PREFIX_SET
             ]
         if rule_type == "extended":
             # Check if action set to remark, but source_ports set.
             if cleaned_data.get("source_ports"):
                 error_message["source_ports"] = [
-                    "Action is set to remark, Source Ports CANNOT be set.",
+                    "Action is set to remark, Source Ports CANNOT be set."
                 ]
             # Check if action set to remark, but destination_prefix set.
             if cleaned_data.get("destination_prefix"):
@@ -553,12 +573,12 @@ class BaseACLRuleForm(NetBoxModelForm):
             # Check if action set to remark, but destination_ports set.
             if cleaned_data.get("destination_ports"):
                 error_message["destination_ports"] = [
-                    "Action is set to remark, Destination Ports CANNOT be set.",
+                    "Action is set to remark, Destination Ports CANNOT be set."
                 ]
             # Check if action set to remark, but protocol set.
             if cleaned_data.get("protocol"):
                 error_message["protocol"] = [
-                    "Action is set to remark, Protocol CANNOT be set.",
+                    "Action is set to remark, Protocol CANNOT be set."
                 ]
 
 
@@ -579,9 +599,7 @@ class ACLExtendedRuleForm(BaseACLRuleForm):
 
     access_list = DynamicModelChoiceField(
         queryset=AccessList.objects.all(),
-        query_params={
-            "type": ACLTypeChoices.TYPE_EXTENDED,
-        },
+        query_params={"type": ACLTypeChoices.TYPE_EXTENDED},
         help_text=mark_safe(
             "<b>*Note:</b> This field will only display Extended ACLs.",
         ),
@@ -597,15 +615,13 @@ class ACLExtendedRuleForm(BaseACLRuleForm):
     fieldsets = BaseACLRuleForm.fieldsets[:-1] + (
         (
             "Rule Definition",
-            BaseACLRuleForm.fieldsets[-1][1] + ("source_ports", "destination_prefix", "destination_ports", "protocol"),
+            BaseACLRuleForm.fieldsets[-1][1]
+            + ("source_ports", "destination_prefix", "destination_ports", "protocol"),
         ),
     )
 
-
     class Meta:
-        """
-        Defines the Model and fields to be used by the form.
-        """
+        """Defines the Model and fields to be used by the form."""
 
         model = ACLExtendedRule
         fields = (
@@ -621,13 +637,3 @@ class ACLExtendedRuleForm(BaseACLRuleForm):
             "tags",
             "description",
         )
-        help_texts = {
-            "action": HELP_TEXT_ACL_ACTION,
-            "destination_ports": HELP_TEXT_ACL_RULE_LOGIC,
-            "index": HELP_TEXT_ACL_RULE_INDEX,
-            "protocol": HELP_TEXT_ACL_RULE_LOGIC,
-            "remark": mark_safe(
-                "<b>*Note:</b> CANNOT be set if action is not set to remark.",
-            ),
-            "source_ports": HELP_TEXT_ACL_RULE_LOGIC,
-        }

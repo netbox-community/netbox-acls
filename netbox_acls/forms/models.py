@@ -172,6 +172,7 @@ class AccessListForm(NetBoxModelForm):
             - Check if duplicate entry. (Because of GFK.)
             - Check if Access List has no existing rules before change the Access List's type.
         """
+        # TODO: Refactor this method to fix error message logic.
         cleaned_data = super().clean()
         error_message = {}
         if self.errors.get("name"):

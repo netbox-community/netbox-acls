@@ -513,14 +513,14 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
             direction=direction,
         ).exists():
             return {}
-        else:
-            error_interface_already_assigned = (
-                "Interfaces can only have 1 Access List assigned in each direction."
-            )
-            return {
-                "direction": [error_interface_already_assigned],
-                assigned_object_type: [error_interface_already_assigned],
-            }
+
+        error_interface_already_assigned = (
+            "Interfaces can only have 1 Access List assigned in each direction."
+        )
+        return {
+            "direction": [error_interface_already_assigned],
+            assigned_object_type: [error_interface_already_assigned],
+        }
 
     def save(self, *args, **kwargs):
         """

@@ -30,6 +30,7 @@ from ..models import (
     ACLExtendedRule,
     ACLInterfaceAssignment,
     ACLStandardRule,
+    BaseACLRule,
 )
 
 __all__ = (
@@ -463,8 +464,8 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
             raise forms.ValidationError(
                 {
                     "access_list": [ERROR_ACL_NOT_ASSIGNED_TO_HOST],
-                    assigned_object_type: [ERROR_ACL_NOT_ASSIGNED_TO_HOST],
                     host_type: [ERROR_ACL_NOT_ASSIGNED_TO_HOST],
+                    assigned_object_type: [ERROR_ACL_NOT_ASSIGNED_TO_HOST],
                 }
             )
 

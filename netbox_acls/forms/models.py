@@ -250,22 +250,20 @@ class AccessListForm(NetBoxModelForm):
         """
         Check if Access List has no existing rules before change the Access List's type.
         """
-        if self.instance.pk and (
-            (
-                acl_type == ACLTypeChoices.TYPE_EXTENDED
-                and self.instance.aclstandardrules.exists()
-            )
-            or (
-                acl_type == ACLTypeChoices.TYPE_STANDARD
-                and self.instance.aclextendedrules.exists()
-            )
-        ):
+        if self.instance.pk:
             error_message["type"] = [
                 "This ACL has ACL rules associated, CANNOT change ACL type.",
             ]
-
-        if error_message:
-            raise forms.ValidationError(error_message)
+            if (
+                acl_type == ACLTypeChoices.TYPE_EXTENDED
+                and self.instance.aclstandardrules.exists()
+            ):
+                raise forms.ValidationError(error_message)
+            if (
+                acl_type == ACLTypeChoices.TYPE_STANDARD
+                and self.instance.aclextendedrules.exists()
+            ):
+                raise forms.ValidationError(error_message)
 
     def save(self, *args, **kwargs):
         """
@@ -406,12 +404,12 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         assigned_object_type_id = ContentType.objects.get_for_model(assigned_object).pk
 
         # Check if the parent host is assigned to the Access List
-        self._check_if_interface_parent_is_assigned_to_access_list(
+        self._validate_if_interface_parent_is_assigned_to_access_list(
             cleaned_data.get("access_list"), assigned_object_type, assigned_object
         )
 
         # Check for duplicate entries in the Access List
-        self._check_if_interface_already_has_acl_in_direction(
+        self._validate_if_interface_already_has_acl_in_direction(
             cleaned_data.get("access_list"),
             assigned_object_id,
             assigned_object_type,
@@ -446,7 +444,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         elif not interface_types:
             raise forms.ValidationError("No interface or vminterface selected.")
 
-    def _check_if_interface_parent_is_assigned_to_access_list(
+    def _validate_if_interface_parent_is_assigned_to_access_list(
         self, access_list, assigned_object_type, assigned_object
     ):
         """
@@ -471,7 +469,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
                 }
             )
 
-    def _check_if_interface_already_has_acl_in_direction(
+    def _validate_if_interface_already_has_acl_in_direction(
         self,
         access_list,
         assigned_object_id,
@@ -573,7 +571,7 @@ class BaseACLRuleForm(NetBoxModelForm):
         # No need to check for unique_together since there is no usage of GFK
 
         if cleaned_data.get("action") == "remark":
-            self._extracted_from_clean_20(cleaned_data, error_message, "extended")
+            self._validate_acl_rules(cleaned_data, error_message, "extended")
         # Check remark set, but action not set to remark.
         elif cleaned_data.get("remark"):
             error_message["remark"] = [ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK]
@@ -582,7 +580,7 @@ class BaseACLRuleForm(NetBoxModelForm):
             raise forms.ValidationError(error_message)
         return cleaned_data
 
-    def _extracted_from_clean_20(self, cleaned_data, error_message, rule_type):
+    def _validate_acl_rules(self, cleaned_data, error_message, rule_type):
         """
         Validates form inputs before submitting:
           - Check if action set to remark, but no remark set.

@@ -543,16 +543,17 @@ class BaseACLRuleForm(NetBoxModelForm):
     class Meta:
         """Defines the Model and fields to be used by the form."""
 
-        model = ACLStandardRule
+        abstract = True
+        model = BaseACLRule
         fields = (
             "access_list",
             "index",
             "action",
             "remark",
-            "source_prefix",
             "tags",
             "description",
         )
+        # Adds a help text to the form fields where the field is not defined in the form class.
         help_texts = {
             "action": HELP_TEXT_ACL_ACTION,
             "destination_ports": HELP_TEXT_ACL_RULE_LOGIC,
@@ -617,6 +618,13 @@ class ACLStandardRuleForm(BaseACLRuleForm):
     See the clean function for logic on other field requirements.
     """
 
+    class Meta(BaseACLRuleForm.Meta):
+        """Defines the Model and fields to be used by the form."""
+
+        model = ACLStandardRule
+        # Need to add source_prefix to the tuple here instead of base or it will cause a ValueError
+        fields = BaseACLRuleForm.Meta.fields + ("source_prefix",)
+
 
 class ACLExtendedRuleForm(BaseACLRuleForm):
     """
@@ -648,20 +656,14 @@ class ACLExtendedRuleForm(BaseACLRuleForm):
         ),
     )
 
-    class Meta:
+    class Meta(BaseACLRuleForm.Meta):
         """Defines the Model and fields to be used by the form."""
 
         model = ACLExtendedRule
-        fields = (
-            "access_list",
-            "index",
-            "action",
-            "remark",
+        fields = BaseACLRuleForm.Meta.fields + (
             "source_prefix",
             "source_ports",
             "destination_prefix",
             "destination_ports",
             "protocol",
-            "tags",
-            "description",
         )

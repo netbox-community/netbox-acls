@@ -174,7 +174,6 @@ class AccessListForm(NetBoxModelForm):
         """
         # TODO: Refactor this method to fix error message logic.
         cleaned_data = super().clean()
-        error_message = {}
         if self.errors.get("name"):
             return cleaned_data
 
@@ -190,12 +189,9 @@ class AccessListForm(NetBoxModelForm):
         host_type, host = host_types[0]
 
         # Check if duplicate entry.
-        self._clean_check_duplicate_entry(name, host_type, host, error_message)
+        self._clean_check_duplicate_entry(name, host_type, host)
         # Check if Access List has no existing rules before change the Access List's type.
-        self._clean_check_acl_type_change(acl_type, error_message)
-
-        if error_message:
-            raise forms.ValidationError(error_message)
+        self._clean_check_acl_type_change(acl_type)
 
         return cleaned_data
 
@@ -227,7 +223,7 @@ class AccessListForm(NetBoxModelForm):
                 "Access Lists must be assigned to a device, virtual chassis or virtual machine.",
             )
 
-    def _clean_check_duplicate_entry(self, name, host_type, host, error_message):
+    def _clean_check_duplicate_entry(self, name, host_type, host):
         """
         Used by parent class's clean method. Check if duplicate entry. (Because of GFK.)
         """
@@ -241,29 +237,40 @@ class AccessListForm(NetBoxModelForm):
             error_same_acl_name = (
                 "An ACL with this name is already associated to this host."
             )
-            error_message |= {
-                host_type: [error_same_acl_name],
-                "name": [error_same_acl_name],
-            }
+            raise forms.ValidationError(
+                {
+                    host_type: [error_same_acl_name],
+                    "name": [error_same_acl_name],
+                }
+            )
 
-    def _clean_check_acl_type_change(self, acl_type, error_message):
+    def _clean_check_acl_type_change(self, acl_type):
         """
         Used by parent class's clean method. Check if Access List has no existing rules before change the Access List's type.
         """
         if self.instance.pk:
-            error_message["type"] = [
+            ERROR_MESSAGE_EXISTING_RULES = (
                 "This ACL has ACL rules associated, CANNOT change ACL type.",
-            ]
+            )
             if (
                 acl_type == ACLTypeChoices.TYPE_EXTENDED
                 and self.instance.aclstandardrules.exists()
             ):
-                raise forms.ValidationError(error_message)
+                raise forms.ValidationError(
+                    {
+                        "type": ERROR_MESSAGE_EXISTING_RULES,
+                    }
+                )
+
             if (
                 acl_type == ACLTypeChoices.TYPE_STANDARD
                 and self.instance.aclextendedrules.exists()
             ):
-                raise forms.ValidationError(error_message)
+                raise forms.ValidationError(
+                    {
+                        "type": ERROR_MESSAGE_EXISTING_RULES,
+                    }
+                )
 
     def save(self, *args, **kwargs):
         """
@@ -566,23 +573,7 @@ class BaseACLRuleForm(NetBoxModelForm):
             "source_ports": HELP_TEXT_ACL_RULE_LOGIC,
         }
 
-    def clean(self):
-        cleaned_data = super().clean()
-        error_message = {}
-
-        # No need to check for unique_together since there is no usage of GFK
-
-        if cleaned_data.get("action") == "remark":
-            self._clean_check_acl_rules(cleaned_data, error_message, "extended")
-        # Check remark set, but action not set to remark.
-        elif cleaned_data.get("remark"):
-            error_message["remark"] = [ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK]
-
-        if error_message:
-            raise forms.ValidationError(error_message)
-        return cleaned_data
-
-    def _clean_check_acl_rules(self, cleaned_data, error_message, rule_type):
+    def clean_check_remark_rule(self, cleaned_data, error_message, rule_type):
         """
         Used by parent class's clean method. Checks form inputs before submitting:
             - Check if action set to remark, but no remark set.
@@ -611,6 +602,9 @@ class BaseACLRuleForm(NetBoxModelForm):
                     f'Action is set to remark, {attribute.replace("_", " ").title()} CANNOT be set.'
                 ]
 
+        if error_message:
+            forms.ValidationError(error_message)
+
 
 class ACLStandardRuleForm(BaseACLRuleForm):
     """
@@ -625,6 +619,25 @@ class ACLStandardRuleForm(BaseACLRuleForm):
         model = ACLStandardRule
         # Need to add source_prefix to the tuple here instead of base or it will cause a ValueError
         fields = BaseACLRuleForm.Meta.fields + ("source_prefix",)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        error_message = {}
+
+        # Check if action set to remark, but no remark set OR other fields set.
+        if cleaned_data.get("action") == "remark":
+            BaseACLRuleForm.clean_check_remark_rule(
+                self, cleaned_data, error_message, rule_type="standard"
+            )
+
+        # Check remark set, but action not set to remark.
+        elif cleaned_data.get("remark"):
+            error_message["remark"] = [ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK]
+
+        if error_message:
+            raise forms.ValidationError(error_message)
+
+        return cleaned_data
 
 
 class ACLExtendedRuleForm(BaseACLRuleForm):
@@ -668,3 +681,22 @@ class ACLExtendedRuleForm(BaseACLRuleForm):
             "destination_ports",
             "protocol",
         )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        error_message = {}
+
+        # Check if action set to remark, but no remark set OR other fields set.
+        if cleaned_data.get("action") == "remark":
+            BaseACLRuleForm.clean_check_remark_rule(
+                self, cleaned_data, error_message, rule_type="extended"
+            )
+
+        # Check remark set, but action not set to remark.
+        elif cleaned_data.get("remark"):
+            error_message["remark"] = [ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK]
+
+        if error_message:
+            raise forms.ValidationError(error_message)
+
+        return cleaned_data

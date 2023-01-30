@@ -391,54 +391,35 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         interface_types = self._get_interface_types()
 
         # Initialize an error message variable
-        error_message = self._validate_interface_types(interface_types)
+        self._validate_interface_types(interface_types)
 
-        if not error_message:
-            assigned_object_type, assigned_object = interface_types[0]
-            host_type = (
-                "device" if assigned_object_type == "interface" else "virtual_machine"
-            )
+        # Get the assigned interface & interface type
+        assigned_object_type, assigned_object = interface_types[0]
 
-            # Get the parent host (device or virtual machine) of the assigned interface
-            if assigned_object_type == "interface":
-                host = Interface.objects.get(pk=assigned_object.pk).device
-                assigned_object_id = Interface.objects.get(pk=assigned_object.pk).pk
-            else:
-                host = VMInterface.objects.get(pk=assigned_object.pk).virtual_machine
-                assigned_object_id = VMInterface.objects.get(pk=assigned_object.pk).pk
-
-            # Get the ContentType id for the assigned object
-            assigned_object_type_id = ContentType.objects.get_for_model(
-                assigned_object
-            ).pk
-
-        if not error_message:
-            # Check if the parent host is assigned to the Access List
-            error_message |= self._check_if_interface_parent_is_assigned_to_access_list(
-                cleaned_data.get("access_list"), assigned_object_type, host_type, host
-            )
-
-        if not error_message:
-            # Check for duplicate entries in the Access List
-            error_message |= self._check_for_duplicate_entry(
-                cleaned_data.get("access_list"),
-                assigned_object_id,
-                assigned_object_type_id,
-                cleaned_data.get("direction"),
-            )
-
-        if not error_message:
-            # Check if the interface already has an ACL applied in the specified direction
-            error_message |= self._check_if_interface_already_has_acl_in_direction(
-                assigned_object_id,
-                assigned_object_type_id,
-                cleaned_data.get("direction"),
-            )
-
-        if error_message:
-            raise forms.ValidationError(error_message)
+        # Get the parent host (device or virtual machine) of the assigned interface
+        if assigned_object_type == "interface":
+            assigned_object_id = Interface.objects.get(pk=assigned_object.pk).pk
         else:
-            return cleaned_data
+            assigned_object_id = VMInterface.objects.get(pk=assigned_object.pk).pk
+
+        # Get the ContentType id for the assigned object
+        assigned_object_type_id = ContentType.objects.get_for_model(assigned_object).pk
+
+        # Check if the parent host is assigned to the Access List
+        self._check_if_interface_parent_is_assigned_to_access_list(
+            cleaned_data.get("access_list"), assigned_object_type, assigned_object
+        )
+
+        # Check for duplicate entries in the Access List
+        self._check_if_interface_already_has_acl_in_direction(
+            cleaned_data.get("access_list"),
+            assigned_object_id,
+            assigned_object_type,
+            assigned_object_type_id,
+            cleaned_data.get("direction"),
+        )
+
+        return cleaned_data
 
     def _get_interface_types(self):
         """
@@ -458,69 +439,73 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         """
         # Check if more than 1 hosts selected.
         if len(interface_types) > 1:
-            return "Assignment can only be to one interface at a time (either a interface or vm_interface)."
+            raise forms.ValidationError(
+                "Assignment can only be to one interface at a time (either a interface or vminterface)."
+            )
         # Check if no hosts selected.
         elif not interface_types:
-            return "No interface or vm_interface selected."
-        else:
-            return {}
+            raise forms.ValidationError("No interface or vminterface selected.")
 
     def _check_if_interface_parent_is_assigned_to_access_list(
-        self, access_list, assigned_object_type, host_type, host
+        self, access_list, assigned_object_type, assigned_object
     ):
         """
         Check that an interface's parent device/virtual_machine is assigned to the Access List.
         """
-
         access_list_host = AccessList.objects.get(pk=access_list.pk).assigned_object
+        host_type = (
+            "device" if assigned_object_type == "interface" else "virtual_machine"
+        )
+        if assigned_object_type == "interface":
+            host = Interface.objects.get(pk=assigned_object.pk).device
+        else:
+            host = VMInterface.objects.get(pk=assigned_object.pk).virtual_machine
 
         if access_list_host != host:
             ERROR_ACL_NOT_ASSIGNED_TO_HOST = "Access List not present on selected host."
-            return {
-                "access_list": [ERROR_ACL_NOT_ASSIGNED_TO_HOST],
-                assigned_object_type: [ERROR_ACL_NOT_ASSIGNED_TO_HOST],
-                host_type: [ERROR_ACL_NOT_ASSIGNED_TO_HOST],
-            }
-        else:
-            return {}
+            raise forms.ValidationError(
+                {
+                    "access_list": [ERROR_ACL_NOT_ASSIGNED_TO_HOST],
+                    assigned_object_type: [ERROR_ACL_NOT_ASSIGNED_TO_HOST],
+                    host_type: [ERROR_ACL_NOT_ASSIGNED_TO_HOST],
+                }
+            )
 
-    def _check_for_duplicate_entry(
-        self, access_list, assigned_object_id, assigned_object_type_id, direction
+    def _check_if_interface_already_has_acl_in_direction(
+        self,
+        access_list,
+        assigned_object_id,
+        assigned_object_type,
+        assigned_object_type_id,
+        direction,
     ):
         """
-        Check for duplicate entry. (Because of GFK)
+        Check that the interface does not have an existing ACL applied in the direction already.
         """
 
+        # Check for duplicate entry. (Because of GFK)
         if ACLInterfaceAssignment.objects.filter(
             access_list=access_list,
             assigned_object_id=assigned_object_id,
             assigned_object_type=assigned_object_type_id,
             direction=direction,
         ).exists():
-            return {"access_list": ["Duplicate entry."]}
-        else:
-            return {}
-
-    def _check_if_interface_already_has_acl_in_direction(
-        self, assigned_object_id, assigned_object_type_id, direction
-    ):
-        """
-        Check that the interface does not have an existing ACL applied in the direction already.
-        """
-        if not ACLInterfaceAssignment.objects.filter(
+            raise forms.ValidationError({"access_list": ["Duplicate entry."]})
+        # Check that the interface does not have an existing ACL applied in the direction already.
+        elif ACLInterfaceAssignment.objects.filter(
             assigned_object_id=assigned_object_id,
             assigned_object_type=assigned_object_type_id,
             direction=direction,
         ).exists():
-            return {}
-
-        error_interface_already_assigned = (
-            "Interfaces can only have 1 Access List assigned in each direction."
-        )
-        return {
-            "direction": [error_interface_already_assigned],
-            assigned_object_type: [error_interface_already_assigned],
-        }
+            error_interface_already_assigned = (
+                "Interfaces can only have 1 Access List assigned in each direction."
+            )
+            raise forms.ValidationError(
+                {
+                    "direction": [error_interface_already_assigned],
+                    assigned_object_type: [error_interface_already_assigned],
+                }
+            )
 
     def save(self, *args, **kwargs):
         """

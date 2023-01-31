@@ -91,7 +91,9 @@
 				"mutantdino.resourcemonitor",
 				"paulomenezes.duplicated-code",
 				"searKing.preview-vscode",
-				"sourcery.sourcery"
+				"sourcery.sourcery",
+				"GitHub.copilot",
+				"GitHub.copilot-labs"
 			]
 		}
 	},

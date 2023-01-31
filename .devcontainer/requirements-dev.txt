@@ -12,3 +12,4 @@ pylint
 pylint-django
 wily
 yapf
+sourcery-analytics

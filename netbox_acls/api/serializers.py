@@ -16,6 +16,7 @@ from utilities.api import get_serializer_for_model
 from ..constants import ACL_HOST_ASSIGNMENT_MODELS, ACL_INTERFACE_ASSIGNMENT_MODELS
 from ..models import (
     AccessList,
+    BaseACLRule,
     ACLExtendedRule,
     ACLInterfaceAssignment,
     ACLStandardRule,
@@ -42,6 +43,27 @@ ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK = (
 )
 # Sets a standard error message for ACL rules no associated to an ACL of the same type.
 ERROR_MESSAGE_ACL_TYPE = "Provided parent Access List is not of right type."
+
+
+def validate_gfk(data):
+    """
+    Check that the GFK object is valid.
+    """
+    # TODO: This can removed after https://github.com/netbox-community/netbox/issues/10221 is fixed.
+    try:
+        assigned_object = data[  # noqa: F841
+            "assigned_object_type"
+        ].get_object_for_this_type(
+            id=data["assigned_object_id"],
+        )
+    except ObjectDoesNotExist as e:
+        error_message_invalid_gfk = f"Invalid assigned_object {data['assigned_object_type']} ID {data['assigned_object_id']}"
+        raise serializers.ValidationError(
+            {
+                "assigned_object_type": [error_message_invalid_gfk],
+                "assigned_object_id": [error_message_invalid_gfk],
+            }
+        ) from e
 
 
 class AccessListSerializer(NetBoxModelSerializer):
@@ -97,25 +119,11 @@ class AccessListSerializer(NetBoxModelSerializer):
     def validate(self, data):
         """
         Validates api inputs before processing:
-          - Check that the GFK object is valid.
-          - Check if Access List has no existing rules before change the Access List's type.
+            - Check that the GFK object is valid.
+            - Check if Access List has no existing rules before change the Access List's type.
         """
-        error_message = {}
-
         # Check that the GFK object is valid.
-        if "assigned_object_type" in data and "assigned_object_id" in data:
-            # TODO: This can removed after https://github.com/netbox-community/netbox/issues/10221 is fixed.
-            try:
-                assigned_object = data[  # noqa: F841
-                    "assigned_object_type"
-                ].get_object_for_this_type(
-                    id=data["assigned_object_id"],
-                )
-            except ObjectDoesNotExist:
-                # Sets a standard error message for invalid GFK
-                error_message_invalid_gfk = f"Invalid assigned_object {data['assigned_object_type']} ID {data['assigned_object_id']}"
-                error_message["assigned_object_type"] = [error_message_invalid_gfk]
-                error_message["assigned_object_id"] = [error_message_invalid_gfk]
+        assigned_object = validate_gfk(data)
 
         # Check if Access List has no existing rules before change the Access List's type.
         if (
@@ -123,9 +131,9 @@ class AccessListSerializer(NetBoxModelSerializer):
             and self.instance.type != data.get("type")
             and self.instance.rule_count > 0
         ):
-            error_message["type"] = [
-                "This ACL has ACL rules associated, CANNOT change ACL type.",
-            ]
+            raise serializers.ValidationError(
+                {"type": ["This ACL has ACL rules associated, CANNOT change ACL type."]}
+            )
 
         if error_message:
             raise serializers.ValidationError(error_message)
@@ -180,51 +188,51 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
         context = {"request": self.context["request"]}
         return serializer(obj.assigned_object, context=context).data
 
+    def _validate_get_interface_host(self, data, assigned_object):
+        """
+        Check that the associated interface's parent host has the selected ACL defined.
+        """
+        MODEL_MAPPING = {
+            "interface": "device",
+            "vminterface": "virtual_machine",
+        }
+
+        assigned_object_model = data["assigned_object_type"].model
+
+        return getattr(assigned_object, MODEL_MAPPING.get(assigned_object_model, None))
+
+    def _validate_acl_host(self, acl_host, interface_host):
+        """
+        Check that the associated interface's parent host has the selected ACL defined.
+        """
+        if acl_host == interface_host:
+            return {}
+
+        error_acl_not_assigned_to_host = (
+            "Access List not present on the selected interface's host."
+        )
+        return {
+            "access_list": [error_acl_not_assigned_to_host],
+            "assigned_object_id": [error_acl_not_assigned_to_host],
+        }
+
     def validate(self, data):
         """
         Validate the AccessList django model's inputs before allowing it to update the instance.
-          - Check that the GFK object is valid.
-          - Check that the associated interface's parent host has the selected ACL defined.
+            - Check that the GFK object is valid.
+            - Check that the associated interface's parent host has the selected ACL defined.
         """
+
+        # Check that the GFK object is valid.
+        assigned_object = validate_gfk(data)
+
         error_message = {}
         acl_host = data["access_list"].assigned_object
 
-        # Check that the GFK object is valid.
-        if "assigned_object_type" in data and "assigned_object_id" in data:
-            # TODO: This can removed after https://github.com/netbox-community/netbox/issues/10221 is fixed.
-            try:
-                assigned_object = data[  # noqa: F841
-                    "assigned_object_type"
-                ].get_object_for_this_type(
-                    id=data["assigned_object_id"],
-                )
-            except ObjectDoesNotExist:
-                # Sets a standard error message for invalid GFK
-                error_message_invalid_gfk = f"Invalid assigned_object {data['assigned_object_type']} ID {data['assigned_object_id']}"
-                error_message["assigned_object_type"] = [error_message_invalid_gfk]
-                error_message["assigned_object_id"] = [error_message_invalid_gfk]
+        interface_host = self._validate_get_interface_host(data, assigned_object)
+        acl_host = data["access_list"].assigned_object
 
-        if data["assigned_object_type"].model == "interface":
-            interface_host = (
-                data["assigned_object_type"]
-                .get_object_for_this_type(id=data["assigned_object_id"])
-                .device
-            )
-        elif data["assigned_object_type"].model == "vminterface":
-            interface_host = (
-                data["assigned_object_type"]
-                .get_object_for_this_type(id=data["assigned_object_id"])
-                .virtual_machine
-            )
-        else:
-            interface_host = None
-        # Check that the associated interface's parent host has the selected ACL defined.
-        if acl_host != interface_host:
-            error_acl_not_assigned_to_host = (
-                "Access List not present on the selected interface's host."
-            )
-            error_message["access_list"] = [error_acl_not_assigned_to_host]
-            error_message["assigned_object_id"] = [error_acl_not_assigned_to_host]
+        error_message |= self._validate_acl_host(acl_host, interface_host)
 
         if error_message:
             raise serializers.ValidationError(error_message)
@@ -232,14 +240,11 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
         return super().validate(data)
 
 
-class ACLStandardRuleSerializer(NetBoxModelSerializer):
+class BaseACLRuleSerializer(NetBoxModelSerializer):
     """
-    Defines the serializer for the django ACLStandardRule model & associates it to a view.
+    Defines the serializer for the django BaseACLRule model & associates it to a view.
     """
 
-    url = serializers.HyperlinkedIdentityField(
-        view_name="plugins-api:netbox_acls-api:aclstandardrule-detail",
-    )
     access_list = NestedAccessListSerializer()
     source_prefix = NestedPrefixSerializer(
         required=False,
@@ -249,10 +254,11 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
 
     class Meta:
         """
-        Associates the django model ACLStandardRule & fields to the serializer.
+        Associates the django model BaseACLRule & fields to the serializer.
         """
 
-        model = ACLStandardRule
+        abstract = True
+        model = BaseACLRule
         fields = (
             "id",
             "url",
@@ -271,9 +277,9 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
 
     def validate(self, data):
         """
-        Validate the ACLStandardRule django model's inputs before allowing it to update the instance:
-          - Check if action set to remark, but no remark set.
-          - Check if action set to remark, but source_prefix set.
+        Validate the BaseACLRule django model's inputs before allowing it to update the instance:
+            - Check if action set to remark, but no remark set.
+            - Check if action set to remark, but source_prefix set.
         """
         error_message = {}
 
@@ -292,7 +298,24 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
         return super().validate(data)
 
 
-class ACLExtendedRuleSerializer(NetBoxModelSerializer):
+class ACLStandardRuleSerializer(BaseACLRuleSerializer):
+    """
+    Defines the serializer for the django ACLStandardRule model & associates it to a view.
+    """
+
+    url = serializers.HyperlinkedIdentityField(
+        view_name="plugins-api:netbox_acls-api:aclstandardrule-detail",
+    )
+
+    class Meta(BaseACLRuleSerializer.Meta):
+        """
+        Associates the django model ACLStandardRule & fields to the serializer.
+        """
+
+        model = ACLStandardRule
+
+
+class ACLExtendedRuleSerializer(BaseACLRuleSerializer):
     """
     Defines the serializer for the django ACLExtendedRule model & associates it to a view.
     """
@@ -300,37 +323,21 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name="plugins-api:netbox_acls-api:aclextendedrule-detail",
     )
-    access_list = NestedAccessListSerializer()
-    source_prefix = NestedPrefixSerializer(
-        required=False,
-        allow_null=True,
-        default=None,
-    )
     destination_prefix = NestedPrefixSerializer(
         required=False,
         allow_null=True,
         default=None,
     )
 
-    class Meta:
+    class Meta(BaseACLRuleSerializer.Meta):
         """
         Associates the django model ACLExtendedRule & fields to the serializer.
         """
 
         model = ACLExtendedRule
-        fields = (
-            "id",
-            "url",
-            "display",
-            "access_list",
-            "index",
-            "action",
-            "tags",
-            "description",
-            "created",
-            "custom_fields",
-            "last_updated",
-            "source_prefix",
+
+        # Add the additional fields to the serializer to support Extended ACL Rules.
+        fields = BaseACLRuleSerializer.Meta.fields + (
             "source_ports",
             "destination_prefix",
             "destination_ports",
@@ -341,44 +348,33 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
     def validate(self, data):
         """
         Validate the ACLExtendedRule django model's inputs before allowing it to update the instance:
-          - Check if action set to remark, but no remark set.
-          - Check if action set to remark, but source_prefix set.
-          - Check if action set to remark, but source_ports set.
-          - Check if action set to remark, but destination_prefix set.
-          - Check if action set to remark, but destination_ports set.
-          - Check if action set to remark, but protocol set.
-          - Check if action set to remark, but protocol set.
+            - Check if action set to remark, but no remark set.
+            - Check if action set to remark, but source_prefix set.
+            - Check if action set to remark, but source_ports set.
+            - Check if action set to remark, but destination_prefix set.
+            - Check if action set to remark, but destination_ports set.
+            - Check if action set to remark, but protocol set.
+            - Check if action set to remark, but protocol set.
         """
         error_message = {}
+        rule_attributes = [
+            "source_prefix",
+            "source_ports",
+            "destination_prefix",
+            "destination_ports",
+            "protocol",
+        ]
 
         # Check if action set to remark, but no remark set.
         if data.get("action") == "remark" and data.get("remark") is None:
             error_message["remark"] = [ERROR_MESSAGE_NO_REMARK]
-        # Check if action set to remark, but source_prefix set.
-        if data.get("source_prefix"):
-            error_message["source_prefix"] = [
-                ERROR_MESSAGE_ACTION_REMARK_SOURCE_PREFIX_SET,
-            ]
-        # Check if action set to remark, but source_ports set.
-        if data.get("source_ports"):
-            error_message["source_ports"] = [
-                "Action is set to remark, Source Ports CANNOT be set.",
-            ]
-        # Check if action set to remark, but destination_prefix set.
-        if data.get("destination_prefix"):
-            error_message["destination_prefix"] = [
-                "Action is set to remark, Destination Prefix CANNOT be set.",
-            ]
-        # Check if action set to remark, but destination_ports set.
-        if data.get("destination_ports"):
-            error_message["destination_ports"] = [
-                "Action is set to remark, Destination Ports CANNOT be set.",
-            ]
-        # Check if action set to remark, but protocol set.
-        if data.get("protocol"):
-            error_message["protocol"] = [
-                "Action is set to remark, Protocol CANNOT be set.",
-            ]
+
+        # Check if action set to remark, but other fields set.
+        for attribute in rule_attributes:
+            if data.get(attribute):
+                error_message[attribute] = [
+                    f'Action is set to remark, {attribute.replace("_", " ").title()} CANNOT be set.'
+                ]
 
         if error_message:
             raise serializers.ValidationError(error_message)

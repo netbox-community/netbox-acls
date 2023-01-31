@@ -1,1 +1,7 @@
-- TODO: single underscore functions https://stackoverflow.com/questions/1301346/what-is-the-meaning-of-single-and-double-underscore-before-an-object-name
+- TODO: ACL Form Bubble/ICON Extended/Standard
+- TODO: Add an Access List to an Interface Custom Fields after comments - DONE
+- TODO: ACL rules, look at last number and increment to next 10
+- TODO: Clone for ACL Interface should include device
+- TODO: Inconsistent errors for add/edit (where model is using a generic page)
+- TODO: Check Constants across codebase for consistency.
+- TODO: Test API and Forms

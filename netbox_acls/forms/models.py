@@ -18,19 +18,19 @@ from virtualization.models import (
 )
 
 from ..choices import ACLTypeChoices
-from .constants import (
-    ERROR_MESSAGE_NO_REMARK,
-    ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK,
-    HELP_TEXT_ACL_ACTION,
-    HELP_TEXT_ACL_RULE_INDEX,
-    HELP_TEXT_ACL_RULE_LOGIC,
-)
 from ..models import (
     AccessList,
     ACLExtendedRule,
     ACLInterfaceAssignment,
     ACLStandardRule,
     BaseACLRule,
+)
+from .constants import (
+    ERROR_MESSAGE_NO_REMARK,
+    ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK,
+    HELP_TEXT_ACL_ACTION,
+    HELP_TEXT_ACL_RULE_INDEX,
+    HELP_TEXT_ACL_RULE_LOGIC,
 )
 
 __all__ = (

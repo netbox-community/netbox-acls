@@ -122,6 +122,8 @@ class AccessListSerializer(NetBoxModelSerializer):
             - Check that the GFK object is valid.
             - Check if Access List has no existing rules before change the Access List's type.
         """
+        error_message = {}
+
         # Check that the GFK object is valid.
         assigned_object = validate_gfk(data)
 

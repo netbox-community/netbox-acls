@@ -122,8 +122,6 @@ class AccessListSerializer(NetBoxModelSerializer):
             - Check that the GFK object is valid.
             - Check if Access List has no existing rules before change the Access List's type.
         """
-        error_message = {}
-
         # Check that the GFK object is valid.
         assigned_object = validate_gfk(data)
 
@@ -137,7 +135,7 @@ class AccessListSerializer(NetBoxModelSerializer):
                 {"type": ["This ACL has ACL rules associated, CANNOT change ACL type."]}
             )
 
-        if error_message:
+        if error_message := {}:
             raise serializers.ValidationError(error_message)
 
         return super().validate(data)

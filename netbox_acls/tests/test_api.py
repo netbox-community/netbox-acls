@@ -18,7 +18,7 @@ class AppTest(APITestCase):
         Test the API root
         """
         url = reverse("plugins-api:netbox_acls-api:api-root")
-        response = self.client.get("{}?format=api".format(url), **self.header)
+        response = self.client.get(f"{url}?format=api", **self.header)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 

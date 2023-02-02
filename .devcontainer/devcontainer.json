@@ -78,7 +78,10 @@
 			"extensions": [
 				"DavidAnson.vscode-markdownlint",
 				"GitHub.codespaces",
+				"GitHub.copilot",
+				"GitHub.copilot-labs",
 				"GitHub.vscode-pull-request-github",
+				"Gruntfuggly.todo-tree",
 				"Tyriar.sort-lines",
 				"aaron-bond.better-comments",
 				"batisteo.vscode-django",
@@ -91,9 +94,7 @@
 				"mutantdino.resourcemonitor",
 				"paulomenezes.duplicated-code",
 				"searKing.preview-vscode",
-				"sourcery.sourcery",
-				"GitHub.copilot",
-				"GitHub.copilot-labs"
+				"sourcery.sourcery"
 			]
 		}
 	},

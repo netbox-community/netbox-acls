@@ -91,7 +91,7 @@ class TestAccessList(BaseTestCase):
             type=ACLTypeChoices.TYPE_EXTENDED,
             default_action=ACLActionChoices.ACTION_PERMIT,
         )
-        self.assertRaises(ValidationError, acl_good_name.clean)
+        acl_good_name.full_clean()
 
     def test_duplicate_name_success(self):
         """
@@ -112,7 +112,7 @@ class TestAccessList(BaseTestCase):
             assigned_object_type=ContentType.objects.get_for_model(VirtualMachine),
             assigned_object_id=1,
         )
-        self.assertIsNone(new_acl.clean())
+        new_acl.full_clean()
         #  TODO: test_duplicate_name_fail - VM & Cluster
 
     def test_alphanumeric_plus_fail(self):
@@ -122,7 +122,7 @@ class TestAccessList(BaseTestCase):
         non_alphanumeric_plus_chars = " !@#$%^&*()[]{};:,./<>?\|~=+"
 
         for i, char in enumerate(non_alphanumeric_plus_chars, start=1):
-            bade_acl_name = AccessList(
+            bad_acl_name = AccessList(
                 name=f"Testacl-bad_name_{i}_{char}",
                 assigned_object_type=ContentType.objects.get_for_model(Device),
                 assigned_object_id=1,
@@ -130,7 +130,8 @@ class TestAccessList(BaseTestCase):
                 default_action=ACLActionChoices.ACTION_PERMIT,
                 comments=f'ACL with "{char}" in name',
             )
-            self.assertIsNone(bade_acl_name.clean)
+            with self.assertRaises(ValidationError):
+                bad_acl_name.full_clean()
 
     def test_duplicate_name_fail(self):
         """
@@ -138,14 +139,16 @@ class TestAccessList(BaseTestCase):
         """
         params = {
             "name": "FAIL-DUPLICATE-ACL",
-            "assigned_object_type": "dcim.device",
+            "assigned_object_type": ContentType.objects.get_for_model(Device),
             "assigned_object_id": 1,
             "type": ACLTypeChoices.TYPE_STANDARD,
             "default_action": ACLActionChoices.ACTION_PERMIT,
         }
-        AccessList.objects.create(**params)
-        duplicate_acl = AccessList(**params)
-        self.assertRaises(ValidationError, duplicate_acl.clean())
+        acl_1 =AccessList.objects.create(**params)
+        acl_1.save()
+        acl_2 = AccessList(**params)
+        with self.assertRaises(ValidationError):
+            acl_2.full_clean()
         #  TODO: test_duplicate_name_fail - VM & Cluster
 
     # TODO: Test choices for AccessList Model

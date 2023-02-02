@@ -163,3 +163,7 @@ cython_debug/
 .vscode/
 # JetBrains
 .idea/
+
+# Temporary files
+*.tmp
+tmp/

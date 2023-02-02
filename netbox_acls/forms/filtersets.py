@@ -27,6 +27,7 @@ from ..models import (
     ACLExtendedRule,
     ACLInterfaceAssignment,
     ACLStandardRule,
+    BaseACLRule,
 )
 
 __all__ = (
@@ -37,10 +38,17 @@ __all__ = (
 )
 
 
-class AccessListFilterForm(NetBoxModelFilterSetForm):
+class BaseACLFilterForm(NetBoxModelFilterSetForm):
     """
-    GUI filter form to search the django AccessList model.
+    GUI filter inherited base form to search the django ACL and ACL Interface Assignment models.
     """
+
+    class Meta:
+        """
+        Sets the parent class as an abstract class to be inherited by other classes.
+        """
+
+        abstract = True
 
     model = AccessList
     region = DynamicModelChoiceField(
@@ -70,6 +78,14 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
         queryset=VirtualMachine.objects.all(),
         required=False,
     )
+
+
+class AccessListFilterForm(BaseACLFilterForm):
+    """
+    GUI filter form to search the django AccessList model.
+    """
+
+    model = AccessList
     virtual_chassis = DynamicModelChoiceField(
         queryset=VirtualChassis.objects.all(),
         required=False,
@@ -94,43 +110,20 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
                 "site_group",
                 "site",
                 "device",
-                "virtual_chassis",
                 "virtual_machine",
+                "virtual_chassis",
             ),
         ),
         ("ACL Details", ("type", "default_action")),
     )
 
 
-class ACLInterfaceAssignmentFilterForm(NetBoxModelFilterSetForm):
+class ACLInterfaceAssignmentFilterForm(BaseACLFilterForm):
     """
     GUI filter form to search the django AccessList model.
     """
 
     model = ACLInterfaceAssignment
-    region = DynamicModelChoiceField(
-        queryset=Region.objects.all(),
-        required=False,
-    )
-    site_group = DynamicModelChoiceField(
-        queryset=SiteGroup.objects.all(),
-        required=False,
-        label="Site Group",
-    )
-    site = DynamicModelChoiceField(
-        queryset=Site.objects.all(),
-        required=False,
-        query_params={"region_id": "$region", "group_id": "$site_group"},
-    )
-    device = DynamicModelChoiceField(
-        queryset=Device.objects.all(),
-        query_params={
-            "region_id": "$region",
-            "group_id": "$site_group",
-            "site_id": "$site",
-        },
-        required=False,
-    )
     interface = DynamicModelChoiceField(
         queryset=Interface.objects.all(),
         required=False,
@@ -138,25 +131,13 @@ class ACLInterfaceAssignmentFilterForm(NetBoxModelFilterSetForm):
             "device_id": "$device",
         },
     )
-    virtual_machine = DynamicModelChoiceField(
-        queryset=VirtualMachine.objects.all(),
-        required=False,
-        label="Virtual Machine",
-    )
     vminterface = DynamicModelChoiceField(
         queryset=VMInterface.objects.all(),
         required=False,
         query_params={
             "virtual_machine_id": "$virtual_machine",
         },
-        label="Interface",
-    )
-    access_list = DynamicModelChoiceField(
-        queryset=AccessList.objects.all(),
-        query_params={
-            "assigned_object": "$device",
-        },
-        label="Access List",
+        label="VM Interface",
     )
     direction = ChoiceField(
         choices=add_blank_choice(ACLAssignmentDirectionChoices),
@@ -164,32 +145,50 @@ class ACLInterfaceAssignmentFilterForm(NetBoxModelFilterSetForm):
     )
     tag = TagFilterField(model)
 
-    # fieldsets = (
-    #    (None, ('q', 'tag')),
-    #    ('Host Details', ('region', 'site_group', 'site', 'device')),
-    #    ('ACL Details', ('type', 'default_action')),
-    # )
+    fieldsets = (
+        (None, ("q", "tag")),
+        (
+            "Host Details",
+            (
+                "region",
+                "site_group",
+                "site",
+                "device",
+                "virtual_machine",
+            ),
+        ),
+        ("Interface Details", ("interface", "vminterface")),
+    )
 
 
-class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
+class BaseACLRuleFilterForm(NetBoxModelFilterSetForm):
     """
-    GUI filter form to search the django ACLStandardRule model.
+    GUI filter inherited base form to search the django ACL rule models.
     """
 
-    model = ACLStandardRule
-    tag = TagFilterField(model)
+    class Meta:
+        """
+        Sets the parent class as an abstract class to be inherited by other classes.
+        """
+
+        abstract = True
+
+    model = BaseACLRule
+    index = forms.IntegerField(
+        required=False,
+    )
     access_list = DynamicModelMultipleChoiceField(
         queryset=AccessList.objects.all(),
+        required=False,
+    )
+    action = ChoiceField(
+        choices=add_blank_choice(ACLRuleActionChoices),
         required=False,
     )
     source_prefix = DynamicModelMultipleChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
         label="Source Prefix",
-    )
-    action = ChoiceField(
-        choices=add_blank_choice(ACLRuleActionChoices),
-        required=False,
     )
     fieldsets = (
         (None, ("q", "tag")),
@@ -197,30 +196,24 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
     )
 
 
-class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
+class ACLStandardRuleFilterForm(BaseACLRuleFilterForm):
+    """
+    GUI filter form to search the django ACLStandardRule model.
+    """
+
+    model = ACLStandardRule
+
+    tag = TagFilterField(model)
+
+
+class ACLExtendedRuleFilterForm(BaseACLRuleFilterForm):
     """
     GUI filter form to search the django ACLExtendedRule model.
     """
 
     model = ACLExtendedRule
-    index = forms.IntegerField(
-        required=False,
-    )
     tag = TagFilterField(model)
-    access_list = DynamicModelMultipleChoiceField(
-        queryset=AccessList.objects.all(),
-        required=False,
-    )
-    action = ChoiceField(
-        choices=add_blank_choice(ACLRuleActionChoices),
-        required=False,
-    )
-    source_prefix = DynamicModelMultipleChoiceField(
-        queryset=Prefix.objects.all(),
-        required=False,
-        label="Source Prefix",
-    )
-    desintation_prefix = DynamicModelMultipleChoiceField(
+    destination_prefix = DynamicModelMultipleChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
         label="Destination Prefix",
@@ -229,17 +222,9 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
         choices=add_blank_choice(ACLProtocolChoices),
         required=False,
     )
-
-    fieldsets = (
-        (None, ("q", "tag")),
+    fieldsets = BaseACLRuleFilterForm.fieldsets[:-1] + (
         (
             "Rule Details",
-            (
-                "access_list",
-                "action",
-                "source_prefix",
-                "desintation_prefix",
-                "protocol",
-            ),
+            BaseACLRuleFilterForm.fieldsets[-1][1] + ("destination_prefix", "protocol"),
         ),
     )

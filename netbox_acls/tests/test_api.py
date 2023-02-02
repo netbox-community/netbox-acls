@@ -9,21 +9,30 @@ from netbox_acls.models import *
 
 
 class AppTest(APITestCase):
+    """
+    Test the API root
+    """
+
     def test_root(self):
+        """
+        Test the API root
+        """
         url = reverse("plugins-api:netbox_acls-api:api-root")
-        response = self.client.get(f"{url}?format=api", **self.header)
+        response = self.client.get("{}?format=api".format(url), **self.header)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
 class ACLTestCase(
+    APIViewTestCases.CreateObjectViewTestCase,
+    APIViewTestCases.DeleteObjectViewTestCase,
     APIViewTestCases.GetObjectViewTestCase,
     APIViewTestCases.ListObjectsViewTestCase,
-    APIViewTestCases.CreateObjectViewTestCase,
     APIViewTestCases.UpdateObjectViewTestCase,
-    APIViewTestCases.DeleteObjectViewTestCase,
 ):
-    """Test the AccessList Test"""
+    """
+    Test the AccessList Test
+    """
 
     model = AccessList
     view_namespace = "plugins-api:netbox_acls"
@@ -31,6 +40,9 @@ class ACLTestCase(
 
     @classmethod
     def setUpTestData(cls):
+        """
+        Create a test site, manufacturer, device type, device role, and device
+        """
         site = Site.objects.create(name="Site 1", slug="site-1")
         manufacturer = Manufacturer.objects.create(
             name="Manufacturer 1",
@@ -53,49 +65,67 @@ class ACLTestCase(
 
         access_lists = (
             AccessList(
-                name="testacl1",
+                name="testacl-standard-deny-1",
                 assigned_object_type=ContentType.objects.get_for_model(Device),
                 assigned_object_id=device.id,
                 type=ACLTypeChoices.TYPE_STANDARD,
+                default_action=ACLActionChoices.ACTION_DENY,
+                comments="Comment Test 1",
+            ),
+            AccessList(
+                name="testacl-standard-permit-1",
+                assigned_object_type=ContentType.objects.get_for_model(Device),
+                assigned_object_id=device.id,
+                type=ACLTypeChoices.TYPE_STANDARD,
+                default_action=ACLActionChoices.ACTION_PERMIT,
+                comments="Comment Test 2",
+            ),
+            AccessList(
+                name="testacl-extended-deny-1",
+                assigned_object_type=ContentType.objects.get_for_model(Device),
+                assigned_object_id=device.id,
+                type=ACLTypeChoices.TYPE_EXTENDED,
                 default_action=ACLActionChoices.ACTION_DENY,
             ),
             AccessList(
-                name="testacl2",
+                name="testacl-extended-permit-1",
                 assigned_object_type=ContentType.objects.get_for_model(Device),
                 assigned_object_id=device.id,
-                type=ACLTypeChoices.TYPE_STANDARD,
-                default_action=ACLActionChoices.ACTION_DENY,
-            ),
-            AccessList(
-                name="testacl3",
-                assigned_object_type=ContentType.objects.get_for_model(Device),
-                assigned_object_id=device.id,
-                type=ACLTypeChoices.TYPE_STANDARD,
-                default_action=ACLActionChoices.ACTION_DENY,
+                type=ACLTypeChoices.TYPE_EXTENDED,
+                default_action=ACLActionChoices.ACTION_PERMIT,
             ),
         )
         AccessList.objects.bulk_create(access_lists)
 
         cls.create_data = [
             {
-                "name": "testacl4",
+                "name": "testacl-standard-deny-2",
                 "assigned_object_type": "dcim.device",
                 "assigned_object_id": device.id,
                 "type": ACLTypeChoices.TYPE_STANDARD,
                 "default_action": ACLActionChoices.ACTION_DENY,
+                "comments": "Comment Test 3",
             },
             {
-                "name": "testacl5",
+                "name": "testacl-standard-permit-2",
+                "assigned_object_type": "dcim.device",
+                "assigned_object_id": device.id,
+                "type": ACLTypeChoices.TYPE_STANDARD,
+                "default_action": ACLActionChoices.ACTION_DENY,
+                "comments": "Comment Test 4",
+            },
+            {
+                "name": "testacl-extended-deny-2",
                 "assigned_object_type": "dcim.device",
                 "assigned_object_id": device.id,
                 "type": ACLTypeChoices.TYPE_EXTENDED,
                 "default_action": ACLActionChoices.ACTION_DENY,
             },
             {
-                "name": "testacl6",
+                "name": "testacl-extended-permit-2",
                 "assigned_object_type": "dcim.device",
                 "assigned_object_id": device.id,
-                "type": ACLTypeChoices.TYPE_STANDARD,
+                "type": ACLTypeChoices.TYPE_EXTENDED,
                 "default_action": ACLActionChoices.ACTION_DENY,
             },
         ]

@@ -12,13 +12,13 @@ from ..choices import ACLProtocolChoices, ACLRuleActionChoices, ACLTypeChoices
 from .access_lists import AccessList
 
 __all__ = (
-    "ACLRule",
+    "BaseACLRule",
     "ACLStandardRule",
     "ACLExtendedRule",
 )
 
 
-class ACLRule(NetBoxModel):
+class BaseACLRule(NetBoxModel):
     """
     Abstract model for ACL Rules.
     Inherrited by both ACLStandardRule and ACLExtendedRule.
@@ -55,13 +55,22 @@ class ACLRule(NetBoxModel):
     clone_fields = ("access_list", "action", "source_prefix")
 
     def __str__(self):
+        """
+        Return a string representation of the model.
+        """
         return f"{self.access_list}: Rule {self.index}"
 
     def get_action_color(self):
+        """
+        Return the color for the action.
+        """
         return ACLRuleActionChoices.colors.get(self.action)
 
     @classmethod
     def get_prerequisite_models(cls):
+        """
+        Return a list of prerequisite models for this model.
+        """
         return [apps.get_model("ipam.Prefix"), AccessList]
 
     class Meta:
@@ -77,9 +86,9 @@ class ACLRule(NetBoxModel):
         unique_together = ["access_list", "index"]
 
 
-class ACLStandardRule(ACLRule):
+class ACLStandardRule(BaseACLRule):
     """
-    Inherits ACLRule.
+    Inherits BaseACLRule.
     """
 
     access_list = models.ForeignKey(
@@ -99,9 +108,12 @@ class ACLStandardRule(ACLRule):
 
     @classmethod
     def get_prerequisite_models(cls):
+        """
+        Return a list of prerequisite models for this model.
+        """
         return [AccessList]
 
-    class Meta(ACLRule.Meta):
+    class Meta(BaseACLRule.Meta):
         """
         Define the model properties adding to or overriding the inherited class:
           - default_related_name for any FK relationships
@@ -113,9 +125,9 @@ class ACLStandardRule(ACLRule):
         verbose_name_plural = "ACL Standard Rules"
 
 
-class ACLExtendedRule(ACLRule):
+class ACLExtendedRule(BaseACLRule):
     """
-    Inherits ACLRule.
+    Inherits BaseACLRule.
     Add ACLExtendedRule specific fields: source_ports, desintation_prefix, destination_ports, and protocol
     """
 
@@ -123,7 +135,7 @@ class ACLExtendedRule(ACLRule):
         on_delete=models.CASCADE,
         to=AccessList,
         verbose_name="Extended Access List",
-        limit_choices_to={"type": "extended"},
+        limit_choices_to={"type": ACLTypeChoices.TYPE_EXTENDED},
         related_name="aclextendedrules",
     )
     source_ports = ArrayField(
@@ -160,13 +172,19 @@ class ACLExtendedRule(ACLRule):
         return reverse("plugins:netbox_acls:aclextendedrule", args=[self.pk])
 
     def get_protocol_color(self):
+        """
+        Return the color for the protocol.
+        """
         return ACLProtocolChoices.colors.get(self.protocol)
 
     @classmethod
     def get_prerequisite_models(cls):
+        """
+        Return a list of prerequisite models for this model.
+        xs"""
         return [apps.get_model("ipam.Prefix"), AccessList]
 
-    class Meta(ACLRule.Meta):
+    class Meta(BaseACLRule.Meta):
         """
         Define the model properties adding to or overriding the inherited class:
           - default_related_name for any FK relationships

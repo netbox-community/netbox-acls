@@ -1,4 +1,12 @@
-from dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
+from dcim.models import (
+    Device,
+    DeviceRole,
+    DeviceType,
+    Interface,
+    Manufacturer,
+    Site,
+    VirtualChassis,
+)
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.test import TestCase
@@ -19,7 +27,7 @@ class BaseTestCase(TestCase):
     def setUpTestData(cls):
         """
         Create base data to test using including:
-          - 1 of each of the following: test site, manufacturer, device type, device role, cluster type, cluster, & virtual machine
+          - 1 of each of the following: test site, manufacturer, device type, device role, cluster type, cluster, virtual_chassis, & virtual machine
           - 2 devices, prefixes, 2 interfaces, and 2 vminterfaces
         """
 
@@ -42,6 +50,15 @@ class BaseTestCase(TestCase):
             device_type=devicetype,
             device_role=devicerole,
         )
+        virtual_chassis = VirtualChassis.objects.create(name="Virtual Chassis 1")
+        virtual_chassis_member = Device.objects.create(
+            name="VC Device",
+            site=site,
+            device_type=devicetype,
+            device_role=devicerole,
+            virtual_chassis=virtual_chassis,
+            vc_position=1,
+        )
         cluster_member = Device.objects.create(
             name="Cluster Device",
             site=site,
@@ -54,25 +71,6 @@ class BaseTestCase(TestCase):
             type=clustertype,
         )
         virtual_machine = VirtualMachine.objects.create(name="VirtualMachine 1")
-
-        interfaces = Interface.objects.bulk_create(
-            (
-                Interface(name="Interface 1", device=device, type="1000baset"),
-                Interface(name="Interface 2", device=device, type="1000baset"),
-            )
-        )
-        vminterfaces = VMInterface.objects.bulk_create(
-            (
-                VMInterface(name="Interface 1", virtual_machine=virtual_machine),
-                VMInterface(name="Interface 2", virtual_machine=virtual_machine),
-            )
-        )
-        prefixes = Prefix.objects.bulk_create(
-            (
-                Prefix(prefix=IPNetwork("10.0.0.0/24")),
-                Prefix(prefix=IPNetwork("192.168.1.0/24")),
-            )
-        )
 
 
 class TestAccessList(BaseTestCase):
@@ -97,6 +95,7 @@ class TestAccessList(BaseTestCase):
         """
         Test that AccessList names can be non-unique if associated to different devices.
         """
+
         params = {
             "name": "GOOD-DUPLICATE-ACL",
             "type": ACLTypeChoices.TYPE_STANDARD,
@@ -107,13 +106,18 @@ class TestAccessList(BaseTestCase):
             assigned_object_type=ContentType.objects.get_for_model(Device),
             assigned_object_id=1,
         )
-        new_acl = AccessList(
+        vm_acl = AccessList(
             **params,
             assigned_object_type=ContentType.objects.get_for_model(VirtualMachine),
             assigned_object_id=1,
         )
-        new_acl.full_clean()
-        #  TODO: test_duplicate_name_fail - VM & Cluster
+        vm_acl.full_clean()
+        vc_acl = AccessList(
+            **params,
+            assigned_object_type=ContentType.objects.get_for_model(VirtualChassis),
+            assigned_object_id=1,
+        )
+        vc_acl.full_clean()
 
     def test_alphanumeric_plus_fail(self):
         """
@@ -144,12 +148,12 @@ class TestAccessList(BaseTestCase):
             "type": ACLTypeChoices.TYPE_STANDARD,
             "default_action": ACLActionChoices.ACTION_PERMIT,
         }
-        acl_1 =AccessList.objects.create(**params)
+        acl_1 = AccessList.objects.create(**params)
         acl_1.save()
         acl_2 = AccessList(**params)
         with self.assertRaises(ValidationError):
             acl_2.full_clean()
-        #  TODO: test_duplicate_name_fail - VM & Cluster
+        #  TODO: test_duplicate_name_fail - VM & VC
 
     # TODO: Test choices for AccessList Model
 
@@ -159,19 +163,45 @@ class TestACLInterfaceAssignment(BaseTestCase):
     Test ACLInterfaceAssignment model.
     """
 
-    def test_acl_assignment_success(self):
+    @classmethod
+    def setUpTestData(cls):
+        """
+        Extend BaseTestCase's setUpTestData() to create additional data for testing.
+        """
+        super().setUpTestData()
+
+        interfaces = Interface.objects.bulk_create(
+            (
+                Interface(name="Interface 1", device=device, type="1000baset"),
+                Interface(name="Interface 2", device=device, type="1000baset"),
+            )
+        )
+        vminterfaces = VMInterface.objects.bulk_create(
+            (
+                VMInterface(name="Interface 1", virtual_machine=virtual_machine),
+                VMInterface(name="Interface 2", virtual_machine=virtual_machine),
+            )
+        )
+        # prefixes = Prefix.objects.bulk_create(
+        #    (
+        #        Prefix(prefix=IPNetwork("10.0.0.0/24")),
+        #        Prefix(prefix=IPNetwork("192.168.1.0/24")),
+        #    )
+        # )
+
+    def test_acl_interface_assignment_success(self):
         """
         Test that ACLInterfaceAssignment passes validation if the ACL is assigned to the host and not already assigned to the interface and direction.
         """
         pass
-        #  TODO: test_acl_assignment_success - VM & Device
+        #  TODO: test_acl_interface_assignment_success - VM & Device
 
-    def test_acl_assignment_fail(self):
+    def test_acl_interface_assignment_fail(self):
         """
         Test that ACLInterfaceAssignment fails validation if the ACL is not assigned to the parent host.
         """
         pass
-        #  TODO: test_acl_assignment_fail - VM & Device
+        #  TODO: test_acl_interface_assignment_fail - VM & Device
 
     def test_duplicate_assignment_fail(self):
         """

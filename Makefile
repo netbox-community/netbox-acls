@@ -76,7 +76,7 @@ rebuild: setup makemigrations migrate collectstatic start
 .PHONY: test
 test: setup
 	${VENV_PY_PATH} ${NETBOX_MANAGE_PATH}/manage.py makemigrations ${PLUGIN_NAME} --check
-	${VENV_PY_PATH} ${NETBOX_MANAGE_PATH}/manage.py test ${PLUGIN_NAME}
+	${VENV_PY_PATH} ${NETBOX_MANAGE_PATH}/manage.py test ${PLUGIN_NAME} -v 2
 
 #relpatch:
 #	$(eval GSTATUS := $(shell git status --porcelain))

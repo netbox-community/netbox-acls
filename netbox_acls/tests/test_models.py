@@ -1,3 +1,5 @@
+from itertools import cycle
+
 from dcim.models import (
     Device,
     DeviceRole,
@@ -14,7 +16,6 @@ from ipam.models import Prefix
 from netaddr import IPNetwork
 from virtualization.models import Cluster, ClusterType, VirtualMachine, VMInterface
 
-from netbox_acls.choices import *
 from netbox_acls.models import *
 
 
@@ -81,8 +82,8 @@ class TestAccessList(BaseTestCase):
 
     common_acl_params = {
         "assigned_object_id": 1,
-        "type": ACLTypeChoices.TYPE_EXTENDED,
-        "default_action": ACLActionChoices.ACTION_PERMIT,
+        "type": "extended",
+        "default_action": "permit",
     }
 
     def test_wrong_assigned_object_type_fail(self):
@@ -114,11 +115,6 @@ class TestAccessList(BaseTestCase):
         Test that AccessList names can be non-unique if associated to different devices.
         """
 
-        params = {
-            "name": "GOOD-DUPLICATE-ACL",
-            "type": ACLTypeChoices.TYPE_STANDARD,
-            "default_action": ACLActionChoices.ACTION_PERMIT,
-        }
         AccessList.objects.create(
             name="GOOD-DUPLICATE-ACL",
             assigned_object_type=ContentType.objects.get_for_model(Device),
@@ -171,7 +167,65 @@ class TestAccessList(BaseTestCase):
             acl_2.full_clean()
         # TODO: test_duplicate_name_fail - VirtualChassis & Cluster
 
-    # TODO: Test choices for AccessList Model
+    def test_valid_acl_choices(self):
+        """
+        Test that AccessList action choices using VALID choices.
+        """
+        valid_acl_default_action_choices = ["permit", "deny"]
+        valid_acl_types = ["standard", "extended"]
+        if len(valid_acl_default_action_choices) > len(valid_acl_types):
+            valid_acl_choices = list(
+                zip(valid_acl_default_action_choices, cycle(valid_acl_types))
+            )
+        elif len(valid_acl_default_action_choices) < len(valid_acl_types):
+            valid_acl_choices = list(
+                zip(cycle(valid_acl_default_action_choices), valid_acl_types)
+            )
+        else:
+            valid_acl_choices = list(
+                zip(valid_acl_default_action_choices, valid_acl_types)
+            )
+
+        for default_action, acl_type in valid_acl_choices:
+            valid_acl_choice = AccessList(
+                name=f"TestACL_Valid_Choice_{default_action}_{acl_type}",
+                comments=f"VALID ACL CHOICES USED: {default_action=} {acl_type=}",
+                type=acl_type,
+                default_action=default_action,
+                assigned_object_type=ContentType.objects.get_for_model(Device),
+                assigned_object_id=1,
+            )
+            valid_acl_choice.full_clean()
+
+    def test_invalid_acl_choices(self):
+        """
+        Test that AccessList action choices using INVALID choices.
+        """
+        valid_acl_types = ["standard", "extended"]
+        invalid_acl_default_action_choice = "log"
+        invalid_acl_default_action = AccessList(
+            name=f"TestACL_Valid_Choice_{invalid_acl_default_action_choice}_{valid_acl_types[0]}",
+            comments=f"INVALID ACL DEFAULT CHOICE USED: default_action='{invalid_acl_default_action_choice}'",
+            type=valid_acl_types[0],
+            default_action=invalid_acl_default_action_choice,
+            assigned_object_type=ContentType.objects.get_for_model(Device),
+            assigned_object_id=1,
+        )
+        with self.assertRaises(ValidationError):
+            invalid_acl_default_action.full_clean()
+
+        valid_acl_default_action_choices = ["permit", "deny"]
+        invalid_acl_type = "super-dupper-extended"
+        invalid_acl_type = AccessList(
+            name=f"TestACL_Valid_Choice_{valid_acl_default_action_choices[0]}_{invalid_acl_type}",
+            comments=f"INVALID ACL DEFAULT CHOICE USED: type='{invalid_acl_type}'",
+            type=invalid_acl_type,
+            default_action=valid_acl_default_action_choices[0],
+            assigned_object_type=ContentType.objects.get_for_model(Device),
+            assigned_object_id=1,
+        )
+        with self.assertRaises(ValidationError):
+            invalid_acl_type.full_clean()
 
 
 class TestACLInterfaceAssignment(BaseTestCase):

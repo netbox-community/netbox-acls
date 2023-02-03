@@ -71,6 +71,7 @@ class BaseTestCase(TestCase):
             type=clustertype,
         )
         virtual_machine = VirtualMachine.objects.create(name="VirtualMachine 1")
+        prefix = Prefix.objects.create(prefix="10.0.0.0/8")
 
 
 class TestAccessList(BaseTestCase):
@@ -78,19 +79,35 @@ class TestAccessList(BaseTestCase):
     Test AccessList model.
     """
 
+    common_acl_params = {
+        "assigned_object_id": 1,
+        "type": ACLTypeChoices.TYPE_EXTENDED,
+        "default_action": ACLActionChoices.ACTION_PERMIT,
+    }
+
+    def test_wrong_assigned_object_type_fail(self):
+        """
+        Test that AccessList cannot be assigned to an object type other than Device, VirtualChassis, VirtualMachine, or Cluster.
+        """
+        acl_bad_gfk = AccessList(
+            name="TestACL_Wrong_GFK",
+            assigned_object_type=ContentType.objects.get_for_model(Prefix),
+            **self.common_acl_params,
+        )
+        with self.assertRaises(ValidationError):
+            acl_bad_gfk.full_clean()
+
     def test_alphanumeric_plus_success(self):
         """
         Test that AccessList names with alphanumeric characters, '_', or '-' pass validation.
         """
         acl_good_name = AccessList(
-            name="Testacl-good_name-1",
+            name="Testacl-Good_Name-1",
             assigned_object_type=ContentType.objects.get_for_model(Device),
-            assigned_object_id=1,
-            type=ACLTypeChoices.TYPE_EXTENDED,
-            default_action=ACLActionChoices.ACTION_PERMIT,
+            **self.common_acl_params,
         )
         acl_good_name.full_clean()
-        # TODO: test_alphanumeric_plus_success - VirtualChassis & Cluster
+        # TODO: test_alphanumeric_plus_success - VirtualChassis, VirtualMachine & Cluster
 
     def test_duplicate_name_success(self):
         """
@@ -103,23 +120,23 @@ class TestAccessList(BaseTestCase):
             "default_action": ACLActionChoices.ACTION_PERMIT,
         }
         AccessList.objects.create(
-            **params,
+            name="GOOD-DUPLICATE-ACL",
             assigned_object_type=ContentType.objects.get_for_model(Device),
-            assigned_object_id=1,
+            **self.common_acl_params,
         )
         vm_acl = AccessList(
-            **params,
+            name="GOOD-DUPLICATE-ACL",
             assigned_object_type=ContentType.objects.get_for_model(VirtualMachine),
-            assigned_object_id=1,
+            **self.common_acl_params,
         )
         vm_acl.full_clean()
-        # TODO: test_duplicate_name_success - VirtualChassis & Cluster
-        #vc_acl = AccessList(
-        #    **params,
+        # TODO: test_duplicate_name_success - VirtualChassis, VirtualMachine & Cluster
+        # vc_acl = AccessList(
+        #    "name": "GOOD-DUPLICATE-ACL",
         #    assigned_object_type=ContentType.objects.get_for_model(VirtualChassis),
-        #    assigned_object_id=1,
-        #)
-        #vc_acl.full_clean()
+        #    **self.common_acl_params,
+        # )
+        # vc_acl.full_clean()
 
     def test_alphanumeric_plus_fail(self):
         """
@@ -131,10 +148,8 @@ class TestAccessList(BaseTestCase):
             bad_acl_name = AccessList(
                 name=f"Testacl-bad_name_{i}_{char}",
                 assigned_object_type=ContentType.objects.get_for_model(Device),
-                assigned_object_id=1,
-                type=ACLTypeChoices.TYPE_EXTENDED,
-                default_action=ACLActionChoices.ACTION_PERMIT,
                 comments=f'ACL with "{char}" in name',
+                **self.common_acl_params,
             )
             with self.assertRaises(ValidationError):
                 bad_acl_name.full_clean()
@@ -146,9 +161,8 @@ class TestAccessList(BaseTestCase):
         params = {
             "name": "FAIL-DUPLICATE-ACL",
             "assigned_object_type": ContentType.objects.get_for_model(Device),
+            **self.common_acl_params,
             "assigned_object_id": 1,
-            "type": ACLTypeChoices.TYPE_STANDARD,
-            "default_action": ACLActionChoices.ACTION_PERMIT,
         }
         acl_1 = AccessList.objects.create(**params)
         acl_1.save()
@@ -172,18 +186,18 @@ class TestACLInterfaceAssignment(BaseTestCase):
         """
         super().setUpTestData()
 
-        #interfaces = Interface.objects.bulk_create(
+        # interfaces = Interface.objects.bulk_create(
         #    (
         #        Interface(name="Interface 1", device=device, type="1000baset"),
         #        Interface(name="Interface 2", device=device, type="1000baset"),
         #    )
-        #)
-        #vminterfaces = VMInterface.objects.bulk_create(
+        # )
+        # vminterfaces = VMInterface.objects.bulk_create(
         #    (
         #        VMInterface(name="Interface 1", virtual_machine=virtual_machine),
         #        VMInterface(name="Interface 2", virtual_machine=virtual_machine),
         #    )
-        #)
+        # )
         # prefixes = Prefix.objects.bulk_create(
         #    (
         #        Prefix(prefix=IPNetwork("10.0.0.0/24")),
@@ -224,10 +238,12 @@ class TestACLInterfaceAssignment(BaseTestCase):
 
 # TODO: Investigate a Base model for ACLStandardRule and ACLExtendedRule
 
+
 class TestACLStandardRule(BaseTestCase):
     """
     Test ACLStandardRule model.
     """
+
     # TODO: Develop tests for ACLStandardRule model
 
 
@@ -235,4 +251,5 @@ class ACLExtendedRule(BaseTestCase):
     """
     Test ACLExtendedRule model.
     """
+
     # TODO: Develop tests for ACLExtendedRule model

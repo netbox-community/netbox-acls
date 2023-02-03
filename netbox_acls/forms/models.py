@@ -65,19 +65,20 @@ class AccessListForm(NetBoxModelForm):
     region = DynamicModelChoiceField(
         queryset=Region.objects.all(),
         required=False,
+        initial_params={
+            "sites": "$site",
+        },
     )
     site_group = DynamicModelChoiceField(
         queryset=SiteGroup.objects.all(),
         required=False,
         label="Site Group",
+        initial_params={"sites": "$site"},
     )
     site = DynamicModelChoiceField(
         queryset=Site.objects.all(),
         required=False,
-        query_params={
-            "region_id": "$region",
-            "group_id": "$site_group",
-        },
+        query_params={"region_id": "$region", "group_id": "$site_group"},
     )
     device = DynamicModelChoiceField(
         queryset=Device.objects.all(),
@@ -101,32 +102,24 @@ class AccessListForm(NetBoxModelForm):
         queryset=ClusterType.objects.all(),
         required=False,
     )
-
     cluster_group = DynamicModelChoiceField(
         queryset=ClusterGroup.objects.all(),
         required=False,
-        query_params={
-            "type_id": "$cluster_type",
-        },
+        query_params={"type_id": "$cluster_type"},
     )
-
     cluster = DynamicModelChoiceField(
         queryset=Cluster.objects.all(),
         required=False,
-        query_params={
-            "type_id": "$cluster_type",
-            "group_id": "$cluster_group",
-        },
+        query_params={"type_id": "$cluster_type", "group_id": "$cluster_group"},
     )
 
     virtual_machine = DynamicModelChoiceField(
         queryset=VirtualMachine.objects.all(),
         required=False,
-        label="Virtual Machine",
         query_params={
+            "cluster_id": "$cluster",
             "cluster_type_id": "$cluster_type",
             "cluster_group_id": "$cluster_group",
-            "cluster_id": "$cluster",
         },
     )
 
@@ -161,14 +154,30 @@ class AccessListForm(NetBoxModelForm):
         instance = kwargs.get("instance")
         initial = kwargs.get("initial", {}).copy()
         if instance:
-            if type(instance.assigned_object) is Device:
+            if isinstance(instance.assigned_object, Device):
                 initial["device"] = instance.assigned_object
-            elif type(instance.assigned_object) is VirtualChassis:
-                initial["virtual_chassis"] = instance.assigned_object
-            elif type(instance.assigned_object) is VirtualMachine:
-                initial["virtual_machine"] = instance.assigned_object
-        kwargs["initial"] = initial
+                if instance.assigned_object.site:
+                    initial["site"] = instance.assigned_object.site
+                    if instance.assigned_object.site.group:
+                        initial["site_group"] = instance.assigned_object.site.group
 
+                    if instance.assigned_object.site.region:
+                        initial["region"] = instance.assigned_object.site.region
+            elif isinstance(instance.assigned_object, VirtualMachine):
+                initial["virtual_machine"] = instance.assigned_object
+                if instance.assigned_object.cluster:
+                    initial["cluster"] = instance.assigned_object.cluster
+                    if instance.assigned_object.cluster.group:
+                        initial[
+                            "cluster_group"
+                        ] = instance.assigned_object.cluster.group
+
+                    if instance.assigned_object.cluster.type:
+                        initial["cluster_type"] = instance.assigned_object.cluster.type
+            elif isinstance(instance.assigned_object, VirtualChassis):
+                initial["virtual_chassis"] = instance.assigned_object
+
+        kwargs["initial"] = initial
         super().__init__(*args, **kwargs)
 
     def clean(self):

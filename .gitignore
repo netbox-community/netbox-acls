@@ -167,3 +167,11 @@ cython_debug/
 # Temporary files
 *.tmp
 tmp/
+
+# coverage
+coverage/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover

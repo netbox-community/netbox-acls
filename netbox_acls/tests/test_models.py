@@ -81,10 +81,10 @@ class TestAccessList(BaseTestCase):
     """
 
     common_acl_params = {
-        "assigned_object_id": 1,
         "type": "extended",
         "default_action": "permit",
     }
+    # device = Device.objects.first()
 
     def test_wrong_assigned_object_type_fail(self):
         """
@@ -93,6 +93,7 @@ class TestAccessList(BaseTestCase):
         acl_bad_gfk = AccessList(
             name="TestACL_Wrong_GFK",
             assigned_object_type=ContentType.objects.get_for_model(Prefix),
+            assigned_object_id=Prefix.objects.first(),
             **self.common_acl_params,
         )
         with self.assertRaises(ValidationError):
@@ -105,6 +106,7 @@ class TestAccessList(BaseTestCase):
         acl_good_name = AccessList(
             name="Testacl-Good_Name-1",
             assigned_object_type=ContentType.objects.get_for_model(Device),
+            assigned_object_id=1,  # TODO - replace with Device.objects.first()
             **self.common_acl_params,
         )
         acl_good_name.full_clean()
@@ -114,15 +116,16 @@ class TestAccessList(BaseTestCase):
         """
         Test that AccessList names can be non-unique if associated to different devices.
         """
-
         AccessList.objects.create(
             name="GOOD-DUPLICATE-ACL",
             assigned_object_type=ContentType.objects.get_for_model(Device),
+            assigned_object_id=1,  # TODO - replace with Device.objects.first()
             **self.common_acl_params,
         )
         vm_acl = AccessList(
             name="GOOD-DUPLICATE-ACL",
             assigned_object_type=ContentType.objects.get_for_model(VirtualMachine),
+            assigned_object_id=1,  # TODO - replace with VirtualMachine.objects.first().id,
             **self.common_acl_params,
         )
         vm_acl.full_clean()
@@ -158,7 +161,7 @@ class TestAccessList(BaseTestCase):
             "name": "FAIL-DUPLICATE-ACL",
             "assigned_object_type": ContentType.objects.get_for_model(Device),
             **self.common_acl_params,
-            "assigned_object_id": 1,
+            "assigned_object_id": 1,  # TODO - replace with Device.objects.first()
         }
         acl_1 = AccessList.objects.create(**params)
         acl_1.save()
@@ -193,7 +196,7 @@ class TestAccessList(BaseTestCase):
                 type=acl_type,
                 default_action=default_action,
                 assigned_object_type=ContentType.objects.get_for_model(Device),
-                assigned_object_id=1,
+                assigned_object_id=1,  # TODO - replace with Device.objects.first()
             )
             valid_acl_choice.full_clean()
 
@@ -209,7 +212,7 @@ class TestAccessList(BaseTestCase):
             type=valid_acl_types[0],
             default_action=invalid_acl_default_action_choice,
             assigned_object_type=ContentType.objects.get_for_model(Device),
-            assigned_object_id=1,
+            assigned_object_id=1,  # TODO - replace with Device.objects.first()
         )
         with self.assertRaises(ValidationError):
             invalid_acl_default_action.full_clean()
@@ -222,7 +225,7 @@ class TestAccessList(BaseTestCase):
             type=invalid_acl_type,
             default_action=valid_acl_default_action_choices[0],
             assigned_object_type=ContentType.objects.get_for_model(Device),
-            assigned_object_id=1,
+            assigned_object_id=1,  # TODO - replace with Device.objects.first()
         )
         with self.assertRaises(ValidationError):
             invalid_acl_type.full_clean()
@@ -239,32 +242,68 @@ class TestACLInterfaceAssignment(BaseTestCase):
         Extend BaseTestCase's setUpTestData() to create additional data for testing.
         """
         super().setUpTestData()
-
-        # interfaces = Interface.objects.bulk_create(
-        #    (
-        #        Interface(name="Interface 1", device=device, type="1000baset"),
-        #        Interface(name="Interface 2", device=device, type="1000baset"),
-        #    )
-        # )
-        # vminterfaces = VMInterface.objects.bulk_create(
-        #    (
-        #        VMInterface(name="Interface 1", virtual_machine=virtual_machine),
-        #        VMInterface(name="Interface 2", virtual_machine=virtual_machine),
-        #    )
-        # )
-        # prefixes = Prefix.objects.bulk_create(
-        #    (
-        #        Prefix(prefix=IPNetwork("10.0.0.0/24")),
-        #        Prefix(prefix=IPNetwork("192.168.1.0/24")),
-        #    )
-        # )
+        device = Device.objects.first()
+        interfaces = Interface.objects.bulk_create(
+            (
+                Interface(name="Interface 1", device=device, type="1000baset"),
+                Interface(name="Interface 2", device=device, type="1000baset"),
+            )
+        )
+        virtual_machine = VirtualMachine.objects.first()
+        vminterfaces = VMInterface.objects.bulk_create(
+            (
+                VMInterface(name="Interface 1", virtual_machine=virtual_machine),
+                VMInterface(name="Interface 2", virtual_machine=virtual_machine),
+            )
+        )
+        prefixes = Prefix.objects.bulk_create(
+            (
+                Prefix(prefix=IPNetwork("10.0.0.0/24")),
+                Prefix(prefix=IPNetwork("192.168.1.0/24")),
+            )
+        )
 
     def test_acl_interface_assignment_success(self):
         """
         Test that ACLInterfaceAssignment passes validation if the ACL is assigned to the host and not already assigned to the interface and direction.
         """
-        pass
-        #  TODO: test_acl_interface_assignment_success - VM & Device
+        device_acl = AccessList(
+            name="STANDARD_ACL",
+            comments="STANDARD_ACL",
+            type="standard",
+            default_action="permit",
+            assigned_object_id=1,
+            assigned_object_type=ContentType.objects.get_for_model(Device),
+        )
+        device_acl.save()
+        acl_device_interface = ACLInterfaceAssignment(
+            access_list_id=device_acl.pk,
+            direction="ingress",
+            assigned_object_id=1,
+            assigned_object_type=ContentType.objects.get_for_model(Interface),
+        )
+        acl_device_interface.full_clean()
+
+    def test_acl_vminterface_assignment_success(self):
+        """
+        Test that ACLInterfaceAssignment passes validation if the ACL is assigned to the host and not already assigned to the vminterface and direction.
+        """
+        vm_acl = AccessList(
+            name="STANDARD_ACL",
+            comments="STANDARD_ACL",
+            type="standard",
+            default_action="permit",
+            assigned_object_id=1,
+            assigned_object_type=ContentType.objects.get_for_model(VirtualMachine),
+        )
+        vm_acl.save()
+        acl_vm_interface = ACLInterfaceAssignment(
+            access_list=vm_acl.pk,
+            direction="ingress",
+            assigned_object_id=1,
+            assigned_object_type=ContentType.objects.get_for_model(VMInterface),
+        )
+        acl_vm_interface.full_clean()
 
     def test_acl_interface_assignment_fail(self):
         """

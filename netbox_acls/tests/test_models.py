@@ -298,7 +298,7 @@ class TestACLInterfaceAssignment(BaseTestCase):
         )
         vm_acl.save()
         acl_vm_interface = ACLInterfaceAssignment(
-            access_list=vm_acl.pk,
+            access_list=vm_acl,
             direction="ingress",
             assigned_object_id=1,
             assigned_object_type=ContentType.objects.get_for_model(VMInterface),

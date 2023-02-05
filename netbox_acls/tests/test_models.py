@@ -277,7 +277,7 @@ class TestACLInterfaceAssignment(BaseTestCase):
         )
         device_acl.save()
         acl_device_interface = ACLInterfaceAssignment(
-            access_list_id=device_acl.pk,
+            access_list=device_acl,
             direction="ingress",
             assigned_object_id=1,
             assigned_object_type=ContentType.objects.get_for_model(Interface),

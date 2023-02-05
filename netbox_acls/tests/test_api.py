@@ -17,11 +17,7 @@ class AppTest(APITestCase):
 
 
 class ACLTestCase(
-    APIViewTestCases.GetObjectViewTestCase,
-    APIViewTestCases.ListObjectsViewTestCase,
-    APIViewTestCases.CreateObjectViewTestCase,
-    APIViewTestCases.UpdateObjectViewTestCase,
-    APIViewTestCases.DeleteObjectViewTestCase,
+    APIViewTestCases.APIViewTestCase,
 ):
     """Test the AccessList Test"""
 

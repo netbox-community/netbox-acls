@@ -51,27 +51,28 @@ class BaseTestCase(TestCase):
             device_type=devicetype,
             device_role=devicerole,
         )
-        virtual_chassis = VirtualChassis.objects.create(name="Virtual Chassis 1")
-        virtual_chassis_member = Device.objects.create(
-            name="VC Device",
-            site=site,
-            device_type=devicetype,
-            device_role=devicerole,
-            virtual_chassis=virtual_chassis,
-            vc_position=1,
-        )
-        cluster_member = Device.objects.create(
-            name="Cluster Device",
-            site=site,
-            device_type=devicetype,
-            device_role=devicerole,
-        )
-        clustertype = ClusterType.objects.create(name="Cluster Type 1")
-        cluster = Cluster.objects.create(
-            name="Cluster 1",
-            type=clustertype,
-        )
+        # virtual_chassis = VirtualChassis.objects.create(name="Virtual Chassis 1")
+        # virtual_chassis_member = Device.objects.create(
+        #    name="VC Device",
+        #    site=site,
+        #    device_type=devicetype,
+        #    device_role=devicerole,
+        #    virtual_chassis=virtual_chassis,
+        #    vc_position=1,
+        # )
+        # cluster_member = Device.objects.create(
+        #    name="Cluster Device",
+        #    site=site,
+        #    device_type=devicetype,
+        #    device_role=devicerole,
+        # )
+        # clustertype = ClusterType.objects.create(name="Cluster Type 1")
+        # cluster = Cluster.objects.create(
+        #    name="Cluster 1",
+        #    type=clustertype,
+        # )
         virtual_machine = VirtualMachine.objects.create(name="VirtualMachine 1")
+        virtual_machine.save()
         prefix = Prefix.objects.create(prefix="10.0.0.0/8")
 
 
@@ -256,12 +257,12 @@ class TestACLInterfaceAssignment(BaseTestCase):
                 VMInterface(name="Interface 2", virtual_machine=virtual_machine),
             )
         )
-        prefixes = Prefix.objects.bulk_create(
-            (
-                Prefix(prefix=IPNetwork("10.0.0.0/24")),
-                Prefix(prefix=IPNetwork("192.168.1.0/24")),
-            )
-        )
+        #prefixes = Prefix.objects.bulk_create(
+        #    (
+        #        Prefix(prefix=IPNetwork("10.0.0.0/24")),
+        #        Prefix(prefix=IPNetwork("192.168.1.0/24")),
+        #    )
+        #)
 
     def test_acl_interface_assignment_success(self):
         """
@@ -272,17 +273,35 @@ class TestACLInterfaceAssignment(BaseTestCase):
             comments="STANDARD_ACL",
             type="standard",
             default_action="permit",
-            assigned_object_id=1,
-            assigned_object_type=ContentType.objects.get_for_model(Device),
+            assigned_object=Device.objects.first(),
         )
         device_acl.save()
         acl_device_interface = ACLInterfaceAssignment(
             access_list=device_acl,
             direction="ingress",
-            assigned_object_id=1,
-            assigned_object_type=ContentType.objects.get_for_model(Interface),
+            assigned_object=Interface.objects.first(),
         )
         acl_device_interface.full_clean()
+
+    def test_aclinterface_assignment_fail(self):
+        """
+        Test that ACLInterfaceAssignment passes validation if the ACL is assigned to the host and not already assigned to the vminterface and direction.
+        """
+        device_acl = AccessList(
+            name="STANDARD_ACL",
+            comments="STANDARD_ACL",
+            type="standard",
+            default_action="permit",
+            assigned_object=Device.objects.first(),
+        )
+        device_acl.save()
+        acl_vm_interface = ACLInterfaceAssignment(
+            access_list=device_acl,
+            direction="ingress",
+            assigned_object=VMInterface.objects.first(),
+        )
+        with self.assertRaises(ValidationError):
+            acl_vm_interface.full_clean()
 
     def test_acl_vminterface_assignment_success(self):
         """

@@ -3,6 +3,7 @@ from netbox.graphql.fields import ObjectField, ObjectListField
 
 from .types import *
 
+
 class Query(ObjectType):
     """
     Defines the queries available to this plugin via the graphql api.

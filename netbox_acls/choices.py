@@ -82,9 +82,11 @@ class ACLProtocolChoices(ChoiceSet):
     PROTOCOL_ICMP = "icmp"
     PROTOCOL_TCP = "tcp"
     PROTOCOL_UDP = "udp"
+    PROTOCOL_IP = "ip"
 
     CHOICES = [
         (PROTOCOL_ICMP, "ICMP", "purple"),
         (PROTOCOL_TCP, "TCP", "blue"),
         (PROTOCOL_UDP, "UDP", "orange"),
+        (PROTOCOL_IP, "IP", "green"),
     ]

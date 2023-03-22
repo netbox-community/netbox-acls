@@ -92,6 +92,21 @@ class ACLProtocolChoices(ChoiceSet):
         (PROTOCOL_IP, "IP", "green"),
     ]
 
+    
+class ACLIPFlagsChoices(ChoiceSet):
+    """
+    Defines the choices availble for the Access Lists plugin specific to ACL IP header flags. Excluding the Reserved Flag.
+    """
+    
+    IPFlag_DF = "ipdf"
+    IPFlag_MF = "ipmf"
+    
+    CHOICES = [
+         (IPFlag_DF, "IP Do not Fragment", "yellow")
+         (IPFlag_MF, "IP More Fragments", "yellow")
+    ]  
+ 
+          
 class ACLTCPFlagsChoices(ChoiceSet):
     """
     Defines the choices availble for the Access Lists plugin specific to ACL TCP protocol flags.
@@ -116,7 +131,8 @@ class ACLTCPFlagsChoices(ChoiceSet):
         (TCPFlag_SYN, "SYN", "blue")
         (TCPFlag_FIN, "FIN", "red")   
     ]
-    
+
+          
 class ACLICMPTypeChoices(ChoiceSet):
     """
     Defines the choices availble for the Access Lists plugin specific to ACL ICMP Types. Includes Deprecated flags with a "_d" suffix. Unassigned Types are left out.

@@ -98,21 +98,6 @@ class AccessListSerializer(NetBoxModelSerializer):
         """
         error_message = {}
 
-        # Check that the GFK object is valid.
-        if "assigned_object_type" in data and "assigned_object_id" in data:
-            # TODO: This can removed after https://github.com/netbox-community/netbox/issues/10221 is fixed.
-            try:
-                assigned_object = data[  # noqa: F841
-                    "assigned_object_type"
-                ].get_object_for_this_type(
-                    id=data["assigned_object_id"],
-                )
-            except ObjectDoesNotExist:
-                # Sets a standard error message for invalid GFK
-                error_message_invalid_gfk = f"Invalid assigned_object {data['assigned_object_type']} ID {data['assigned_object_id']}"
-                error_message["assigned_object_type"] = [error_message_invalid_gfk]
-                error_message["assigned_object_id"] = [error_message_invalid_gfk]
-
         # Check if Access List has no existing rules before change the Access List's type.
         if (
             self.instance
@@ -181,21 +166,6 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
         """
         error_message = {}
         acl_host = data["access_list"].assigned_object
-
-        # Check that the GFK object is valid.
-        if "assigned_object_type" in data and "assigned_object_id" in data:
-            # TODO: This can removed after https://github.com/netbox-community/netbox/issues/10221 is fixed.
-            try:
-                assigned_object = data[  # noqa: F841
-                    "assigned_object_type"
-                ].get_object_for_this_type(
-                    id=data["assigned_object_id"],
-                )
-            except ObjectDoesNotExist:
-                # Sets a standard error message for invalid GFK
-                error_message_invalid_gfk = f"Invalid assigned_object {data['assigned_object_type']} ID {data['assigned_object_id']}"
-                error_message["assigned_object_type"] = [error_message_invalid_gfk]
-                error_message["assigned_object_id"] = [error_message_invalid_gfk]
 
         if data["assigned_object_type"].model == "interface":
             interface_host = (

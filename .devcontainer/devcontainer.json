@@ -28,9 +28,8 @@
 				"isort.args": [
 					"--profile=black"
 				],
-				"isort.path": "/opt/netbox/venv/bin/isort",
+				"isort.path": ["/opt/netbox/venv/bin/isort"],
 				"python.analysis.typeCheckingMode": "strict",
-				python.Jedi
 				"python.analysis.extraPaths": [
 					"/opt/netbox/netbox"
 				],
@@ -86,6 +85,7 @@
 				"aaron-bond.better-comments",
 				"batisteo.vscode-django",
 				"codezombiech.gitignore",
+				"eamodio.gitlens",
 				"esbenp.prettier-vscode",
 				"formulahendry.auto-rename-tag",
 				"mintlify.document",

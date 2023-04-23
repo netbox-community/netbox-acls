@@ -149,7 +149,6 @@ class AccessListForm(NetBoxModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-
         # Initialize helper selectors
         instance = kwargs.get("instance")
         initial = kwargs.get("initial", {}).copy()
@@ -324,7 +323,6 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
     comments = CommentField()
 
     def __init__(self, *args, **kwargs):
-
         # Initialize helper selectors
         instance = kwargs.get("instance")
         initial = kwargs.get("initial", {}).copy()

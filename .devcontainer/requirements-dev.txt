@@ -13,3 +13,4 @@ pylint-django
 wily
 yapf
 sourcery-analytics
+coverage

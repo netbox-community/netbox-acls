@@ -5,6 +5,7 @@ Define the django models for this plugin.
 from dcim.models import Device, Interface, VirtualChassis
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
 from django.urls import reverse
@@ -21,7 +22,7 @@ __all__ = (
 
 
 alphanumeric_plus = RegexValidator(
-    r"^[0-9a-zA-Z,-,_]*$",
+    r"^[a-zA-Z0-9-_]+$",
     "Only alphanumeric, hyphens, and underscores characters are allowed.",
 )
 
@@ -145,6 +146,22 @@ class ACLInterfaceAssignment(NetBoxModel):
             "plugins:netbox_acls:aclinterfaceassignment",
             args=[self.pk],
         )
+
+    def clean(self):
+        super().clean()
+
+        # Get the model type of the assigned interface.
+        if self.assigned_object_type.model_class() == VMInterface:
+            interface_host = self.assigned_object.virtual_machine
+        elif self.assigned_object_type.model_class() == Interface:
+            interface_host = self.assigned_object.device
+        # Check if the assigned interface's host is the same as the host assigned to the access list.
+        if interface_host != self.access_list.assigned_object:
+            raise ValidationError(
+                {
+                    "assigned_object": "The assigned object must be the same as the device assigned to it."
+                }
+            )
 
     @classmethod
     def get_prerequisite_models(cls):

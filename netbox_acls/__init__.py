@@ -18,7 +18,7 @@ class NetBoxACLsConfig(PluginConfig):
     description = "Manage simple ACLs in NetBox"
     base_url = "access-lists"
     min_version = "3.4.0"
-    max_version = "3.4.99"
+    max_version = "3.5.99"
 
 
 config = NetBoxACLsConfig

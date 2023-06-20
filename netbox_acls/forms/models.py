@@ -192,7 +192,8 @@ class AccessListForm(NetBoxModelForm):
         # Check if more than one host type selected.
         if (device and virtual_chassis) or (device and virtual_machine) or (virtual_chassis and virtual_machine):
             raise forms.ValidationError(
-                "Access Lists must be assigned to one host at a time.  " "Either a device, virtual chassis or virtual machine.",
+                "Access Lists must be assigned to one host at a time.  "
+                "Either a device, virtual chassis or virtual machine."
             )
         # Check if no hosts selected.
         if not device and not virtual_chassis and not virtual_machine:

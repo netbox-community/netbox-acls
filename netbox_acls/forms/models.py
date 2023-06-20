@@ -8,7 +8,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils.safestring import mark_safe
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelForm
-from utilities.forms import CommentField, DynamicModelChoiceField
+from utilities.forms.fields import CommentField, DynamicModelChoiceField
 from virtualization.models import (
     Cluster,
     ClusterGroup,
@@ -149,7 +149,6 @@ class AccessListForm(NetBoxModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-
         # Initialize helper selectors
         instance = kwargs.get("instance")
         initial = kwargs.get("initial", {}).copy()
@@ -324,7 +323,6 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
     comments = CommentField()
 
     def __init__(self, *args, **kwargs):
-
         # Initialize helper selectors
         instance = kwargs.get("instance")
         initial = kwargs.get("initial", {}).copy()

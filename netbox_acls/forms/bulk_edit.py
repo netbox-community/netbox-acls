@@ -7,11 +7,11 @@ Draft for a possible BulkEditForm, but may not be worth wile.
 # from django.core.exceptions import ValidationError
 # from django.utils.safestring import mark_safe
 # from netbox.forms import NetBoxModelBulkEditForm
-# from utilities.forms import (
+# from utilities.forms.utils import add_blank_choice
+# from utilities.forms.fields import (
 #     ChoiceField,
 #     DynamicModelChoiceField,
 #     StaticSelect,
-#     add_blank_choice,
 # )
 # from virtualization.models import VirtualMachine
 

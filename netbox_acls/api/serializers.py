@@ -4,8 +4,7 @@ while Django itself handles the database abstraction.
 """
 
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ObjectDoesNotExist
-from drf_yasg.utils import swagger_serializer_method
+from drf_spectacular.utils import extend_schema_field
 from ipam.api.serializers import NestedPrefixSerializer
 from netbox.api.fields import ContentTypeField
 from netbox.api.serializers import NetBoxModelSerializer
@@ -81,7 +80,7 @@ class AccessListSerializer(NetBoxModelSerializer):
             "rule_count",
         )
 
-    @swagger_serializer_method(serializer_or_field=serializers.DictField)
+    @extend_schema_field(serializers.DictField())
     def get_assigned_object(self, obj):
         serializer = get_serializer_for_model(
             obj.assigned_object,
@@ -149,7 +148,7 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
             "last_updated",
         )
 
-    @swagger_serializer_method(serializer_or_field=serializers.DictField)
+    @extend_schema_field(serializers.DictField())
     def get_assigned_object(self, obj):
         serializer = get_serializer_for_model(
             obj.assigned_object,

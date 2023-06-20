@@ -81,8 +81,7 @@ REDIS = {
             environ.get("REDIS_CACHE_PASSWORD", environ.get("REDIS_PASSWORD", "")),
         ),
         "DATABASE": int(environ.get("REDIS_CACHE_DATABASE", 1)),
-        "SSL": environ.get("REDIS_CACHE_SSL", environ.get("REDIS_SSL", "False")).lower()
-        == "true",
+        "SSL": environ.get("REDIS_CACHE_SSL", environ.get("REDIS_SSL", "False")).lower() == "true",
         "INSECURE_SKIP_TLS_VERIFY": environ.get(
             "REDIS_CACHE_INSECURE_SKIP_TLS_VERIFY",
             environ.get("REDIS_INSECURE_SKIP_TLS_VERIFY", "False"),

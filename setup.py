@@ -9,7 +9,7 @@ from setuptools import find_packages, setup
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
 with open(os.path.join(script_dir, "README.md"), encoding="utf-8") as fh:
-    long_description = fh.read()
+    long_description = fh.read().replace("(docs/img/", "(https://raw.githubusercontent.com/ryanmerolle/netbox-acls/release/docs/img/")
 
 
 def read(relative_path):
@@ -43,7 +43,18 @@ setup(
     include_package_data=True,
     zip_safe=False,
     classifiers=[
-        "Framework :: Django",
+        "Development Status :: 5 - Production/Stable",
+        "Natural Language :: English",
+        "Programming Language :: Python",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Intended Audience :: System Administrators",
+        "Intended Audience :: Telecommunications Industry",
+        "Framework :: Django",
+        "Topic :: System :: Networking",
+        "Topic :: Internet",
     ],
 )

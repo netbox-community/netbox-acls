@@ -14,7 +14,7 @@ from os.path import abspath, dirname
 # Read secret from file
 def _read_secret(secret_name, default=None):
     try:
-        f = open("/run/secrets/" + secret_name, encoding="utf-8")
+        f = open(f"/run/secrets/{secret_name}", encoding="utf-8")
     except OSError:
         return default
     else:
@@ -81,8 +81,7 @@ REDIS = {
             environ.get("REDIS_CACHE_PASSWORD", environ.get("REDIS_PASSWORD", "")),
         ),
         "DATABASE": int(environ.get("REDIS_CACHE_DATABASE", 1)),
-        "SSL": environ.get("REDIS_CACHE_SSL", environ.get("REDIS_SSL", "False")).lower()
-        == "true",
+        "SSL": environ.get("REDIS_CACHE_SSL", environ.get("REDIS_SSL", "False")).lower() == "true",
         "INSECURE_SKIP_TLS_VERIFY": environ.get(
             "REDIS_CACHE_INSECURE_SKIP_TLS_VERIFY",
             environ.get("REDIS_INSECURE_SKIP_TLS_VERIFY", "False"),

@@ -6,13 +6,13 @@ from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChass
 from django import forms
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelFilterSetForm
-from utilities.forms import (
+from utilities.forms.fields import (
     ChoiceField,
     DynamicModelChoiceField,
     DynamicModelMultipleChoiceField,
     TagFilterField,
-    add_blank_choice,
 )
+from utilities.forms.utils import add_blank_choice
 from virtualization.models import VirtualMachine, VMInterface
 
 from ..choices import (

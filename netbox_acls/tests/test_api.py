@@ -1,4 +1,4 @@
-from dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
+from dcim.models import Device, DeviceRole, DeviceType, Manufacturer, Site
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from rest_framework import status

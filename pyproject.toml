@@ -1,0 +1,23 @@
+
+[tool.black]
+line-length = 140
+
+[tool.isort]
+profile = "black"
+include_trailing_comma = true
+multi_line_output = 3
+
+[tool.pylint]
+max-line-length = 140
+
+[tool.pyright]
+include = ["netbox_secrets"]
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+]
+reportMissingImports = true
+reportMissingTypeStubs = false
+
+[tool.ruff]
+line-length = 140

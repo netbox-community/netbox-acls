@@ -21,13 +21,13 @@ repos:
           - "--profile=black"
         exclude: ^.devcontainer/
   - repo: https://github.com/psf/black
-    rev: 23.1.0
+    rev: 23.3.0
     hooks:
       - id: black
         language_version: python3
         exclude: ^.devcontainer/
   - repo: https://github.com/asottile/add-trailing-comma
-    rev: v2.4.0
+    rev: v2.5.1
     hooks:
       - id: add-trailing-comma
         args:
@@ -38,13 +38,13 @@ repos:
       - id: flake8
         exclude: ^.devcontainer/
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.1
+    rev: v3.7.0
     hooks:
       - id: pyupgrade
         args:
           - "--py39-plus"
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.29.0
+    rev: v1.32.0
     hooks:
       - id: yamllint
   - repo: https://github.com/econchick/interrogate
@@ -59,9 +59,13 @@ repos:
   #    - id: htmlhint
   #      args: [--config, .htmlhintrc]
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.33.0
+    rev: v0.35.0
     hooks:
       - id: markdownlint
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.272
+    hooks:
+      - id: ruff
   #- repo: local
   #  hooks:
   #    - id: wily

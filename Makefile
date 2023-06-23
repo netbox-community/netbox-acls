@@ -75,8 +75,15 @@ rebuild: setup makemigrations migrate collectstatic start
 
 .PHONY: test
 test: setup
-	${VENV_PY_PATH} ${NETBOX_MANAGE_PATH}/manage.py makemigrations ${PLUGIN_NAME} --check
-	${VENV_PY_PATH} ${NETBOX_MANAGE_PATH}/manage.py test ${PLUGIN_NAME}
+	${NETBOX_MANAGE_PATH}/manage.py makemigrations ${PLUGIN_NAME} --check
+	coverage run --source "netbox_acls" ${NETBOX_MANAGE_PATH}/manage.py test ${PLUGIN_NAME} -v 2
+
+.PHONY: coverage_report
+coverage_report:
+	coverage report
+
+.PHONY: test_coverage
+test_coverage: test coverage_report
 
 #relpatch:
 #	$(eval GSTATUS := $(shell git status --porcelain))

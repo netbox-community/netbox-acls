@@ -2,6 +2,7 @@ autoflake
 autopep8
 bandit
 black
+coverage
 flake8
 isort
 mypy

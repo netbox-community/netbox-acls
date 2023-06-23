@@ -78,20 +78,31 @@
 			"extensions": [
 				"DavidAnson.vscode-markdownlint",
 				"GitHub.codespaces",
+				"GitHub.copilot-labs",
 				"GitHub.vscode-pull-request-github",
+				"Gruntfuggly.todo-tree",
 				"Tyriar.sort-lines",
 				"aaron-bond.better-comments",
 				"batisteo.vscode-django",
+				"charliermarsh.ruff",
 				"codezombiech.gitignore",
 				"esbenp.prettier-vscode",
+				"exiasr.hadolint",
 				"formulahendry.auto-rename-tag",
 				"mintlify.document",
+				"ms-python.isort",
+				"ms-python.pylint",
 				"ms-python.python",
 				"ms-python.vscode-pylance",
+				"ms-vscode.makefile-tools",
 				"mutantdino.resourcemonitor",
+				"oderwat.indent-rainbow",
 				"paulomenezes.duplicated-code",
+				"redhat.vscode-yaml",
 				"searKing.preview-vscode",
-				"sourcery.sourcery"
+				"sourcery.sourcery",
+				"wholroyd.jinja",
+				"yzhang.markdown-all-in-one"
 			]
 		}
 	},

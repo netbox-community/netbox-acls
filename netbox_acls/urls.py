@@ -5,7 +5,7 @@ Map Views to URLs.
 from django.urls import include, path
 from utilities.urls import get_model_urls
 
-from . import models, views
+from . import views
 
 urlpatterns = (
     # Access Lists
@@ -47,7 +47,11 @@ urlpatterns = (
         views.ACLInterfaceAssignmentEditView.as_view(),
         name="aclinterfaceassignment_add",
     ),
-    # path('interface-assignments/edit/', views.ACLInterfaceAssignmentBulkEditView.as_view(), name='aclinterfaceassignment_bulk_edit'),
+    # path(
+    #    "interface-assignments/edit/",
+    #    views.ACLInterfaceAssignmentBulkEditView.as_view(),
+    #    name="aclinterfaceassignment_bulk_edit"
+    # ),
     path(
         "interface-assignments/delete/",
         views.ACLInterfaceAssignmentBulkDeleteView.as_view(),

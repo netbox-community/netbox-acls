@@ -4,8 +4,7 @@ while Django itself handles the database abstraction.
 """
 
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ObjectDoesNotExist
-from drf_yasg.utils import swagger_serializer_method
+from drf_spectacular.utils import extend_schema_field
 from ipam.api.serializers import NestedPrefixSerializer
 from netbox.api.fields import ContentTypeField
 from netbox.api.serializers import NetBoxModelSerializer
@@ -32,13 +31,9 @@ __all__ = [
 # Sets a standard error message for ACL rules with an action of remark, but no remark set.
 error_message_no_remark = "Action is set to remark, you MUST add a remark."
 # Sets a standard error message for ACL rules with an action of remark, but no source_prefix is set.
-error_message_action_remark_source_prefix_set = (
-    "Action is set to remark, Source Prefix CANNOT be set."
-)
+error_message_action_remark_source_prefix_set = "Action is set to remark, Source Prefix CANNOT be set."
 # Sets a standard error message for ACL rules with an action not set to remark, but no remark is set.
-error_message_remark_without_action_remark = (
-    "CANNOT set remark unless action is set to remark."
-)
+error_message_remark_without_action_remark = "CANNOT set remark unless action is set to remark."
 # Sets a standard error message for ACL rules no associated to an ACL of the same type.
 error_message_acl_type = "Provided parent Access List is not of right type."
 
@@ -81,7 +76,7 @@ class AccessListSerializer(NetBoxModelSerializer):
             "rule_count",
         )
 
-    @swagger_serializer_method(serializer_or_field=serializers.DictField)
+    @extend_schema_field(serializers.DictField())
     def get_assigned_object(self, obj):
         serializer = get_serializer_for_model(
             obj.assigned_object,
@@ -98,27 +93,8 @@ class AccessListSerializer(NetBoxModelSerializer):
         """
         error_message = {}
 
-        # Check that the GFK object is valid.
-        if "assigned_object_type" in data and "assigned_object_id" in data:
-            # TODO: This can removed after https://github.com/netbox-community/netbox/issues/10221 is fixed.
-            try:
-                assigned_object = data[  # noqa: F841
-                    "assigned_object_type"
-                ].get_object_for_this_type(
-                    id=data["assigned_object_id"],
-                )
-            except ObjectDoesNotExist:
-                # Sets a standard error message for invalid GFK
-                error_message_invalid_gfk = f"Invalid assigned_object {data['assigned_object_type']} ID {data['assigned_object_id']}"
-                error_message["assigned_object_type"] = [error_message_invalid_gfk]
-                error_message["assigned_object_id"] = [error_message_invalid_gfk]
-
         # Check if Access List has no existing rules before change the Access List's type.
-        if (
-            self.instance
-            and self.instance.type != data.get("type")
-            and self.instance.rule_count > 0
-        ):
+        if self.instance and self.instance.type != data.get("type") and self.instance.rule_count > 0:
             error_message["type"] = [
                 "This ACL has ACL rules associated, CANNOT change ACL type.",
             ]
@@ -164,7 +140,7 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
             "last_updated",
         )
 
-    @swagger_serializer_method(serializer_or_field=serializers.DictField)
+    @extend_schema_field(serializers.DictField())
     def get_assigned_object(self, obj):
         serializer = get_serializer_for_model(
             obj.assigned_object,
@@ -182,40 +158,15 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
         error_message = {}
         acl_host = data["access_list"].assigned_object
 
-        # Check that the GFK object is valid.
-        if "assigned_object_type" in data and "assigned_object_id" in data:
-            # TODO: This can removed after https://github.com/netbox-community/netbox/issues/10221 is fixed.
-            try:
-                assigned_object = data[  # noqa: F841
-                    "assigned_object_type"
-                ].get_object_for_this_type(
-                    id=data["assigned_object_id"],
-                )
-            except ObjectDoesNotExist:
-                # Sets a standard error message for invalid GFK
-                error_message_invalid_gfk = f"Invalid assigned_object {data['assigned_object_type']} ID {data['assigned_object_id']}"
-                error_message["assigned_object_type"] = [error_message_invalid_gfk]
-                error_message["assigned_object_id"] = [error_message_invalid_gfk]
-
         if data["assigned_object_type"].model == "interface":
-            interface_host = (
-                data["assigned_object_type"]
-                .get_object_for_this_type(id=data["assigned_object_id"])
-                .device
-            )
+            interface_host = data["assigned_object_type"].get_object_for_this_type(id=data["assigned_object_id"]).device
         elif data["assigned_object_type"].model == "vminterface":
-            interface_host = (
-                data["assigned_object_type"]
-                .get_object_for_this_type(id=data["assigned_object_id"])
-                .virtual_machine
-            )
+            interface_host = data["assigned_object_type"].get_object_for_this_type(id=data["assigned_object_id"]).virtual_machine
         else:
             interface_host = None
         # Check that the associated interface's parent host has the selected ACL defined.
         if acl_host != interface_host:
-            error_acl_not_assigned_to_host = (
-                "Access List not present on the selected interface's host."
-            )
+            error_acl_not_assigned_to_host = "Access List not present on the selected interface's host."
             error_message["access_list"] = [error_acl_not_assigned_to_host]
             error_message["assigned_object_id"] = [error_acl_not_assigned_to_host]
 

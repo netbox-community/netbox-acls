@@ -10,5 +10,7 @@ pycodestyle
 pydocstyle
 pylint
 pylint-django
+ruff
+sourcery-analytics
 wily
 yapf

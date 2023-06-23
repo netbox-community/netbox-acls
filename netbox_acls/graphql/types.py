@@ -2,11 +2,9 @@
 Define the object types and queries availble via the graphql api.
 """
 
-from graphene import ObjectType
-from netbox.graphql.fields import ObjectField, ObjectListField
 from netbox.graphql.types import NetBoxObjectType
 
-from . import filtersets, models
+from .. import filtersets, models
 
 __all__ = (
     "AccessListType",
@@ -14,10 +12,6 @@ __all__ = (
     "ACLExtendedRuleType",
     "ACLStandardRuleType",
 )
-
-#
-# Object types
-#
 
 
 class AccessListType(NetBoxObjectType):
@@ -78,26 +72,3 @@ class ACLStandardRuleType(NetBoxObjectType):
         model = models.ACLStandardRule
         fields = "__all__"
         filterset_class = filtersets.ACLStandardRuleFilterSet
-
-
-#
-# Queries
-#
-
-
-class Query(ObjectType):
-    """
-    Defines the queries availible to this plugin via the graphql api.
-    """
-
-    access_list = ObjectField(AccessListType)
-    access_list_list = ObjectListField(AccessListType)
-
-    acl_extended_rule = ObjectField(ACLExtendedRuleType)
-    acl_extended_rule_list = ObjectListField(ACLExtendedRuleType)
-
-    acl_standard_rule = ObjectField(ACLStandardRuleType)
-    acl_standard_rule_list = ObjectListField(ACLStandardRuleType)
-
-
-schema = Query

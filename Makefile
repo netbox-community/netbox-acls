@@ -70,9 +70,13 @@ start:
 .PHONY: all ## Run all PLUGIN DEV targets
 all: setup makemigrations migrate collectstatic initializers start
 
-#.PHONY: test
-#test:
-#	${VENV_PY_PATH} /opt/netbox/netbox/manage.py runserver test ${PLUGIN_NAME}
+.PHONY: rebuild ## Run PLUGIN DEV targets to rebuild
+rebuild: setup makemigrations migrate collectstatic start
+
+.PHONY: test
+test: setup
+	${VENV_PY_PATH} ${NETBOX_MANAGE_PATH}/manage.py makemigrations ${PLUGIN_NAME} --check
+	${VENV_PY_PATH} ${NETBOX_MANAGE_PATH}/manage.py test ${PLUGIN_NAME}
 
 #relpatch:
 #	$(eval GSTATUS := $(shell git status --porcelain))

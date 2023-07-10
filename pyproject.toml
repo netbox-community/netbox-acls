@@ -11,7 +11,7 @@ multi_line_output = 3
 max-line-length = 140
 
 [tool.pyright]
-include = ["netbox_secrets"]
+include = ["netbox_acls"]
 exclude = [
     "**/node_modules",
     "**/__pycache__",

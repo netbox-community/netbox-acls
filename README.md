@@ -8,7 +8,7 @@ This plugin provides the following models:
 
 - Access Lists
 - Access List to Interface Assignment
-- Access List Rules (abstract model bassis for other rules)
+- Access List Rules (abstract model basis for other rules)
 - Access List Standard Rules
 - Access List Extended Rules
 

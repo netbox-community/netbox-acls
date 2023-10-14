@@ -19,7 +19,7 @@ from typing import Any, Callable, Tuple
 # Read secret from file
 def _read_secret(secret_name: str, default: str | None = None) -> str | None:
     try:
-        f = open('/run/secrets/' + secret_name, 'r', encoding='utf-8')
+        f = open(f'/run/secrets/{secret_name}', 'r', encoding='utf-8')
     except EnvironmentError:
         return default
     else:
@@ -33,13 +33,10 @@ def _read_secret(secret_name: str, default: str | None = None) -> str | None:
 def _environ_get_and_map(variable_name: str, default: str | None = None, map_fn: Callable[[str], Any | None] = None) -> Any | None:
     env_value = environ.get(variable_name, default)
 
-    if env_value == None:
+    if env_value is None:
         return env_value
 
-    if not map_fn:
-        return env_value
-    
-    return map_fn(env_value)
+    return env_value if not map_fn else map_fn(env_value)
 
 _AS_BOOL = lambda value : value.lower() == 'true'
 _AS_INT = lambda value : int(value)

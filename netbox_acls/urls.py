@@ -47,7 +47,11 @@ urlpatterns = (
         views.ACLInterfaceAssignmentEditView.as_view(),
         name="aclinterfaceassignment_add",
     ),
-    # path('interface-assignments/edit/', views.ACLInterfaceAssignmentBulkEditView.as_view(), name='aclinterfaceassignment_bulk_edit'),
+    # path(
+    #    "interface-assignments/edit/",
+    #    views.ACLInterfaceAssignmentBulkEditView.as_view(),
+    #    name="aclinterfaceassignment_bulk_edit"
+    # ),
     path(
         "interface-assignments/delete/",
         views.ACLInterfaceAssignmentBulkDeleteView.as_view(),

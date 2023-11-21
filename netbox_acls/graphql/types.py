@@ -72,4 +72,3 @@ class ACLStandardRuleType(NetBoxObjectType):
         model = models.ACLStandardRule
         fields = "__all__"
         filterset_class = filtersets.ACLStandardRuleFilterSet
-

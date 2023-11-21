@@ -8,7 +8,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils.safestring import mark_safe
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelForm
-from utilities.forms import CommentField, DynamicModelChoiceField
+from utilities.forms.fields import CommentField, DynamicModelChoiceField
 from virtualization.models import (
     Cluster,
     ClusterGroup,
@@ -39,20 +39,14 @@ help_text_acl_rule_logic = mark_safe(
 # Sets a standard help_text value to be used by the various classes for acl action
 help_text_acl_action = "Action the rule will take (remark, deny, or allow)."
 # Sets a standard help_text value to be used by the various classes for acl index
-help_text_acl_rule_index = (
-    "Determines the order of the rule in the ACL processing. AKA Sequence Number."
-)
+help_text_acl_rule_index = "Determines the order of the rule in the ACL processing. AKA Sequence Number."
 
 # Sets a standard error message for ACL rules with an action of remark, but no remark set.
 error_message_no_remark = "Action is set to remark, you MUST add a remark."
 # Sets a standard error message for ACL rules with an action of remark, but no source_prefix is set.
-error_message_action_remark_source_prefix_set = (
-    "Action is set to remark, Source Prefix CANNOT be set."
-)
+error_message_action_remark_source_prefix_set = "Action is set to remark, Source Prefix CANNOT be set."
 # Sets a standard error message for ACL rules with an action not set to remark, but no remark is set.
-error_message_remark_without_action_remark = (
-    "CANNOT set remark unless action is set to remark."
-)
+error_message_remark_without_action_remark = "CANNOT set remark unless action is set to remark."
 
 
 class AccessListForm(NetBoxModelForm):
@@ -149,7 +143,6 @@ class AccessListForm(NetBoxModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-
         # Initialize helper selectors
         instance = kwargs.get("instance")
         initial = kwargs.get("initial", {}).copy()
@@ -168,9 +161,7 @@ class AccessListForm(NetBoxModelForm):
                 if instance.assigned_object.cluster:
                     initial["cluster"] = instance.assigned_object.cluster
                     if instance.assigned_object.cluster.group:
-                        initial[
-                            "cluster_group"
-                        ] = instance.assigned_object.cluster.group
+                        initial["cluster_group"] = instance.assigned_object.cluster.group
 
                     if instance.assigned_object.cluster.type:
                         initial["cluster_type"] = instance.assigned_object.cluster.type
@@ -199,13 +190,9 @@ class AccessListForm(NetBoxModelForm):
         virtual_machine = cleaned_data.get("virtual_machine")
 
         # Check if more than one host type selected.
-        if (
-            (device and virtual_chassis)
-            or (device and virtual_machine)
-            or (virtual_chassis and virtual_machine)
-        ):
+        if (device and virtual_chassis) or (device and virtual_machine) or (virtual_chassis and virtual_machine):
             raise forms.ValidationError(
-                "Access Lists must be assigned to one host (either a device, virtual chassis or virtual machine) at a time.",
+                "Access Lists must be assigned to one host at a time. Either a device, virtual chassis or virtual machine."
             )
         # Check if no hosts selected.
         if not device and not virtual_chassis and not virtual_machine:
@@ -230,28 +217,20 @@ class AccessListForm(NetBoxModelForm):
             ).exists()
 
         # Check if duplicate entry.
-        if (
-            "name" in self.changed_data or host_type in self.changed_data
-        ) and existing_acls:
-            error_same_acl_name = (
-                "An ACL with this name is already associated to this host."
-            )
+        if ("name" in self.changed_data or host_type in self.changed_data) and existing_acls:
+            error_same_acl_name = "An ACL with this name is already associated to this host."
             error_message |= {
                 host_type: [error_same_acl_name],
                 "name": [error_same_acl_name],
             }
-        if self.instance.pk:
-            # Check if Access List has no existing rules before change the Access List's type.
-            if (
-                acl_type == ACLTypeChoices.TYPE_EXTENDED
-                and self.instance.aclstandardrules.exists()
-            ) or (
-                acl_type == ACLTypeChoices.TYPE_STANDARD
-                and self.instance.aclextendedrules.exists()
-            ):
-                error_message["type"] = [
-                    "This ACL has ACL rules associated, CANNOT change ACL type.",
-                ]
+        # Check if Access List has no existing rules before change the Access List's type.
+        if self.instance.pk and (
+            (acl_type == ACLTypeChoices.TYPE_EXTENDED and self.instance.aclstandardrules.exists())
+            or (acl_type == ACLTypeChoices.TYPE_STANDARD and self.instance.aclextendedrules.exists())
+        ):
+            error_message["type"] = [
+                "This ACL has ACL rules associated, CANNOT change ACL type.",
+            ]
 
         if error_message:
             raise forms.ValidationError(error_message)
@@ -261,9 +240,7 @@ class AccessListForm(NetBoxModelForm):
     def save(self, *args, **kwargs):
         # Set assigned object
         self.instance.assigned_object = (
-            self.cleaned_data.get("device")
-            or self.cleaned_data.get("virtual_chassis")
-            or self.cleaned_data.get("virtual_machine")
+            self.cleaned_data.get("device") or self.cleaned_data.get("virtual_chassis") or self.cleaned_data.get("virtual_machine")
         )
 
         return super().save(*args, **kwargs)
@@ -324,7 +301,6 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
     comments = CommentField()
 
     def __init__(self, *args, **kwargs):
-
         # Initialize helper selectors
         instance = kwargs.get("instance")
         initial = kwargs.get("initial", {}).copy()
@@ -376,15 +352,15 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
 
         # Check if both interface and vminterface are set.
         if interface and vminterface:
-            error_too_many_interfaces = "Access Lists must be assigned to one type of interface at a time (VM interface or physical interface)"
+            error_too_many_interfaces = (
+                "Access Lists must be assigned to one type of interface at a time (VM interface or physical interface)"
+            )
             error_message |= {
                 "interface": [error_too_many_interfaces],
                 "vminterface": [error_too_many_interfaces],
             }
         elif not (interface or vminterface):
-            error_no_interface = (
-                "An Access List assignment but specify an Interface or VM Interface."
-            )
+            error_no_interface = "An Access List assignment but specify an Interface or VM Interface."
             error_message |= {
                 "interface": [error_no_interface],
                 "vminterface": [error_no_interface],
@@ -410,9 +386,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
 
             # Check that an interface's parent device/virtual_machine is assigned to the Access List.
             if access_list_host != host:
-                error_acl_not_assigned_to_host = (
-                    "Access List not present on selected host."
-                )
+                error_acl_not_assigned_to_host = "Access List not present on selected host."
                 error_message |= {
                     "access_list": [error_acl_not_assigned_to_host],
                     assigned_object_type: [error_acl_not_assigned_to_host],
@@ -437,9 +411,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
                 assigned_object_type=assigned_object_type_id,
                 direction=direction,
             ).exists():
-                error_interface_already_assigned = (
-                    "Interfaces can only have 1 Access List assigned in each direction."
-                )
+                error_interface_already_assigned = "Interfaces can only have 1 Access List assigned in each direction."
                 error_message |= {
                     "direction": [error_interface_already_assigned],
                     assigned_object_type: [error_interface_already_assigned],

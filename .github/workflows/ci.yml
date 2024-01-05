@@ -44,4 +44,4 @@ jobs:
 
       - id: docker-test
         name: Test the image
-        run: ./test.sh snapshot
+        run: ./test.sh

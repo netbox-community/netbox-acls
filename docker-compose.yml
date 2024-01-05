@@ -6,8 +6,6 @@ services:
     build:
       dockerfile: Dockerfile
       context: .
-      args:
-        NETBOX_VARIANT: ${NETBOX_VARIANT}
     depends_on:
       - postgres
       - redis

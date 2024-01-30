@@ -2,7 +2,6 @@
 Defines each django model's GUI filter/search options.
 """
 
-import django_filters
 from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from django import forms
 from ipam.models import Prefix
@@ -74,11 +73,11 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
         queryset=VirtualChassis.objects.all(),
         required=False,
     )
-    type = django_filters.MultipleChoiceFilter(
+    type = forms.ChoiceField(
         choices=add_blank_choice(ACLTypeChoices),
         required=False,
     )
-    default_action = django_filters.MultipleChoiceFilter(
+    default_action = forms.ChoiceField(
         choices=add_blank_choice(ACLActionChoices),
         required=False,
         label="Default Action",
@@ -158,7 +157,7 @@ class ACLInterfaceAssignmentFilterForm(NetBoxModelFilterSetForm):
         },
         label="Access List",
     )
-    direction = django_filters.MultipleChoiceFilter(
+    direction = forms.ChoiceField(
         choices=add_blank_choice(ACLAssignmentDirectionChoices),
         required=False,
     )
@@ -187,7 +186,7 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label="Source Prefix",
     )
-    action = django_filters.MultipleChoiceFilter(
+    action = forms.ChoiceField(
         choices=add_blank_choice(ACLRuleActionChoices),
         required=False,
     )
@@ -211,7 +210,7 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
         queryset=AccessList.objects.all(),
         required=False,
     )
-    action = django_filters.MultipleChoiceFilter(
+    action = forms.ChoiceField(
         choices=add_blank_choice(ACLRuleActionChoices),
         required=False,
     )
@@ -225,7 +224,7 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label="Destination Prefix",
     )
-    protocol = django_filters.MultipleChoiceFilter(
+    protocol = forms.ChoiceField(
         choices=add_blank_choice(ACLProtocolChoices),
         required=False,
     )

@@ -97,5 +97,12 @@ Development with this plugin leverges:
 * NetBox-Docker
 * Docker-Compose
 * Makefile for spin up of testing NetBox setup
+* Dependabot for dependency version management
+
+### Cutting Releases
+
+1. Merge PR (squash) into `dev` branch
+2. Merge `dev` into `release` branch
+3. Create a release (pypi auto publishes)
 
 More Documentation to come.

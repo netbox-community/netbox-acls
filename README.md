@@ -8,7 +8,7 @@ This plugin provides the following models:
 
 - Access Lists
 - Access List to Interface Assignment
-- Access List Rules (abstract model bassis for other rules)
+- Access List Rules (abstract model basis for other rules)
 - Access List Standard Rules
 - Access List Extended Rules
 
@@ -38,6 +38,7 @@ Each Plugin Version listed below has been tested with its corresponding NetBox V
 
 | NetBox Version | Plugin Version |
 |:--------------:|:--------------:|
+|      3.7       |     1.5.0      |
 |      3.6       |     1.4.0      |
 |      3.5       |     1.3.0      |
 |      3.4       |     1.2.2      |

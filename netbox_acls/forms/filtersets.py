@@ -7,7 +7,6 @@ from django import forms
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelFilterSetForm
 from utilities.forms.fields import (
-    ChoiceField,
     DynamicModelChoiceField,
     DynamicModelMultipleChoiceField,
     TagFilterField,
@@ -74,11 +73,11 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
         queryset=VirtualChassis.objects.all(),
         required=False,
     )
-    type = ChoiceField(
+    type = forms.ChoiceField(
         choices=add_blank_choice(ACLTypeChoices),
         required=False,
     )
-    default_action = ChoiceField(
+    default_action = forms.ChoiceField(
         choices=add_blank_choice(ACLActionChoices),
         required=False,
         label="Default Action",
@@ -158,7 +157,7 @@ class ACLInterfaceAssignmentFilterForm(NetBoxModelFilterSetForm):
         },
         label="Access List",
     )
-    direction = ChoiceField(
+    direction = forms.ChoiceField(
         choices=add_blank_choice(ACLAssignmentDirectionChoices),
         required=False,
     )
@@ -187,7 +186,7 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label="Source Prefix",
     )
-    action = ChoiceField(
+    action = forms.ChoiceField(
         choices=add_blank_choice(ACLRuleActionChoices),
         required=False,
     )
@@ -211,7 +210,7 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
         queryset=AccessList.objects.all(),
         required=False,
     )
-    action = ChoiceField(
+    action = forms.ChoiceField(
         choices=add_blank_choice(ACLRuleActionChoices),
         required=False,
     )
@@ -225,7 +224,7 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label="Destination Prefix",
     )
-    protocol = ChoiceField(
+    protocol = forms.ChoiceField(
         choices=add_blank_choice(ACLProtocolChoices),
         required=False,
     )

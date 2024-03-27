@@ -6,8 +6,6 @@ services:
     build:
       dockerfile: Dockerfile
       context: .
-      args:
-        NETBOX_VARIANT: ${NETBOX_VARIANT}
     depends_on:
       - postgres
       - redis
@@ -17,12 +15,12 @@ services:
 
   # postgres
   postgres:
-    image: postgres:14-alpine
+    image: postgres:15-alpine
     env_file: env/postgres.env
 
   # redis
   redis:
-    image: redis:6-alpine
+    image: redis:7-alpine
     command:
       - sh
       - -c # this is to evaluate the $REDIS_PASSWORD from the env

@@ -21,7 +21,7 @@ __all__ = (
 
 
 alphanumeric_plus = RegexValidator(
-    r"^[0-9a-zA-Z,-,_]*$",
+    r"^[a-zA-Z0-9-_]+$",
     "Only alphanumeric, hyphens, and underscores characters are allowed.",
 )
 

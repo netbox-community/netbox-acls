@@ -23,14 +23,14 @@ body:
     attributes:
       label: NetBox access-list plugin version
       description: What version of the NetBox access-list plugin are you currently running?
-      placeholder: v1.3.0
+      placeholder: v1.4.0
     validations:
       required: true
   - type: input
     attributes:
       label: NetBox version
       description: What version of NetBox are you currently running?
-      placeholder: v3.5.4
+      placeholder: v3.6.3
     validations:
       required: true
   - type: textarea

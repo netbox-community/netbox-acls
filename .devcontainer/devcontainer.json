@@ -2,121 +2,107 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.238.0/containers/python-3-postgres
 // Update the VARIANT arg in docker-compose.yml to pick a Python version
 {
-	"name": "NetBox Plugin Development",
-	"dockerComposeFile": [
-		"docker-compose.yml",
-		"docker-compose.override.yml"
-	],
-	"service": "netbox",
-	//"workspaceMount": "source=${localWorkspaceFolder},target=/opt/netbox/netbox/netbox-acls,type=bind,consistency=cached",
-	"workspaceFolder": "/opt/netbox/netbox/netbox-acls",
+  "name": "NetBox Plugin Development",
+  "dockerComposeFile": ["docker-compose.yml", "docker-compose.override.yml"],
+  "service": "netbox",
+  //"workspaceMount": "source=${localWorkspaceFolder},target=/opt/netbox/netbox/netbox-acls,type=bind,consistency=cached",
+  "workspaceFolder": "/opt/netbox/netbox/netbox-acls",
 
-	"overrideCommand":false,
+  "overrideCommand": false,
 
-	// Configure tool-specific properties.
-	"customizations": {
-		// Configure properties specific to VS Code.
-		"vscode": {
-			// Set *default* container specific settings.json values on container create.
-			"settings": {
-				"editor.experimental.stickyScroll.enabled": true,
-				//"[python]": {
-				//	"editor.codeActionsOnSave": {
-				//		"source.organizeImports": true
-				//	}
-				//},
-				"isort.args": [
-					"--profile=black"
-				],
-				"isort.path": "/opt/netbox/venv/bin/isort",
-				"python.analysis.typeCheckingMode": "strict",
-				python.Jedi
-				"python.analysis.extraPaths": [
-					"/opt/netbox/netbox"
-				],
-				"python.autoComplete.extraPaths": [
-                                        "/opt/netbox/netbox"
-				],
-				"python.defaultInterpreterPath": "/opt/netbox/venv/bin/python3",
-				"python.formatting.autopep8Path": "/opt/netbox/venv/bin/autopep8",
-				"python.formatting.blackPath": "/opt/netbox/venv/bin/black",
-				"python.formatting.provider": "black",
-				"python.formatting.yapfPath": "/opt/netbox/venv/bin/yapf",
-				"python.linting.banditPath": "/opt/netbox/venv/bin/bandit",
-				"python.linting.enabled": true,
-				"python.linting.flake8Path": "/opt/netbox/venv/bin/flake8",
-				"python.linting.flake8Args": [
-					"--max-line-length=160",
-					"--ignore=E203"
-				],
-				"python.linting.mypyPath": "//opt/netbox/venv/bin/mypy",
-				"python.linting.pycodestylePath": "/opt/netbox/venv/bin/pycodestyle",
-				"python.linting.pydocstylePath": "/opt/netbox/venv/bin/pydocstyle",
-				"python.linting.pylintArgs": [
-					"--load-plugins",
-					"pylint_django",
-					"--errors-only",
-					"--load-plugins=pylint_django",
-					"--django-settings-module=/opt/netbox/netbox/netbox/netbox.settings",
-					"--enable=W0602,W0611,W0612,W0613,W0614"
-				],
-				"python.linting.pylintEnabled": true,
-				"python.linting.pylintPath": "/opt/netbox/venv/bin/pylint",
-				"python.linting.lintOnSave": true,
-				"python.pythonPath": "/opt/netbox/venv/bin/python3",
-				"python.terminal.activateEnvironment": true,
-				"python.venvPath": "/opt/netbox/",
-				"files.exclude": {
-					"**/node_modules": true,
-					"build": true,
-					"dist": true,
-					"*egg*": true
-                }
-			},
+  // Configure tool-specific properties.
+  "customizations": {
+    // Configure properties specific to VS Code.
+    "vscode": {
+      // Set *default* container specific settings.json values on container create.
+      "settings": {
+        "editor.experimental.stickyScroll.enabled": true,
+        //"[python]": {
+        //	"editor.codeActionsOnSave": {
+        //		"source.organizeImports": true
+        //	}
+        //},
+        "isort.args": ["--profile=black"],
+        "isort.path": ["/opt/netbox/venv/bin/isort"],
+        "python.analysis.typeCheckingMode": "strict",
+        "python.analysis.extraPaths": ["/opt/netbox/netbox"],
+        "python.autoComplete.extraPaths": ["/opt/netbox/netbox"],
+        "python.defaultInterpreterPath": "/opt/netbox/venv/bin/python3",
+        "python.formatting.autopep8Path": "/opt/netbox/venv/bin/autopep8",
+        "python.formatting.blackPath": "/opt/netbox/venv/bin/black",
+        "python.formatting.provider": "black",
+        "python.formatting.yapfPath": "/opt/netbox/venv/bin/yapf",
+        "python.linting.banditPath": "/opt/netbox/venv/bin/bandit",
+        "python.linting.enabled": true,
+        "python.linting.flake8Path": "/opt/netbox/venv/bin/flake8",
+        "python.linting.flake8Args": ["--max-line-length=160", "--ignore=E203"],
+        "python.linting.mypyPath": "//opt/netbox/venv/bin/mypy",
+        "python.linting.pycodestylePath": "/opt/netbox/venv/bin/pycodestyle",
+        "python.linting.pydocstylePath": "/opt/netbox/venv/bin/pydocstyle",
+        "python.linting.pylintArgs": [
+          "--load-plugins",
+          "pylint_django",
+          "--errors-only",
+          "--load-plugins=pylint_django",
+          "--django-settings-module=/opt/netbox/netbox/netbox/netbox.settings",
+          "--enable=W0602,W0611,W0612,W0613,W0614"
+        ],
+        "python.linting.pylintEnabled": true,
+        "python.linting.pylintPath": "/opt/netbox/venv/bin/pylint",
+        "python.linting.lintOnSave": true,
+        "python.pythonPath": "/opt/netbox/venv/bin/python3",
+        "python.terminal.activateEnvironment": true,
+        "python.venvPath": "/opt/netbox/",
+        "files.exclude": {
+          "**/node_modules": true,
+          "build": true,
+          "dist": true,
+          "*egg*": true
+        }
+      },
 
-			// Add the IDs of extensions you want installed when the container is created.
-			"extensions": [
-				"DavidAnson.vscode-markdownlint",
-				"GitHub.codespaces",
-				"GitHub.copilot-labs",
-				"GitHub.vscode-pull-request-github",
-				"Gruntfuggly.todo-tree",
-				"Tyriar.sort-lines",
-				"aaron-bond.better-comments",
-				"batisteo.vscode-django",
-				"charliermarsh.ruff",
-				"codezombiech.gitignore",
-				"esbenp.prettier-vscode",
-				"exiasr.hadolint",
-				"formulahendry.auto-rename-tag",
-				"mintlify.document",
-				"ms-python.isort",
-				"ms-python.pylint",
-				"ms-python.python",
-				"ms-python.vscode-pylance",
-				"ms-vscode.makefile-tools",
-				"mutantdino.resourcemonitor",
-				"oderwat.indent-rainbow",
-				"paulomenezes.duplicated-code",
-				"redhat.vscode-yaml",
-				"searKing.preview-vscode",
-				"sourcery.sourcery",
-				"wholroyd.jinja",
-				"yzhang.markdown-all-in-one"
-			]
-		}
-	},
+      // Add the IDs of extensions you want installed when the container is created.
+      "extensions": [
+        "DavidAnson.vscode-markdownlint",
+        "GitHub.codespaces",
+        "GitHub.copilot-labs",
+        "GitHub.vscode-pull-request-github",
+        "Gruntfuggly.todo-tree",
+        "Tyriar.sort-lines",
+        "aaron-bond.better-comments",
+        "batisteo.vscode-django",
+        "charliermarsh.ruff",
+        "codezombiech.gitignore",
+        "esbenp.prettier-vscode",
+        "exiasr.hadolint",
+        "formulahendry.auto-rename-tag",
+        "mintlify.document",
+        "ms-python.isort",
+        "ms-python.pylint",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-vscode.makefile-tools",
+        "mutantdino.resourcemonitor",
+        "oderwat.indent-rainbow",
+        "paulomenezes.duplicated-code",
+        "redhat.vscode-yaml",
+        "searKing.preview-vscode",
+        "sourcery.sourcery",
+        "wholroyd.jinja",
+        "yzhang.markdown-all-in-one"
+      ]
+    }
+  },
 
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// This can be used to network with other containers or the host.
-	// "forwardPorts": [5000, 5432],
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // This can be used to network with other containers or the host.
+  // "forwardPorts": [5000, 5432],
 
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "pip install --user -r requirements-dev.txt",
+  // Use 'postCreateCommand' to run commands after the container is created.
+  // "postCreateCommand": "pip install --user -r requirements-dev.txt",
 
-	//"postAttachCommand": "source /opt/netbox/venv/bin/activate",
+  //"postAttachCommand": "source /opt/netbox/venv/bin/activate",
 
-	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
-	"remoteUser": "vscode"
-
+  // Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
+  "remoteUser": "ubuntu"
 }

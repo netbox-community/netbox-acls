@@ -38,9 +38,12 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/ryanmerolle/netbox-acls",
+    license="Apache 2.0",
     install_requires=[],
+    python_requires=">=3.10",
     packages=find_packages(),
     include_package_data=True,
+    keywords=["netbox", "netbox-plugin"],
     zip_safe=False,
     classifiers=[
         "Development Status :: 5 - Production/Stable",
@@ -49,7 +52,6 @@ setup(
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Intended Audience :: System Administrators",
@@ -58,4 +60,8 @@ setup(
         "Topic :: System :: Networking",
         "Topic :: Internet",
     ],
+    project_urls={
+        "Issues": "https://github.com/ryanmerolle/netbox-acls/issues",
+        "Source": "https://github.com/ryanmerolle/netbox-acls",
+    },
 )

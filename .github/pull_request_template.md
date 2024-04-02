@@ -4,7 +4,7 @@
 Thank you for sharing your work and for opening a PR.
 
 (!) IMPORTANT (!):
-First make sure that you point your PR to the `devel` branch!
+First make sure that you point your PR to the `dev` branch!
 
 Now please read the comments carefully and try to provide information
 on all relevant titles.

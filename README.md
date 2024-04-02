@@ -79,6 +79,11 @@ PLUGINS_CONFIG = {
 }
 ```
 
+To add the required `netbox-acls` tables to your NetBox database, run the `migrate` manager subcommand in your NetBox directory:
+```
+./manage.py migrate
+```
+
 ## Developing
 
 ### VSCode + Docker + Dev Containers

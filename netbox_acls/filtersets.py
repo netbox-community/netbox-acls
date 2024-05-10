@@ -4,6 +4,7 @@ when filtering the sites list by status or region, for instance.
 """
 import django_filters
 from dcim.models import Device, Interface, VirtualChassis
+from django.db.models import Q
 from netbox.filtersets import NetBoxModelFilterSet
 from virtualization.models import VirtualMachine, VMInterface
 
@@ -80,7 +81,16 @@ class AccessListFilterSet(NetBoxModelFilterSet):
         """
         Override the default search behavior for the django model.
         """
-        return queryset.filter(description__icontains=value)
+        query = (
+                Q(name__icontains=value)
+                | Q(device__name__icontains=value)
+                | Q(virtual_chassis__name__icontains=value)
+                | Q(virtual_machine__name__icontains=value)
+                | Q(type__icontains=value)
+                | Q(default_action__icontains=value)
+                | Q(comments__icontains=value)
+        )
+        return queryset.filter(query)
 
 
 class ACLInterfaceAssignmentFilterSet(NetBoxModelFilterSet):
@@ -131,7 +141,13 @@ class ACLInterfaceAssignmentFilterSet(NetBoxModelFilterSet):
         """
         Override the default search behavior for the django model.
         """
-        return queryset.filter(description__icontains=value)
+        query = (
+            Q(access_list__name__icontains=value)
+            | Q(direction__icontains=value)
+            | Q(interface__name__icontains=value)
+            | Q(vminterface__name__icontains=value)
+        )
+        return queryset.filter(query)
 
 
 class ACLStandardRuleFilterSet(NetBoxModelFilterSet):
@@ -151,7 +167,12 @@ class ACLStandardRuleFilterSet(NetBoxModelFilterSet):
         """
         Override the default search behavior for the django model.
         """
-        return queryset.filter(description__icontains=value)
+        query = (
+            Q(access_list__name__icontains=value)
+            | Q(index__icontains=value)
+            | Q(action__icontains=value)
+        )
+        return queryset.filter(query)
 
 
 class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
@@ -171,4 +192,10 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
         """
         Override the default search behavior for the django model.
         """
-        return queryset.filter(description__icontains=value)
+        query = (
+                Q(access_list__name__icontains=value)
+                | Q(index__icontains=value)
+                | Q(action__icontains=value)
+                | Q(protocol__icontains=value)
+        )
+        return queryset.filter(query)

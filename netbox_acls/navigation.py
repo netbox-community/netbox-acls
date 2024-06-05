@@ -3,8 +3,8 @@ Define the plugin menu buttons & the plugin navigation bar enteries.
 """
 
 from django.conf import settings
-from extras.plugins import PluginMenu, PluginMenuButton, PluginMenuItem
-from utilities.choices import ButtonColorChoices
+from netbox.plugins import PluginMenu, PluginMenuButton, PluginMenuItem
+
 
 plugin_settings = settings.PLUGINS_CONFIG["netbox_acls"]
 
@@ -21,7 +21,6 @@ menu_buttons = (
                 link="plugins:netbox_acls:accesslist_add",
                 title="Add",
                 icon_class="mdi mdi-plus-thick",
-                color=ButtonColorChoices.GREEN,
                 permissions=["netbox_acls.add_accesslist"],
             ),
         ),
@@ -35,7 +34,6 @@ menu_buttons = (
                 link="plugins:netbox_acls:aclstandardrule_add",
                 title="Add",
                 icon_class="mdi mdi-plus-thick",
-                color=ButtonColorChoices.GREEN,
                 permissions=["netbox_acls.add_aclstandardrule"],
             ),
         ),
@@ -49,7 +47,6 @@ menu_buttons = (
                 link="plugins:netbox_acls:aclextendedrule_add",
                 title="Add",
                 icon_class="mdi mdi-plus-thick",
-                color=ButtonColorChoices.GREEN,
                 permissions=["netbox_acls.add_aclextendedrule"],
             ),
         ),
@@ -63,7 +60,6 @@ menu_buttons = (
                 link="plugins:netbox_acls:aclinterfaceassignment_add",
                 title="Add",
                 icon_class="mdi mdi-plus-thick",
-                color=ButtonColorChoices.GREEN,
                 permissions=["netbox_acls.add_aclinterfaceassignment"],
             ),
         ),

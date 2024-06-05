@@ -9,7 +9,7 @@ from setuptools import find_packages, setup
 script_dir = os.path.abspath(os.path.dirname(__file__))
 
 with open(os.path.join(script_dir, "README.md"), encoding="utf-8") as fh:
-    long_description = fh.read().replace("(docs/img/", "(https://raw.githubusercontent.com/ryanmerolle/netbox-acls/release/docs/img/")
+    long_description = fh.read().replace("(docs/img/", "(https://raw.githubusercontent.com/netbox-community/netbox-acls/release/docs/img/")
 
 
 def read(relative_path):
@@ -37,7 +37,7 @@ setup(
     description="A NetBox plugin for Access List management",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/ryanmerolle/netbox-acls",
+    url="https://github.com/netbox-community/netbox-acls",
     license="Apache 2.0",
     install_requires=[],
     python_requires=">=3.10",
@@ -61,7 +61,7 @@ setup(
         "Topic :: Internet",
     ],
     project_urls={
-        "Issues": "https://github.com/ryanmerolle/netbox-acls/issues",
-        "Source": "https://github.com/ryanmerolle/netbox-acls",
+        "Issues": "https://github.com/netbox-community/netbox-acls/issues",
+        "Source": "https://github.com/netbox-community/netbox-acls",
     },
 )

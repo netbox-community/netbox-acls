@@ -39,7 +39,8 @@ class ACLInterfaceAssignmentType(OrganizationalObjectType):
     """
     Defines the object type for the django model AccessList.
     """
-
+    access_list: Annotated["AccessListType", strawberry.lazy("netbox_acls.graphql.types")]
+    
     class Meta:
         """
         Associates the filterset, fields, and model for the django model ACLInterfaceAssignment.
@@ -60,6 +61,9 @@ class ACLExtendedRuleType(OrganizationalObjectType):
     """
     source_ports: List[int]
     destination_ports: List[int]
+    access_list: Annotated["AccessListType", strawberry.lazy("netbox_acls.graphql.types")]
+    destination_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]
+    source_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]
 
     class Meta:
         """
@@ -80,6 +84,8 @@ class ACLStandardRuleType(OrganizationalObjectType):
     """
     Defines the object type for the django model ACLStandardRule.
     """
+    access_list: Annotated["AccessListType", strawberry.lazy("netbox_acls.graphql.types")]
+    source_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]
 
     class Meta:
         """

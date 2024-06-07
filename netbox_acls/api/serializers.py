@@ -75,6 +75,7 @@ class AccessListSerializer(NetBoxModelSerializer):
             "last_updated",
             "rule_count",
         )
+        brief_fields = ("id", "url", "name", "display")
 
     @extend_schema_field(serializers.DictField())
     def get_assigned_object(self, obj):
@@ -139,6 +140,7 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
             "created",
             "last_updated",
         )
+        brief_fields = ("id", "url", "access_list")
 
     @extend_schema_field(serializers.DictField())
     def get_assigned_object(self, obj):
@@ -212,6 +214,7 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
             "last_updated",
             "source_prefix",
         )
+        brief_fields = ("id", "url", "display")
 
     def validate(self, data):
         """
@@ -284,7 +287,7 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
             "protocol",
             "remark",
         )
-
+        brief_fields = ("id", "url", "display")
     def validate(self, data):
         """
         Validate the ACLExtendedRule django model's inputs before allowing it to update the instance:
@@ -328,7 +331,7 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
             if data.get("protocol"):
                 error_message["protocol"] = [
                     "Action is set to remark, Protocol CANNOT be set.",
-                ]    
+                ]
 
         if error_message:
             raise serializers.ValidationError(error_message)

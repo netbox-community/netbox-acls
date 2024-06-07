@@ -44,7 +44,7 @@ class ACLTestCase(
             name="Device 1",
             site=site,
             device_type=devicetype,
-            device_role=devicerole,
+            role=devicerole,
         )
 
         access_lists = (

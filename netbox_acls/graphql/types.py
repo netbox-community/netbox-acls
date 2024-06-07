@@ -2,19 +2,22 @@
 Define the object types and queries availble via the graphql api.
 """
 
-from netbox.graphql.types import NetBoxObjectType
+import strawberry
+import strawberry_django
 
-from .. import filtersets, models
 
-__all__ = (
-    "AccessListType",
-    "ACLInterfaceAssignmentType",
-    "ACLExtendedRuleType",
-    "ACLStandardRuleType",
+from typing import Annotated, List
+from .filters import *
+from .. import models
+from netbox.graphql.types import OrganizationalObjectType
+
+@strawberry_django.type(
+    models.AccessList,
+    fields='__all__',
+    filters=AccessListFilter
 )
 
-
-class AccessListType(NetBoxObjectType):
+class AccessListType(OrganizationalObjectType):
     """
     Defines the object type for the django model AccessList.
     """
@@ -23,13 +26,16 @@ class AccessListType(NetBoxObjectType):
         """
         Associates the filterset, fields, and model for the django model AccessList.
         """
-
-        model = models.AccessList
-        fields = "__all__"
-        filterset_class = filtersets.AccessListFilterSet
-
-
-class ACLInterfaceAssignmentType(NetBoxObjectType):
+        @strawberry_django.field
+        def accesslists(self) -> List[Annotated["AccessList", strawberry.lazy('accesslists.graphql.types')]]:
+            return self.accesslists.all()
+        
+@strawberry_django.type(
+    models.ACLInterfaceAssignment,
+    fields='__all__',
+    filters=ACLInterfaceAssignmentFilter
+)
+class ACLInterfaceAssignmentType(OrganizationalObjectType):
     """
     Defines the object type for the django model AccessList.
     """
@@ -38,37 +44,48 @@ class ACLInterfaceAssignmentType(NetBoxObjectType):
         """
         Associates the filterset, fields, and model for the django model ACLInterfaceAssignment.
         """
+        @strawberry_django.field
+        def aclinterfaceassignments(self) -> List[Annotated["ACLInterfaceAssignment", strawberry.lazy('aclinterfaceassignments.graphql.types')]]:
+            return self.aclinterfaceassignments.all()
 
-        model = models.ACLInterfaceAssignment
-        fields = "__all__"
-        filterset_class = filtersets.ACLInterfaceAssignmentFilterSet
+@strawberry_django.type(
+    models.ACLExtendedRule,
+    fields='__all__',
+    filters=ACLExtendedRuleFilter
+)
 
-
-class ACLExtendedRuleType(NetBoxObjectType):
+class ACLExtendedRuleType(OrganizationalObjectType):
     """
     Defines the object type for the django model ACLExtendedRule.
     """
+    source_ports: List[int]
+    destination_ports: List[int]
 
     class Meta:
         """
         Associates the filterset, fields, and model for the django model ACLExtendedRule.
         """
+        @strawberry_django.field
+        def aclextendedrules(self) -> List[Annotated["ACLExtendedRule", strawberry.lazy('aclextendedrule.graphql.types')]]:
+            return self.aclextendedrules.all()
 
-        model = models.ACLExtendedRule
-        fields = "__all__"
-        filterset_class = filtersets.ACLExtendedRuleFilterSet
 
+@strawberry_django.type(
+    models.ACLStandardRule,
+    fields='__all__',
+    filters=ACLStandardRuleFilter
+)
 
-class ACLStandardRuleType(NetBoxObjectType):
+class ACLStandardRuleType(OrganizationalObjectType):
     """
     Defines the object type for the django model ACLStandardRule.
     """
 
     class Meta:
         """
-        Associates the filterset, fields, and model for the django model ACLStandardRule.
+        Associates the filterset, fields, and model for the django model ACLExtendedRule.
         """
+        @strawberry_django.field
+        def aclstandardrules(self) -> List[Annotated["ACLStandardRule", strawberry.lazy('aclstandardrule.graphql.types')]]:
+            return self.aclstandardrules.all()
 
-        model = models.ACLStandardRule
-        fields = "__all__"
-        filterset_class = filtersets.ACLStandardRuleFilterSet

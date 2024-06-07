@@ -2,7 +2,7 @@
 Define the NetBox Plugin
 """
 
-from extras.plugins import PluginConfig
+from netbox.plugins import PluginConfig
 
 from .version import __version__
 
@@ -17,8 +17,8 @@ class NetBoxACLsConfig(PluginConfig):
     version = __version__
     description = "Manage simple ACLs in NetBox"
     base_url = "access-lists"
-    min_version = "3.7.0"
-    max_version = "3.7.99"
+    min_version = "4.0.2"
+    max_version = "4.0.99"
 
 
 config = NetBoxACLsConfig

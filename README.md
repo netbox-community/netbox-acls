@@ -38,6 +38,7 @@ Each Plugin Version listed below has been tested with its corresponding NetBox V
 
 | NetBox Version | Plugin Version |
 |:--------------:|:--------------:|
+|   >= 4.0.2     |     1.6.0      |
 |      3.7       |     1.5.0      |
 |      3.6       |     1.4.0      |
 |      3.5       |     1.3.0      |
@@ -77,6 +78,12 @@ PLUGINS_CONFIG = {
         "top_level_menu": True # If set to True the plugin will add a top level menu item for the plugin. If set to False the plugin will add a menu item under the Plugins menu item.  Default is set to True.
     },
 }
+```
+
+To add the required `netbox-acls` tables to your NetBox database, run the `migrate` manager subcommand in the NetBox virtual environment:
+```
+cd /opt/netbox
+sudo ./venv/bin/python3 netbox/manage.py migrate
 ```
 
 ## Developing

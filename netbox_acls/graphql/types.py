@@ -6,7 +6,7 @@ import strawberry
 import strawberry_django
 
 
-from typing import Annotated, List
+from typing import Annotated, List, Union
 from .filters import *
 from .. import models
 from netbox.graphql.types import OrganizationalObjectType
@@ -14,13 +14,20 @@ from netbox.graphql.types import OrganizationalObjectType
 @strawberry_django.type(
     models.AccessList,
     fields='__all__',
-    filters=AccessListFilter
+    filters=AccessListFilter,
+    exclude=('assigned_object_type', 'assigned_object_id')
 )
 
 class AccessListType(OrganizationalObjectType):
     """
     Defines the object type for the django model AccessList.
     """
+    assigned_object_type: Annotated["ContentTypeType", strawberry.lazy("netbox.graphql.types")]
+    assigned_object: Annotated[Union[
+        Annotated["DeviceType", strawberry.lazy('dcim.graphql.types')],
+        Annotated["VirtualMachineType", strawberry.lazy('virtualization.graphql.types')],
+    ], strawberry.union("ACLAssignmentType")]
+
 
     class Meta:
         """
@@ -33,6 +40,7 @@ class AccessListType(OrganizationalObjectType):
 @strawberry_django.type(
     models.ACLInterfaceAssignment,
     fields='__all__',
+    exclude=('assigned_object_type', 'assigned_object_id'),
     filters=ACLInterfaceAssignmentFilter
 )
 class ACLInterfaceAssignmentType(OrganizationalObjectType):
@@ -40,7 +48,15 @@ class ACLInterfaceAssignmentType(OrganizationalObjectType):
     Defines the object type for the django model AccessList.
     """
     access_list: Annotated["AccessListType", strawberry.lazy("netbox_acls.graphql.types")]
+    assigned_object_type: Annotated["ContentTypeType", strawberry.lazy("netbox.graphql.types")]
+    assigned_object: Annotated[Union[
+        Annotated["InterfaceType", strawberry.lazy('dcim.graphql.types')],
+        Annotated["VMInterfaceType", strawberry.lazy('virtualization.graphql.types')],
+    ], strawberry.union("ACLInterfaceAssignmentType")]
+
     
+
+
     class Meta:
         """
         Associates the filterset, fields, and model for the django model ACLInterfaceAssignment.

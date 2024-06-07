@@ -2,6 +2,8 @@ from .schema import *
 from .types import *
 
 schema = [
-    schema.ACLQuery
+    schema.NetBoxACLSAccessListQuery,
+    schema.NetBoxACLSStandardRuleQuery,
+    schema.NetBoxACLSACLExtendedRuleQuery
 ]
 

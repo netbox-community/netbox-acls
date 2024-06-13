@@ -4,6 +4,7 @@ Defines each django model's GUI filter/search options.
 
 from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from django import forms
+from django.utils.translation import gettext as _
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelFilterSetForm
 from utilities.forms.fields import (
@@ -13,6 +14,7 @@ from utilities.forms.fields import (
 )
 from utilities.forms.utils import add_blank_choice
 from virtualization.models import VirtualMachine, VMInterface
+
 
 from ..choices import (
     ACLActionChoices,
@@ -56,7 +58,7 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
         required=False,
         query_params={"region_id": "$region", "group_id": "$site_group"},
     )
-    device = DynamicModelChoiceField(
+    device_id = DynamicModelChoiceField(
         queryset=Device.objects.all(),
         query_params={
             "region_id": "$region",
@@ -64,14 +66,17 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
             "site_id": "$site",
         },
         required=False,
+        label=_("Device",),
     )
-    virtual_machine = DynamicModelChoiceField(
+    virtual_machine_id = DynamicModelChoiceField(
         queryset=VirtualMachine.objects.all(),
         required=False,
+        label=_("Virtual Machine",)
     )
-    virtual_chassis = DynamicModelChoiceField(
+    virtual_chassis_id = DynamicModelChoiceField(
         queryset=VirtualChassis.objects.all(),
         required=False,
+        label=_("Virtual Chassis",)
     )
     type = forms.ChoiceField(
         choices=add_blank_choice(ACLTypeChoices),
@@ -92,9 +97,9 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
                 "region",
                 "site_group",
                 "site",
-                "device",
-                "virtual_chassis",
-                "virtual_machine",
+                "device_id",
+                "virtual_chassis_id",
+                "virtual_machine_id",
             ),
         ),
         ("ACL Details", ("type", "default_action")),

@@ -3,7 +3,7 @@ Filters enable users to request only a specific subset of objects matching a que
 when filtering the sites list by status or region, for instance.
 """
 import django_filters
-from dcim.models import Device, Interface, VirtualChassis
+from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from django.db.models import Q
 from netbox.filtersets import NetBoxModelFilterSet
 from virtualization.models import VirtualMachine, VMInterface
@@ -22,7 +22,24 @@ class AccessListFilterSet(NetBoxModelFilterSet):
     """
     Define the filter set for the django model AccessList.
     """
-
+    region = django_filters.ModelMultipleChoiceFilter(
+        field_name="device__site__region",
+        queryset=Region.objects.all(),
+        to_field_name="id",
+        label="Region",
+    )
+    site_group = django_filters.ModelMultipleChoiceFilter(
+        field_name="device__site__group",
+        queryset=SiteGroup.objects.all(),
+        to_field_name="id",
+        label="Site Group",
+    )
+    site = django_filters.ModelMultipleChoiceFilter(
+        field_name="device__site",
+        queryset=Site.objects.all(),
+        to_field_name="id",
+        label="Site",
+    )
     device = django_filters.ModelMultipleChoiceFilter(
         field_name="device__name",
         queryset=Device.objects.all(),
@@ -75,6 +92,9 @@ class AccessListFilterSet(NetBoxModelFilterSet):
             "type",
             "default_action",
             "comments",
+            "site",
+            "site_group",
+            "region",
         )
 
     def search(self, queryset, name, value):

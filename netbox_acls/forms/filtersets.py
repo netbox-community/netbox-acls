@@ -286,9 +286,31 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label="Source Service",
     )
+
+    destination_prefix = DynamicModelMultipleChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
         label="Destination Prefix",
+    )
+    destination_iprange = DynamicModelMultipleChoiceField(
+        queryset=IPRange.objects.all(),
+        required=False,
+        label="Destination IP-Range",
+    )
+    destination_ipaddress = DynamicModelMultipleChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        label="Destination IP-Address",
+    )
+    destination_aggregate = DynamicModelMultipleChoiceField(
+        queryset=Aggregate.objects.all(),
+        required=False,
+        label="Destination Aggregate",
+    )    
+    destination_service = DynamicModelMultipleChoiceField(
+        queryset=Service.objects.all(),
+        required=False,
+        label="Destination Service",
     )
     protocol = forms.ChoiceField(
         choices=add_blank_choice(ACLProtocolChoices),

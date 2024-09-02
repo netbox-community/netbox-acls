@@ -181,7 +181,17 @@ class ACLStandardRuleFilterSet(NetBoxModelFilterSet):
         """
 
         model = ACLStandardRule
-        fields = ("id", "access_list", "index", "action")
+        fields = (
+            "id",
+            "access_list",
+            "index",
+            "action",
+            "source_prefix",
+            "source_iprange",
+            "source_ipaddress",
+            "source_aggregate",
+            "source_service",
+        )
 
     def search(self, queryset, name, value):
         """
@@ -191,6 +201,11 @@ class ACLStandardRuleFilterSet(NetBoxModelFilterSet):
             Q(access_list__name__icontains=value)
             | Q(index__icontains=value)
             | Q(action__icontains=value)
+            | Q(source_prefix__icontains=value)
+            | Q(source_iprange__icontains=value)
+            | Q(source_ipaddress__icontains=value)
+            | Q(source_aggregate__icontains=value)
+            | Q(source_service__icontains=value)
         )
         return queryset.filter(query)
 

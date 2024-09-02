@@ -602,6 +602,31 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         help_text=help_text_acl_rule_logic,
         label="Source Prefix",
     )
+    source_iprange = DynamicModelChoiceField(
+        queryset=IPRange.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Source IP-Range",
+    )
+    source_ipaddress = DynamicModelChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Source IP-Address",
+    )
+    source_aggregate = DynamicModelChoiceField(
+        queryset=Aggregate.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Source Aggregate",
+    )    
+    source_service = DynamicModelChoiceField(
+        queryset=Service.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Source Service",
+    )
+
     destination_prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
@@ -619,9 +644,16 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             "index",
             "action",
             "remark",
+
             "source_prefix",
-            "source_ports",
+            "source_iprange",
+            "source_ipaddress",
+            "source_aggregate",
+            "source_service",
+
             "destination_prefix",
+
+            "source_ports",
             "destination_ports",
             "protocol",
             "tags",

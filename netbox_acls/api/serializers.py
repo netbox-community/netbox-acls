@@ -363,14 +363,15 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
         """
         Validate the ACLExtendedRule django model's inputs before allowing it to update the instance:
           - Check if action set to remark, but no remark set.
-          - Check if action set to remark, but source_prefix set.
+          - Check if action set to remark, but source set.
           - Check if action set to remark, but source_ports set.
-          - Check if action set to remark, but destination_prefix set.
           - Check if action set to remark, but destination_ports set.
           - Check if action set to remark, but protocol set.
-          - Check if action set to remark, but protocol set.
+          - Check not more than one source is set.
         """
         error_message = {}
+
+        sources = ["source_prefix", "source_iprange", "source_ipaddress", "source_aggregate", "source_service"]
 
         if data.get("action") == "remark":
             # Check if action set to remark, but no remark set.
@@ -378,11 +379,10 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
                 error_message["remark"] = [
                     error_message_no_remark,
                 ]
-            # Check if action set to remark, but source_prefix set.
-            if data.get("source_prefix"):
-                error_message["source_prefix"] = [
-                    error_message_action_remark_source_prefix_set,
-                ]
+            # Check if action set to remark, but source set.
+            if any(data.get(source) for source in sources):
+                for source in sources:
+                    error_message[source] = [error_message_action_remark_source_set]
             # Check if action set to remark, but source_ports set.
             if data.get("source_ports"):
                 error_message["source_ports"] = [
@@ -403,6 +403,12 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
                 error_message["protocol"] = [
                     "Action is set to remark, Protocol CANNOT be set.",
                 ]
+            
+        # Check not more than one source is set.
+        if sum(bool(data.get(source)) for source in sources) > 1:
+            for source in sources:
+                error_message[source] = [error_message_sources_more_than_one]
+
 
         if error_message:
             raise serializers.ValidationError(error_message)

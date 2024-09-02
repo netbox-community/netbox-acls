@@ -297,3 +297,28 @@ class ACLExtendedRule(ACLRule):
 
         verbose_name = "ACL Extended Rule"
         verbose_name_plural = "ACL Extended Rules"
+
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=False) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=False) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=False) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=False) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=False)
+                    )
+                ),
+                name='not_more_than_one_source_for_extended_rule'
+            ),

@@ -421,6 +421,10 @@ class ACLExtendedRuleView(generic.ObjectView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service",
         "destination_prefix",
     )
 
@@ -434,6 +438,10 @@ class ACLExtendedRuleListView(generic.ObjectListView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service",
         "destination_prefix",
     )
     table = tables.ACLExtendedRuleTable
@@ -451,6 +459,10 @@ class ACLExtendedRuleEditView(generic.ObjectEditView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service",
         "destination_prefix",
     )
     form = forms.ACLExtendedRuleForm
@@ -475,6 +487,10 @@ class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service",
         "destination_prefix",
     )
 
@@ -484,6 +500,10 @@ class ACLExtendedRuleBulkDeleteView(generic.BulkDeleteView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service",
         "destination_prefix",
     )
     filterset = filtersets.ACLExtendedRuleFilterSet

@@ -32,12 +32,15 @@ __all__ = [
 error_message_no_remark = "Action is set to remark, you MUST add a remark."
 # Sets a standard error message for ACL rules with an action of remark, but no source/destination is set.
 error_message_action_remark_source_set = "Action is set to remark, Source CANNOT be set."
+error_message_action_remark_destination_set = "Action is set to remark, Destination CANNOT be set."
 # Sets a standard error message for ACL rules with an action not set to remark, but no remark is set.
 error_message_remark_without_action_remark = "CANNOT set remark unless action is set to remark."
 # Sets a standard error message for ACL rules no associated to an ACL of the same type.
 error_message_acl_type = "Provided parent Access List is not of right type."
 # Sets a standard error message for ACL rules when more than one IP/Host sources are set.
 error_message_sources_more_than_one = "Only one IP/Host related Source can be specified."
+# Sets a standard error message for ACL rules when more than one IP/Host destinations are set.
+error_message_destinations_more_than_one = "Only one IP/Host related Destination can be specified."
 
 
 class AccessListSerializer(NetBoxModelSerializer):
@@ -392,14 +395,17 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
         Validate the ACLExtendedRule django model's inputs before allowing it to update the instance:
           - Check if action set to remark, but no remark set.
           - Check if action set to remark, but source set.
+          - Check if action set to remark, but destination set.
           - Check if action set to remark, but source_ports set.
           - Check if action set to remark, but destination_ports set.
           - Check if action set to remark, but protocol set.
           - Check not more than one source is set.
+          - Check not more than one destination is set.
         """
         error_message = {}
 
         sources = ["source_prefix", "source_iprange", "source_ipaddress", "source_aggregate", "source_service"]
+        destinations = ["destination_prefix", "destination_iprange", "destination_ipaddress", "destination_aggregate", "destination_service"]
 
         if data.get("action") == "remark":
             # Check if action set to remark, but no remark set.
@@ -411,15 +417,14 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
             if any(data.get(source) for source in sources):
                 for source in sources:
                     error_message[source] = [error_message_action_remark_source_set]
+            # Check if action set to remark, but destination set.
+            if any(data.get(destination) for destination in destinations):
+                for destination in destinations:
+                    error_message[destination] = [error_message_action_remark_destination_set]
             # Check if action set to remark, but source_ports set.
             if data.get("source_ports"):
                 error_message["source_ports"] = [
                     "Action is set to remark, Source Ports CANNOT be set.",
-                ]
-            # Check if action set to remark, but destination_prefix set.
-            if data.get("destination_prefix"):
-                error_message["destination_prefix"] = [
-                    "Action is set to remark, Destination Prefix CANNOT be set.",
                 ]
             # Check if action set to remark, but destination_ports set.
             if data.get("destination_ports"):
@@ -437,6 +442,10 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
             for source in sources:
                 error_message[source] = [error_message_sources_more_than_one]
 
+        # Check not more than one destination is set.
+        if sum(bool(data.get(destination)) for destination in destinations) > 1:
+            for destination in destinations:
+                error_message[destination] = [error_message_destinations_more_than_one]
 
         if error_message:
             raise serializers.ValidationError(error_message)

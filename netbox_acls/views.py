@@ -323,6 +323,10 @@ class ACLStandardRuleView(generic.ObjectView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service"
     )
 
 
@@ -335,6 +339,10 @@ class ACLStandardRuleListView(generic.ObjectListView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service"
     )
     table = tables.ACLStandardRuleTable
     filterset = filtersets.ACLStandardRuleFilterSet
@@ -346,11 +354,14 @@ class ACLStandardRuleEditView(generic.ObjectEditView):
     """
     Defines the edit view for the ACLStandardRule django model.
     """
-
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service"
     )
     form = forms.ACLStandardRuleForm
 
@@ -374,6 +385,10 @@ class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service"
     )
 
 
@@ -382,6 +397,10 @@ class ACLStandardRuleBulkDeleteView(generic.BulkDeleteView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service"
     )
     filterset = filtersets.ACLStandardRuleFilterSet
     table = tables.ACLStandardRuleTable

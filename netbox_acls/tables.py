@@ -201,6 +201,10 @@ class ACLExtendedRuleTable(NetBoxTable):
     tags = columns.TagColumn(
         url_name="plugins:netbox_acls:aclextendedrule_list",
     )
+    source = tables.TemplateColumn(
+        template_code=COL_SOURCE_AND_DESTINATION_ASSIGNMENT.replace('#replaceme#', 'source'),
+        order_by=('source_prefix', 'source_iprange', 'source_ipaddress', 'source_aggregate', 'source_service')
+    )
     protocol = ChoiceFieldColumn()
 
     class Meta(NetBoxTable.Meta):
@@ -214,7 +218,7 @@ class ACLExtendedRuleTable(NetBoxTable):
             "remark",
             "tags",
             "description",
-            "source_prefix",
+            "source",
             "source_ports",
             "destination_prefix",
             "destination_ports",
@@ -226,7 +230,7 @@ class ACLExtendedRuleTable(NetBoxTable):
             "action",
             "remark",
             "tags",
-            "source_prefix",
+            "source",
             "source_ports",
             "destination_prefix",
             "destination_ports",

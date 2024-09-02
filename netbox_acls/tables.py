@@ -205,6 +205,10 @@ class ACLExtendedRuleTable(NetBoxTable):
         template_code=COL_SOURCE_AND_DESTINATION_ASSIGNMENT.replace('#replaceme#', 'source'),
         order_by=('source_prefix', 'source_iprange', 'source_ipaddress', 'source_aggregate', 'source_service')
     )
+    destination = tables.TemplateColumn(
+        template_code=COL_SOURCE_AND_DESTINATION_ASSIGNMENT.replace('#replaceme#', 'destination'),
+        order_by=('destination_prefix', 'destination_iprange', 'destination_ipaddress', 'destination_aggregate', 'destination_service')
+    )
     protocol = ChoiceFieldColumn()
 
     class Meta(NetBoxTable.Meta):
@@ -220,7 +224,7 @@ class ACLExtendedRuleTable(NetBoxTable):
             "description",
             "source",
             "source_ports",
-            "destination_prefix",
+            "destination",
             "destination_ports",
             "protocol",
         )
@@ -232,7 +236,7 @@ class ACLExtendedRuleTable(NetBoxTable):
             "tags",
             "source",
             "source_ports",
-            "destination_prefix",
+            "destination",         
             "destination_ports",
             "protocol",
         )

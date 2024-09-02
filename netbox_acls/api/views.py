@@ -74,7 +74,7 @@ class ACLExtendedRuleViewSet(NetBoxModelViewSet):
     queryset = models.ACLExtendedRule.objects.prefetch_related(
         "access_list",
         "tags",
-        "source_prefix",
+        "source_prefix", "source_iprange", "source_ipaddress", "source_aggregate", "source_service",
         "destination_prefix",
     )
     serializer_class = ACLExtendedRuleSerializer

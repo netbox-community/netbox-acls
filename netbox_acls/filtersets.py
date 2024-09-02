@@ -232,6 +232,12 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
             "source_ipaddress",
             "source_aggregate",
             "source_service",
+            "destination_prefix",
+            "destination_iprange",
+            "destination_ipaddress",
+            "destination_aggregate",
+            "destination_service"
+        )
 
     def search(self, queryset, name, value):
         """
@@ -247,5 +253,10 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
                 | Q(source_ipaddress__icontains=value)
                 | Q(source_aggregate__icontains=value)
                 | Q(source_service__icontains=value)
+                | Q(destination_prefix__icontains=value)
+                | Q(destination_iprange__icontains=value)
+                | Q(destination_ipaddress__icontains=value)
+                | Q(destination_aggregate__icontains=value)
+                | Q(destination_service__icontains=value)
         )
         return queryset.filter(query)

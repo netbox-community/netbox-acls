@@ -633,6 +633,31 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         help_text=help_text_acl_rule_logic,
         label="Destination Prefix",
     )
+    destination_iprange = DynamicModelChoiceField(
+        queryset=IPRange.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Destination IP-Range",
+    )
+    destination_ipaddress = DynamicModelChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Destination IP-Address",
+    )
+    destination_aggregate = DynamicModelChoiceField(
+        queryset=Aggregate.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Destination Aggregate",
+    )    
+    destination_service = DynamicModelChoiceField(
+        queryset=Service.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Destination Service",
+    )
+
     fieldsets = (
         FieldSet(
             "access_list", 
@@ -675,6 +700,10 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             "source_service",
 
             "destination_prefix",
+            "destination_iprange",
+            "destination_ipaddress",
+            "destination_aggregate",
+            "destination_service",
 
             "source_ports",
             "destination_ports",

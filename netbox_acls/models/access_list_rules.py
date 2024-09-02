@@ -7,6 +7,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.urls import reverse
 from netbox.models import NetBoxModel
+from ipam.models import Prefix, IPRange, IPAddress, Aggregate, Service
 
 from ..choices import ACLProtocolChoices, ACLRuleActionChoices, ACLTypeChoices
 from .access_lists import AccessList
@@ -16,7 +17,6 @@ __all__ = (
     "ACLStandardRule",
     "ACLExtendedRule",
 )
-
 
 class ACLRule(NetBoxModel):
     """
@@ -43,16 +43,57 @@ class ACLRule(NetBoxModel):
         choices=ACLRuleActionChoices,
         max_length=30,
     )
+    
     source_prefix = models.ForeignKey(
         blank=True,
         null=True,
         on_delete=models.PROTECT,
         related_name="+",
-        to="ipam.Prefix",
+        to=Prefix,
         verbose_name="Source Prefix",
     )
+    source_iprange = models.ForeignKey(
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+        to=IPRange,
+        verbose_name="Source IP-Range",
+    )
+    source_ipaddress = models.ForeignKey(
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+        to=IPAddress,
+        verbose_name="Source IP-Address",
+    )
+    source_aggregate = models.ForeignKey(
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+        to=Aggregate,
+        verbose_name="Source Aggregate",
+    )
+    source_service = models.ForeignKey(
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+        to=Service,
+        verbose_name="Source Service",
+    )
 
-    clone_fields = ("access_list", "action", "source_prefix")
+    clone_fields = (
+        "access_list", 
+        "action", 
+        "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service"
+    )
 
     def __str__(self):
         return f"{self.access_list}: Rule {self.index}"
@@ -62,7 +103,14 @@ class ACLRule(NetBoxModel):
 
     @classmethod
     def get_prerequisite_models(cls):
-        return [apps.get_model("ipam.Prefix"), AccessList]
+        return [
+            Prefix, 
+            IPRange,
+            IPAddress,
+            Aggregate,
+            Service,
+            AccessList
+        ]
 
     class Meta:
         """
@@ -99,7 +147,14 @@ class ACLStandardRule(ACLRule):
 
     @classmethod
     def get_prerequisite_models(cls):
-        return [AccessList]
+        return [
+            Prefix, 
+            IPRange,
+            IPAddress,
+            Aggregate,
+            Service,
+            AccessList
+        ]
 
     class Meta(ACLRule.Meta):
         """

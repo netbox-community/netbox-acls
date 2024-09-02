@@ -682,7 +682,15 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             ),
             "source_ports",
         ),
+        FieldSet(
+            TabbedGroups(
+                FieldSet('destination_prefix', name=_('Prefix')),
+                FieldSet('destination_iprange', name=_('IP Range')),
+                FieldSet('destination_ipaddress', name=_('IP Address')),
+                FieldSet('destination_aggregate', name=_('Aggregate')),
+                FieldSet('destination_service', name=_('Service')),
             ),
+            "destination_ports",
         ),
     )
     class Meta:

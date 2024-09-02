@@ -198,22 +198,17 @@ class ACLStandardRule(ACLRule):
 class ACLExtendedRule(ACLRule):
     """
     Inherits ACLRule.
-    Add ACLExtendedRule specific fields: source_ports, desintation_prefix, destination_ports, and protocol
+    Add ACLExtendedRule specific fields: destination, source_ports, destination_ports and protocol
     """
 
     access_list = models.ForeignKey(
         on_delete=models.CASCADE,
         to=AccessList,
         verbose_name="Extended Access List",
-        limit_choices_to={"type": "extended"},
+        limit_choices_to={"type": ACLTypeChoices.TYPE_EXTENDED},
         related_name="aclextendedrules",
     )
-    source_ports = ArrayField(
-        base_field=models.PositiveIntegerField(),
-        blank=True,
-        null=True,
-        verbose_name="Soure Ports",
-    )
+
     destination_prefix = models.ForeignKey(
         blank=True,
         null=True,
@@ -253,6 +248,13 @@ class ACLExtendedRule(ACLRule):
         related_name="+",
         to=Service,
         verbose_name="Destination Service",
+    )
+
+    source_ports = ArrayField(
+        base_field=models.PositiveIntegerField(),
+        blank=True,
+        null=True,
+        verbose_name="Source Ports",
     )
     destination_ports = ArrayField(
         base_field=models.PositiveIntegerField(),

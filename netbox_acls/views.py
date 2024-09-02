@@ -374,7 +374,6 @@ class ACLStandardRuleEditView(generic.ObjectEditView):
             "access_list": request.GET.get("access_list") or request.POST.get("access_list"),
         }
 
-
 @register_model_view(models.ACLStandardRule, "delete")
 class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
     """
@@ -426,6 +425,10 @@ class ACLExtendedRuleView(generic.ObjectView):
         "source_aggregate",
         "source_service",
         "destination_prefix",
+        "destination_iprange",
+        "destination_ipaddress",
+        "destination_aggregate",
+        "destination_service"
     )
 
 
@@ -443,6 +446,10 @@ class ACLExtendedRuleListView(generic.ObjectListView):
         "source_aggregate",
         "source_service",
         "destination_prefix",
+        "destination_iprange",
+        "destination_ipaddress",
+        "destination_aggregate",
+        "destination_service"
     )
     table = tables.ACLExtendedRuleTable
     filterset = filtersets.ACLExtendedRuleFilterSet
@@ -464,6 +471,10 @@ class ACLExtendedRuleEditView(generic.ObjectEditView):
         "source_aggregate",
         "source_service",
         "destination_prefix",
+        "destination_iprange",
+        "destination_ipaddress",
+        "destination_aggregate",
+        "destination_service"
     )
     form = forms.ACLExtendedRuleForm
 
@@ -492,6 +503,10 @@ class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
         "source_aggregate",
         "source_service",
         "destination_prefix",
+        "destination_iprange",
+        "destination_ipaddress",
+        "destination_aggregate",
+        "destination_service"
     )
 
 
@@ -505,6 +520,10 @@ class ACLExtendedRuleBulkDeleteView(generic.BulkDeleteView):
         "source_aggregate",
         "source_service",
         "destination_prefix",
+        "destination_iprange",
+        "destination_ipaddress",
+        "destination_aggregate",
+        "destination_service"
     )
     filterset = filtersets.ACLExtendedRuleFilterSet
     table = tables.ACLExtendedRuleTable

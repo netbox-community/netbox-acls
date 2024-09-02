@@ -75,7 +75,7 @@ class ACLExtendedRuleViewSet(NetBoxModelViewSet):
         "access_list",
         "tags",
         "source_prefix", "source_iprange", "source_ipaddress", "source_aggregate", "source_service",
-        "destination_prefix",
+        "destination_prefix", "destination_iprange", "destination_ipaddress", "destination_aggregate", "destination_service",
     )
     serializer_class = ACLExtendedRuleSerializer
     filterset_class = filtersets.ACLExtendedRuleFilterSet

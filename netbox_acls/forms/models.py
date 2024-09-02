@@ -51,11 +51,14 @@ help_text_acl_rule_index = "Determines the order of the rule in the ACL processi
 
 # Sets a standard error message for ACL rules with an action of remark, but no remark set.
 error_message_no_remark = "Action is set to remark, you MUST add a remark."
-# Sets a standard error message for ACL rules with an action of remark, but no source_prefix is set.
-error_message_action_remark_source_prefix_set = "Action is set to remark, Source Prefix CANNOT be set."
 # Sets a standard error message for ACL rules with an action not set to remark, but no remark is set.
 error_message_remark_without_action_remark = "CANNOT set remark unless action is set to remark."
 
+# Sets a standard error message for ACL rules with an action of remark, but no source is set.
+error_message_action_remark_source_set = "Action is set to remark, Source CANNOT be set."
+
+# Sets a standard error message for ACL rules when more than one IP/Host sources are set.
+error_message_sources_more_than_one = "Only one IP/Host related Source can be specified."
 
 class AccessListForm(NetBoxModelForm):
     """
@@ -535,7 +538,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
             "index": help_text_acl_rule_index,
             "action": help_text_acl_action,
             "remark": mark_safe(
-                "<b>*Note:</b> CANNOT be set if source prefix OR action is set.",
+                "<b>*Note:</b> CANNOT be set if source OR action is set.",
             ),
         }
 
@@ -543,8 +546,9 @@ class ACLStandardRuleForm(NetBoxModelForm):
         """
         Validates form inputs before submitting:
           - Check if action set to remark, but no remark set.
-          - Check if action set to remark, but source_prefix set.
+          - Check if action set to remark, but source set.
           - Check remark set, but action not set to remark.
+          - Check not more than one source is set.
         """
         super().clean()
         cleaned_data = self.cleaned_data
@@ -552,18 +556,23 @@ class ACLStandardRuleForm(NetBoxModelForm):
 
         action = cleaned_data.get("action")
         remark = cleaned_data.get("remark")
-        source_prefix = cleaned_data.get("source_prefix")
+        sources = ["source_prefix", "source_iprange", "source_ipaddress", "source_aggregate", "source_service"]
 
         if action == "remark":
             # Check if action set to remark, but no remark set.
             if not remark:
                 error_message["remark"] = [error_message_no_remark]
-            # Check if action set to remark, but source_prefix set.
-            if source_prefix:
-                error_message["source_prefix"] = [error_message_action_remark_source_prefix_set]
+            # Check if action set to remark, but source set.
+            if any(cleaned_data.get(source) for source in sources):
+                for source in sources:
+                    error_message[source] = [error_message_action_remark_source_set]
         # Check remark set, but action not set to remark.
         elif remark:
             error_message["remark"] = [error_message_remark_without_action_remark]
+        # Check not more than one source is set.
+        elif sum(bool(cleaned_data.get(source)) for source in sources) > 1:
+            for source in sources:
+                error_message[source] = [error_message_sources_more_than_one]
 
         if error_message:
             raise ValidationError(error_message)

@@ -634,8 +634,31 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         label="Destination Prefix",
     )
     fieldsets = (
-        FieldSet("access_list", "description", "tags", name=_('Access List Details')),
-        FieldSet("index", "action", "remark", "source_prefix", "source_ports", "destination_prefix", "destination_ports", "protocol", name=_('Rule Definition'))
+        FieldSet(
+            "access_list", 
+            "description", 
+            "tags",
+            name=_('Access List Details')
+        ),
+        FieldSet(
+            "index", 
+            "action", 
+            "remark", 
+            "protocol",
+            name=_('Rule Definition')
+        ),
+        FieldSet(
+            TabbedGroups(
+                FieldSet('source_prefix', name=_('Prefix')),
+                FieldSet('source_iprange', name=_('IP Range')),
+                FieldSet('source_ipaddress', name=_('IP Address')),
+                FieldSet('source_aggregate', name=_('Aggregate')),
+                FieldSet('source_service', name=_('Service')),
+            ),
+            "source_ports",
+        ),
+            ),
+        ),
     )
     class Meta:
         model = ACLExtendedRule

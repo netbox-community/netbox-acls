@@ -5,6 +5,7 @@ Define the django models for this plugin.
 from django.apps import apps
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
+from django.db.models import Q
 from django.urls import reverse
 from netbox.models import NetBoxModel
 from ipam.models import Prefix, IPRange, IPAddress, Aggregate, Service
@@ -166,6 +167,32 @@ class ACLStandardRule(ACLRule):
 
         verbose_name = "ACL Standard Rule"
         verbose_name_plural = "ACL Standard Rules"
+
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=False) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=False) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=False) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=False) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=False)
+                    )
+                ),
+                name='not_more_than_one_source_for_standard_rule'
+            )
+        ]
 
 
 class ACLExtendedRule(ACLRule):

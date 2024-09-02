@@ -5,7 +5,7 @@ while Django itself handles the database abstraction.
 
 from django.contrib.contenttypes.models import ContentType
 from drf_spectacular.utils import extend_schema_field
-from ipam.api.serializers import PrefixSerializer
+from ipam.api.serializers import PrefixSerializer, IPRangeSerializer, IPAddressSerializer, AggregateSerializer, ServiceSerializer
 from netbox.api.fields import ContentTypeField
 from netbox.api.serializers import NetBoxModelSerializer
 from rest_framework import serializers
@@ -26,6 +26,7 @@ __all__ = [
     "ACLStandardRuleSerializer",
     "ACLExtendedRuleSerializer",
 ]
+
 
 # Sets a standard error message for ACL rules with an action of remark, but no remark set.
 error_message_no_remark = "Action is set to remark, you MUST add a remark."
@@ -190,6 +191,30 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
         default=None,
         nested=True
     )
+    source_iprange = IPRangeSerializer(
+        required=False,
+        allow_null=True,
+        default=None,
+        nested=True
+    )
+    source_ipaddress = IPAddressSerializer(
+        required=False,
+        allow_null=True,
+        default=None,
+        nested=True
+    )
+    source_aggregate = AggregateSerializer(
+        required=False,
+        allow_null=True,
+        default=None,
+        nested=True
+    )
+    source_service = ServiceSerializer(
+        required=False,
+        allow_null=True,
+        default=None,
+        nested=True
+    )
 
     class Meta:
         """
@@ -211,6 +236,10 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
             "custom_fields",
             "last_updated",
             "source_prefix",
+            "source_iprange",
+            "source_ipaddress",
+            "source_aggregate",
+            "source_service",
         )
         brief_fields = ("id", "url", "display")
 

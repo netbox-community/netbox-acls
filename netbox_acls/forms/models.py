@@ -6,6 +6,7 @@ from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChass
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _
 from ipam.models import (
     Prefix,
     IPRange,
@@ -23,7 +24,7 @@ from virtualization.models import (
     VirtualMachine,
     VMInterface,
 )
-
+from utilities.forms.rendering import FieldSet, TabbedGroups
 from ..choices import ACLTypeChoices
 from ..models import (
     AccessList,
@@ -484,9 +485,31 @@ class ACLStandardRuleForm(NetBoxModelForm):
     )
 
     fieldsets = (
-        FieldSet("access_list", "description", "tags", name=_('Access List Details')),
-        FieldSet("index", "action", "remark", "source_prefix", name=_('Rule Definition'))
+        FieldSet(
+            "access_list", 
+            "description", 
+            "tags",
+            name=_('Access List Details')
+        ),
+        FieldSet(
+            "index", 
+            "action", 
+            "remark", 
+            name=_('Rule Definition')
+        ),
+        FieldSet(
+            TabbedGroups(
+                FieldSet('source_prefix', name=_('Prefix')),
+                FieldSet('source_iprange', name=_('IP Range')),
+                FieldSet('source_ipaddress', name=_('IP Address')),
+                FieldSet('source_aggregate', name=_('Aggregate')),
+                FieldSet('source_service', name=_('Service')),
+            )
+        )
     )
+
+
+
     class Meta:
         model = ACLStandardRule
         fields = (

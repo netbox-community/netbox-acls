@@ -684,26 +684,24 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         )
 
         help_texts = {
-            "action": help_text_acl_action,
-            "destination_ports": help_text_acl_rule_logic,
             "index": help_text_acl_rule_index,
-            "protocol": help_text_acl_rule_logic,
+            "action": help_text_acl_action,
             "remark": mark_safe(
                 "<b>*Note:</b> CANNOT be set if action is not set to remark.",
             ),
             "source_ports": help_text_acl_rule_logic,
+            "destination_ports": help_text_acl_rule_logic,
+            "protocol": help_text_acl_rule_logic,
         }
 
     def clean(self):
         """
         Validates form inputs before submitting:
         - Check if action set to remark, but no remark set.
-        - Check if action set to remark, but source_prefix set.
-        - Check if action set to remark, but source_ports set.
-        - Check if action set to remark, but destination_prefix set.
-        - Check if action set to remark, but destination_ports set.
-        - Check if action set to remark, but protocol set.
+        - Check if action set to remark, but source set.
+        - Check if action set to remark, but protocol set
         - Check remark set, but action not set to remark.
+        - Check not more than one source is set.
         """
         super().clean()
         cleaned_data = self.cleaned_data
@@ -711,7 +709,8 @@ class ACLExtendedRuleForm(NetBoxModelForm):
 
         action = cleaned_data.get("action")
         remark = cleaned_data.get("remark")
-        source_prefix = cleaned_data.get("source_prefix")
+
+        sources = ["source_prefix", "source_iprange", "source_ipaddress", "source_aggregate", "source_service"]
         source_ports = cleaned_data.get("source_ports")
         destination_prefix = cleaned_data.get("destination_prefix")
         destination_ports = cleaned_data.get("destination_ports")
@@ -720,8 +719,11 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         if action == "remark":
             if not remark:
                 error_message["remark"] = [error_message_no_remark]
-            if source_prefix:
-                error_message["source_prefix"] = [error_message_action_remark_source_prefix_set]
+
+            # Check if action set to remark, but source set.
+            for source in sources:
+                error_message[source] = [error_message_action_remark_source_set]
+
             if source_ports:
                 error_message["source_ports"] = ["Action is set to remark, Source Ports CANNOT be set."]
             if destination_prefix:
@@ -732,6 +734,11 @@ class ACLExtendedRuleForm(NetBoxModelForm):
                 error_message["protocol"] = ["Action is set to remark, Protocol CANNOT be set."]
         elif remark:
             error_message["remark"] = [error_message_remark_without_action_remark]
+
+        # Check not more than one source is set.
+        elif sum(bool(cleaned_data.get(source)) for source in sources) > 1:
+            for source in sources:
+                error_message[source] = [error_message_sources_more_than_one]
 
         if error_message:
             raise ValidationError(error_message)

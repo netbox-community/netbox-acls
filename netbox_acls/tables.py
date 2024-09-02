@@ -92,6 +92,7 @@ class ACLInterfaceAssignmentTable(NetBoxTable):
     direction = ChoiceFieldColumn()
     host = tables.TemplateColumn(
         template_code=COL_HOST_ASSIGNMENT,
+        orderable=False,
     )
     assigned_object = tables.Column(
         linkify=True,
@@ -208,3 +209,5 @@ class ACLExtendedRuleTable(NetBoxTable):
             "destination_ports",
             "protocol",
         )
+
+

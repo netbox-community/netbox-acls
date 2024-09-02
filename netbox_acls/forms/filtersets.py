@@ -296,6 +296,21 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
     )
 
     fieldsets = (
-        FieldSet("access_list", "action", "source_prefix", "desintation_prefix", "protocol", name=_('Rule Details')),
-        FieldSet("q", "tag",name=None)
+        FieldSet("q", "tag",name=None),
+        FieldSet(
+            "access_list",
+            "action",
+            "protocol",
+            name=_('Rule Details')
+        ),
+        FieldSet(
+            TabbedGroups(
+                FieldSet('source_prefix', name=_('Prefix')),
+                FieldSet('source_iprange', name=_('IP Range')),
+                FieldSet('source_ipaddress', name=_('IP Address')),
+                FieldSet('source_aggregate', name=_('Aggregate')),
+                FieldSet('source_service', name=_('Service')),
+            ),
+            "source_ports",
+        ),
     )

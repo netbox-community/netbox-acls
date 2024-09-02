@@ -322,3 +322,27 @@ class ACLExtendedRule(ACLRule):
                 ),
                 name='not_more_than_one_source_for_extended_rule'
             ),
+            models.CheckConstraint(
+                check=(
+                    (
+                        Q(destination_prefix__isnull=True) & Q(destination_iprange__isnull=True) & Q(destination_ipaddress__isnull=True) & Q(destination_aggregate__isnull=True) & Q(destination_service__isnull=True)
+                    ) |
+                    (
+                        Q(destination_prefix__isnull=False) & Q(destination_iprange__isnull=True) & Q(destination_ipaddress__isnull=True) & Q(destination_aggregate__isnull=True) & Q(destination_service__isnull=True)
+                    ) |
+                    (
+                        Q(destination_prefix__isnull=True) & Q(destination_iprange__isnull=False) & Q(destination_ipaddress__isnull=True) & Q(destination_aggregate__isnull=True) & Q(destination_service__isnull=True)
+                    ) |
+                    (
+                        Q(destination_prefix__isnull=True) & Q(destination_iprange__isnull=True) & Q(destination_ipaddress__isnull=False) & Q(destination_aggregate__isnull=True) & Q(destination_service__isnull=True)
+                    ) |
+                    (
+                        Q(destination_prefix__isnull=True) & Q(destination_iprange__isnull=True) & Q(destination_ipaddress__isnull=True) & Q(destination_aggregate__isnull=False) & Q(destination_service__isnull=True)
+                    ) |
+                    (
+                        Q(destination_prefix__isnull=True) & Q(destination_iprange__isnull=True) & Q(destination_ipaddress__isnull=True) & Q(destination_aggregate__isnull=True) & Q(destination_service__isnull=False)
+                    )
+                ),
+                name='not_more_than_one_destination_for_extended_rule'
+            )
+        ]

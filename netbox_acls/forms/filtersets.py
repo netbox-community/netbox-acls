@@ -20,6 +20,7 @@ from utilities.forms.fields import (
     TagFilterField,
 )
 from utilities.forms.utils import add_blank_choice
+from utilities.forms.rendering import FieldSet, TabbedGroups
 from virtualization.models import VirtualMachine, VMInterface
 
 
@@ -218,9 +219,25 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
     )
 
     fieldsets = (
-        FieldSet("access_list", "action", "source_prefix", name=_('Rule Details')),
-        FieldSet("q", "tag",name=None)
+        FieldSet("q", "tag",name=None),
+        FieldSet(
+            "access_list",
+            "action",
+            name=_('Rule Details')
+        ),
+        FieldSet(
+            TabbedGroups(
+                FieldSet('source_prefix', name=_('Prefix')),
+                FieldSet('source_iprange', name=_('IP Range')),
+                FieldSet('source_ipaddress', name=_('IP Address')),
+                FieldSet('source_aggregate', name=_('Aggregate')),
+                FieldSet('source_service', name=_('Service')),
+            )
+        )
     )
+
+
+
 class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
     """
     GUI filter form to search the django ACLExtendedRule model.

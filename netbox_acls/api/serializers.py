@@ -325,6 +325,30 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
         default=None,
         nested=True
     )
+    destination_iprange = IPRangeSerializer(
+        required=False,
+        allow_null=True,
+        default=None,
+        nested=True
+    )
+    destination_ipaddress = IPAddressSerializer(
+        required=False,
+        allow_null=True,
+        default=None,
+        nested=True
+    )
+    destination_aggregate = AggregateSerializer(
+        required=False,
+        allow_null=True,
+        default=None,
+        nested=True
+    )
+    destination_service = ServiceSerializer(
+        required=False,
+        allow_null=True,
+        default=None,
+        nested=True
+    )
 
     class Meta:
         """
@@ -352,6 +376,10 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
             "source_service",
 
             "destination_prefix",
+            "destination_iprange",
+            "destination_ipaddress",
+            "destination_aggregate",
+            "destination_service",
             
             "source_ports",            
             "destination_ports",

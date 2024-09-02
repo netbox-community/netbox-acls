@@ -221,7 +221,17 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
         """
 
         model = ACLExtendedRule
-        fields = ("id", "access_list", "index", "action", "protocol")
+        fields = (
+            "id", 
+            "access_list", 
+            "index", 
+            "action", 
+            "protocol", 
+            "source_prefix",
+            "source_iprange",
+            "source_ipaddress",
+            "source_aggregate",
+            "source_service",
 
     def search(self, queryset, name, value):
         """
@@ -232,5 +242,10 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
                 | Q(index__icontains=value)
                 | Q(action__icontains=value)
                 | Q(protocol__icontains=value)
+                | Q(source_prefix__icontains=value)
+                | Q(source_iprange__icontains=value)
+                | Q(source_ipaddress__icontains=value)
+                | Q(source_aggregate__icontains=value)
+                | Q(source_service__icontains=value)
         )
         return queryset.filter(query)

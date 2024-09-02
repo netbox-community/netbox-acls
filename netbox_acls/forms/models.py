@@ -6,7 +6,13 @@ from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChass
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.utils.safestring import mark_safe
-from ipam.models import Prefix
+from ipam.models import (
+    Prefix,
+    IPRange,
+    IPAddress,
+    Aggregate,
+    Service,
+)
 from netbox.forms import NetBoxModelForm
 from utilities.forms.rendering import FieldSet
 from utilities.forms.fields import CommentField, DynamicModelChoiceField
@@ -445,11 +451,36 @@ class ACLStandardRuleForm(NetBoxModelForm):
         ),
         label="Access List",
     )
+
     source_prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
         help_text=help_text_acl_rule_logic,
         label="Source Prefix",
+    )
+    source_iprange = DynamicModelChoiceField(
+        queryset=IPRange.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Source IP-Range",
+    )
+    source_ipaddress = DynamicModelChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Source IP-Address",
+    )
+    source_aggregate = DynamicModelChoiceField(
+        queryset=Aggregate.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Source Aggregate",
+    )    
+    source_service = DynamicModelChoiceField(
+        queryset=Service.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Source Service",
     )
 
     fieldsets = (
@@ -463,7 +494,13 @@ class ACLStandardRuleForm(NetBoxModelForm):
             "index",
             "action",
             "remark",
+
             "source_prefix",
+            "source_iprange",
+            "source_ipaddress",
+            "source_aggregate",
+            "source_service",
+
             "tags",
             "description",
         )

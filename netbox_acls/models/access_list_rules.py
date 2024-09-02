@@ -192,8 +192,40 @@ class ACLExtendedRule(ACLRule):
         null=True,
         on_delete=models.PROTECT,
         related_name="+",
-        to="ipam.Prefix",
+        to=Prefix,
         verbose_name="Destination Prefix",
+    )
+    destination_iprange = models.ForeignKey(
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+        to=IPRange,
+        verbose_name="Destination IP-Range",
+    )
+    destination_ipaddress = models.ForeignKey(
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+        to=IPAddress,
+        verbose_name="Destination IP-Address",
+    )
+    destination_aggregate = models.ForeignKey(
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+        to=Aggregate,
+        verbose_name="Destination Aggregate",
+    )
+    destination_service = models.ForeignKey(
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+        to=Service,
+        verbose_name="Destination Service",
     )
     destination_ports = ArrayField(
         base_field=models.PositiveIntegerField(),
@@ -219,7 +251,14 @@ class ACLExtendedRule(ACLRule):
 
     @classmethod
     def get_prerequisite_models(cls):
-        return [apps.get_model("ipam.Prefix"), AccessList]
+        return [
+            Prefix, 
+            IPRange,
+            IPAddress,
+            Aggregate,
+            Service,
+            AccessList
+        ]
 
     class Meta(ACLRule.Meta):
         """

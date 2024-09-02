@@ -30,12 +30,14 @@ __all__ = [
 
 # Sets a standard error message for ACL rules with an action of remark, but no remark set.
 error_message_no_remark = "Action is set to remark, you MUST add a remark."
-# Sets a standard error message for ACL rules with an action of remark, but no source_prefix is set.
-error_message_action_remark_source_prefix_set = "Action is set to remark, Source Prefix CANNOT be set."
+# Sets a standard error message for ACL rules with an action of remark, but no source/destination is set.
+error_message_action_remark_source_set = "Action is set to remark, Source CANNOT be set."
 # Sets a standard error message for ACL rules with an action not set to remark, but no remark is set.
 error_message_remark_without_action_remark = "CANNOT set remark unless action is set to remark."
 # Sets a standard error message for ACL rules no associated to an ACL of the same type.
 error_message_acl_type = "Provided parent Access List is not of right type."
+# Sets a standard error message for ACL rules when more than one IP/Host sources are set.
+error_message_sources_more_than_one = "Only one IP/Host related Source can be specified."
 
 
 class AccessListSerializer(NetBoxModelSerializer):
@@ -247,9 +249,12 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
         """
         Validate the ACLStandardRule django model's inputs before allowing it to update the instance:
           - Check if action set to remark, but no remark set.
-          - Check if action set to remark, but source_prefix set.
+          - Check if action set to remark, but source set.
+          - Check not more than one source is set.
         """
         error_message = {}
+
+        sources = ["source_prefix", "source_iprange", "source_ipaddress", "source_aggregate", "source_service"]
 
         if data.get("action") == "remark":
             # Check if action set to remark, but no remark set.
@@ -257,11 +262,15 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
                 error_message["remark"] = [
                     error_message_no_remark,
                 ]
-            # Check if action set to remark, but source_prefix set.
-            if data.get("source_prefix"):
-                error_message["source_prefix"] = [
-                    error_message_action_remark_source_prefix_set,
-                ]
+            # Check if action set to remark, but source set.
+            if any(data.get(source) for source in sources):
+                for source in sources:
+                    error_message[source] = [error_message_action_remark_source_set]
+
+        # Check not more than one source is set.
+        if sum(bool(data.get(source)) for source in sources) > 1:
+            for source in sources:
+                error_message[source] = [error_message_sources_more_than_one]
 
         if error_message:
             raise serializers.ValidationError(error_message)

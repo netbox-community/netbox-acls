@@ -5,10 +5,9 @@ while Django itself handles the database abstraction.
 
 from django.contrib.contenttypes.models import ContentType
 from drf_spectacular.utils import extend_schema_field
-from ipam.api.serializers import NestedPrefixSerializer
+from ipam.api.serializers import PrefixSerializer
 from netbox.api.fields import ContentTypeField
 from netbox.api.serializers import NetBoxModelSerializer
-from netbox.constants import NESTED_SERIALIZER_PREFIX
 from rest_framework import serializers
 from utilities.api import get_serializer_for_model
 
@@ -81,10 +80,9 @@ class AccessListSerializer(NetBoxModelSerializer):
     def get_assigned_object(self, obj):
         serializer = get_serializer_for_model(
             obj.assigned_object,
-            prefix=NESTED_SERIALIZER_PREFIX,
         )
         context = {"request": self.context["request"]}
-        return serializer(obj.assigned_object, context=context).data
+        return serializer(obj.assigned_object, nested=True, context=context).data
 
     def validate(self, data):
         """
@@ -145,11 +143,10 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
     @extend_schema_field(serializers.DictField())
     def get_assigned_object(self, obj):
         serializer = get_serializer_for_model(
-            obj.assigned_object,
-            prefix=NESTED_SERIALIZER_PREFIX,
+            obj.assigned_object
         )
         context = {"request": self.context["request"]}
-        return serializer(obj.assigned_object, context=context).data
+        return serializer(obj.assigned_object, nested=True, context=context).data
 
     def validate(self, data):
         """
@@ -187,10 +184,11 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
         view_name="plugins-api:netbox_acls-api:aclstandardrule-detail",
     )
     access_list = NestedAccessListSerializer()
-    source_prefix = NestedPrefixSerializer(
+    source_prefix = PrefixSerializer(
         required=False,
         allow_null=True,
         default=None,
+        nested=True
     )
 
     class Meta:
@@ -251,15 +249,17 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
         view_name="plugins-api:netbox_acls-api:aclextendedrule-detail",
     )
     access_list = NestedAccessListSerializer()
-    source_prefix = NestedPrefixSerializer(
+    source_prefix = PrefixSerializer(
         required=False,
         allow_null=True,
         default=None,
+        nested=True
     )
-    destination_prefix = NestedPrefixSerializer(
+    destination_prefix = PrefixSerializer(
         required=False,
         allow_null=True,
         default=None,
+        nested=True
     )
 
     class Meta:

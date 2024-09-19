@@ -54,6 +54,7 @@ setup(
         "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Intended Audience :: System Administrators",
         "Intended Audience :: Telecommunications Industry",
         "Framework :: Django",

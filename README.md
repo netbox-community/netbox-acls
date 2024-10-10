@@ -36,15 +36,16 @@ See the [CONTRIBUTING](CONTRIBUTING.md) for more information.
 
 Each Plugin Version listed below has been tested with its corresponding NetBox Version.
 
-| NetBox Version | Plugin Version |
-|:--------------:|:--------------:|
-|   >= 4.0.2     |     1.6.1      |
-|      3.7       |     1.5.0      |
-|      3.6       |     1.4.0      |
-|      3.5       |     1.3.0      |
-|      3.4       |     1.2.2      |
-|      3.3       |     1.1.0      |
-|      3.2       |     1.0.1      |
+| NetBox Version      | Plugin Version |
+|:-------------------:|:--------------:|
+|      4.1.x          |     1.7.0      |
+|   >= 4.0.2 < 4.1.0  |     1.6.1      |
+|      3.7.x          |     1.5.0      |
+|      3.6.x          |     1.4.0      |
+|      3.5.x          |     1.3.0      |
+|      3.4.x          |     1.2.2      |
+|      3.3.x          |     1.1.0      |
+|      3.2.x          |     1.0.1      |
 
 ## Installing
 

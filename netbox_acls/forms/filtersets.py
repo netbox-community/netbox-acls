@@ -1,12 +1,13 @@
 """
 Defines each django model's GUI filter/search options.
 """
-
+from django.utils.translation import gettext_lazy as _
 from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from django import forms
 from django.utils.translation import gettext as _
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelFilterSetForm
+from utilities.forms.rendering import FieldSet
 from utilities.forms.fields import (
     DynamicModelChoiceField,
     DynamicModelMultipleChoiceField,
@@ -90,21 +91,10 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
     tag = TagFilterField(model)
 
     fieldsets = (
-        (None, ("q", "tag")),
-        (
-            "Host Details",
-            (
-                "region",
-                "site_group",
-                "site",
-                "device_id",
-                "virtual_chassis_id",
-                "virtual_machine_id",
-            ),
-        ),
-        ("ACL Details", ("type", "default_action")),
+        FieldSet("region", "site_group", "site", "device_id", "virtual_chassis_id", "virtual_machine_id", name=_("Host Details")),
+        FieldSet("type", "default_action", name=_('ACL Details')),
+        FieldSet("q", "tag",name=None)
     )
-
 
 class ACLInterfaceAssignmentFilterForm(NetBoxModelFilterSetForm):
     """
@@ -195,12 +185,11 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
         choices=add_blank_choice(ACLRuleActionChoices),
         required=False,
     )
+
     fieldsets = (
-        (None, ("q", "tag")),
-        ("Rule Details", ("access_list", "action", "source_prefix")),
+        FieldSet("access_list", "action", "source_prefix", name=_('Rule Details')),
+        FieldSet("q", "tag",name=None)
     )
-
-
 class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
     """
     GUI filter form to search the django ACLExtendedRule model.
@@ -235,15 +224,6 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
     )
 
     fieldsets = (
-        (None, ("q", "tag")),
-        (
-            "Rule Details",
-            (
-                "access_list",
-                "action",
-                "source_prefix",
-                "desintation_prefix",
-                "protocol",
-            ),
-        ),
+        FieldSet("access_list", "action", "source_prefix", "desintation_prefix", "protocol", name=_('Rule Details')),
+        FieldSet("q", "tag",name=None)
     )

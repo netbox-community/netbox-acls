@@ -1,13 +1,14 @@
 """
 Defines each django model's GUI form to add or edit objects for each django model.
 """
-
+from django.utils.translation import gettext_lazy as _
 from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.utils.safestring import mark_safe
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelForm
+from utilities.forms.rendering import FieldSet
 from utilities.forms.fields import CommentField, DynamicModelChoiceField
 from virtualization.models import (
     Cluster,
@@ -118,7 +119,12 @@ class AccessListForm(NetBoxModelForm):
     )
 
     comments = CommentField()
-
+    fieldsets = (
+        FieldSet('region', 'site_group', 'site', 'virtual_machine', 'virtual_chassis', 'device', name=_('Assignment')),
+        FieldSet('name', 'type', 'default_action', name=_('Access List')),
+        FieldSet('comments', 'tags', name=_('')),
+    )
+    
     class Meta:
         model = AccessList
         fields = (
@@ -134,6 +140,7 @@ class AccessListForm(NetBoxModelForm):
             "comments",
             "tags",
         )
+
         help_texts = {
             "default_action": "The default behavior of the ACL.",
             "name": "The name uniqueness per device is case insensitive.",
@@ -285,6 +292,11 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         ),
     )
     comments = CommentField()
+    fieldsets = (
+        FieldSet('device', 'interface', 'virtual_machine', 'vminterface', name=_('Assignment')),
+        FieldSet('access_list', 'direction', name=_('Access List Details')),
+        FieldSet('comments', 'tags', name=_('')),
+    )
 
     def __init__(self, *args, **kwargs):
         # Initialize helper selectors
@@ -313,6 +325,7 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
             "comments",
             "tags",
         )
+
         help_texts = {
             "direction": mark_safe(
                 "<b>*Note:</b> CANNOT assign 2 ACLs to the same interface & direction.",
@@ -440,10 +453,9 @@ class ACLStandardRuleForm(NetBoxModelForm):
     )
 
     fieldsets = (
-        ("Access List Details", ("access_list", "description", "tags")),
-        ("Rule Definition", ("index", "action", "remark", "source_prefix")),
+        FieldSet("access_list", "description", "tags", name=_('Access List Details')),
+        FieldSet("index", "action", "remark", "source_prefix", name=_('Rule Definition'))
     )
-
     class Meta:
         model = ACLStandardRule
         fields = (
@@ -455,6 +467,10 @@ class ACLStandardRuleForm(NetBoxModelForm):
             "tags",
             "description",
         )
+
+
+
+
         help_texts = {
             "index": help_text_acl_rule_index,
             "action": help_text_acl_action,
@@ -524,22 +540,9 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         label="Destination Prefix",
     )
     fieldsets = (
-        ("Access List Details", ("access_list", "description", "tags")),
-        (
-            "Rule Definition",
-            (
-                "index",
-                "action",
-                "remark",
-                "source_prefix",
-                "source_ports",
-                "destination_prefix",
-                "destination_ports",
-                "protocol",
-            ),
-        ),
+        FieldSet("access_list", "description", "tags", name=_('Access List Details')),
+        FieldSet("index", "action", "remark", "source_prefix", "source_ports", "destination_prefix", "destination_ports", "protocol", name=_('Rule Definition'))
     )
-
     class Meta:
         model = ACLExtendedRule
         fields = (
@@ -555,6 +558,7 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             "tags",
             "description",
         )
+
         help_texts = {
             "action": help_text_acl_action,
             "destination_ports": help_text_acl_rule_logic,

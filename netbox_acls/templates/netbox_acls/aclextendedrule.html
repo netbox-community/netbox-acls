@@ -43,10 +43,23 @@
               <td>{{ object.get_protocol_display|placeholder }}</td>
             </tr>
             <tr>
-              <th scope="row">Source Prefix</th>
+              <th scope="row">Source</th>
               <td>
                 {% if object.source_prefix %}
+                  <span class="badge text-bg-grey">Prefix</span>
                   <a href="{{ object.source_prefix.get_absolute_url }}">{{ object.source_prefix }}</a>
+                {% elif object.source_iprange %}
+                  <span class="badge text-bg-grey">IP-Range</span>
+                  <a href="{{ object.source_iprange.get_absolute_url }}">{{ object.source_iprange }}</a>
+                {% elif object.source_ipaddress %}
+                  <span class="badge text-bg-grey">IP-Address</span>
+                  <a href="{{ object.source_ipaddress.get_absolute_url }}">{{ object.source_ipaddress }}</a>
+                {% elif object.source_aggregate %}
+                  <span class="badge text-bg-grey">Aggregate</span>
+                  <a href="{{ object.source_aggregate.get_absolute_url }}">{{ object.source_aggregate }}</a>
+                {% elif object.source_service %}
+                  <span class="badge text-bg-grey">Service</span>
+                  <a href="{{ object.source_service.get_absolute_url }}">{{ object.source_service }}</a>
                 {% else %}
                   {{ ''|placeholder }}
                 {% endif %}
@@ -57,10 +70,23 @@
               <td>{{ object.source_ports|join:", "|placeholder }}</td>
             </tr>
             <tr>
-              <th scope="row">Destination Prefix</th>
+              <th scope="row">Destination</th>
               <td>
                 {% if object.destination_prefix %}
+                  <span class="badge text-bg-grey">Prefix</span>
                   <a href="{{ object.destination_prefix.get_absolute_url }}">{{ object.destination_prefix }}</a>
+                {% elif object.destination_iprange %}
+                  <span class="badge text-bg-grey">IP-Range</span>
+                  <a href="{{ object.destination_iprange.get_absolute_url }}">{{ object.destination_iprange }}</a>
+                {% elif object.destination_ipaddress %}
+                  <span class="badge text-bg-grey">IP-Address</span>
+                  <a href="{{ object.destination_ipaddress.get_absolute_url }}">{{ object.destination_ipaddress }}</a>
+                {% elif object.destination_aggregate %}
+                  <span class="badge text-bg-grey">Aggregate</span>
+                  <a href="{{ object.destination_aggregate.get_absolute_url }}">{{ object.destination_aggregate }}</a>
+                {% elif object.destination_service %}
+                  <span class="badge text-bg-grey">Service</span>
+                  <a href="{{ object.destination_service.get_absolute_url }}">{{ object.destination_service }}</a>
                 {% else %}
                   {{ ''|placeholder }}
                 {% endif %}

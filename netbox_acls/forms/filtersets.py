@@ -5,7 +5,13 @@ from django.utils.translation import gettext_lazy as _
 from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from django import forms
 from django.utils.translation import gettext as _
-from ipam.models import Prefix
+from ipam.models import (
+    Prefix,
+    IPRange,
+    IPAddress,
+    Aggregate,
+    Service,
+)
 from netbox.forms import NetBoxModelFilterSetForm
 from utilities.forms.rendering import FieldSet
 from utilities.forms.fields import (
@@ -14,6 +20,7 @@ from utilities.forms.fields import (
     TagFilterField,
 )
 from utilities.forms.utils import add_blank_choice
+from utilities.forms.rendering import FieldSet, TabbedGroups
 from virtualization.models import VirtualMachine, VMInterface
 
 
@@ -181,15 +188,56 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label="Source Prefix",
     )
+    source_prefix = DynamicModelMultipleChoiceField(
+        queryset=Prefix.objects.all(),
+        required=False,
+        label="Source Prefix",
+    )
+    source_iprange = DynamicModelMultipleChoiceField(
+        queryset=IPRange.objects.all(),
+        required=False,
+        label="Source IP-Range",
+    )
+    source_ipaddress = DynamicModelMultipleChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        label="Source IP-Address",
+    )
+    source_aggregate = DynamicModelMultipleChoiceField(
+        queryset=Aggregate.objects.all(),
+        required=False,
+        label="Source Aggregate",
+    )    
+    source_service = DynamicModelMultipleChoiceField(
+        queryset=Service.objects.all(),
+        required=False,
+        label="Source Service",
+    )
     action = forms.ChoiceField(
         choices=add_blank_choice(ACLRuleActionChoices),
         required=False,
     )
 
     fieldsets = (
-        FieldSet("access_list", "action", "source_prefix", name=_('Rule Details')),
-        FieldSet("q", "tag",name=None)
+        FieldSet("q", "tag",name=None),
+        FieldSet(
+            "access_list",
+            "action",
+            name=_('Rule Details')
+        ),
+        FieldSet(
+            TabbedGroups(
+                FieldSet('source_prefix', name=_('Prefix')),
+                FieldSet('source_iprange', name=_('IP Range')),
+                FieldSet('source_ipaddress', name=_('IP Address')),
+                FieldSet('source_aggregate', name=_('Aggregate')),
+                FieldSet('source_service', name=_('Service')),
+            )
+        )
     )
+
+
+
 class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
     """
     GUI filter form to search the django ACLExtendedRule model.
@@ -213,10 +261,56 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label="Source Prefix",
     )
-    desintation_prefix = DynamicModelMultipleChoiceField(
+    source_prefix = DynamicModelMultipleChoiceField(
+        queryset=Prefix.objects.all(),
+        required=False,
+        label="Source Prefix",
+    )
+    source_iprange = DynamicModelMultipleChoiceField(
+        queryset=IPRange.objects.all(),
+        required=False,
+        label="Source IP-Range",
+    )
+    source_ipaddress = DynamicModelMultipleChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        label="Source IP-Address",
+    )
+    source_aggregate = DynamicModelMultipleChoiceField(
+        queryset=Aggregate.objects.all(),
+        required=False,
+        label="Source Aggregate",
+    )    
+    source_service = DynamicModelMultipleChoiceField(
+        queryset=Service.objects.all(),
+        required=False,
+        label="Source Service",
+    )
+
+    destination_prefix = DynamicModelMultipleChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
         label="Destination Prefix",
+    )
+    destination_iprange = DynamicModelMultipleChoiceField(
+        queryset=IPRange.objects.all(),
+        required=False,
+        label="Destination IP-Range",
+    )
+    destination_ipaddress = DynamicModelMultipleChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        label="Destination IP-Address",
+    )
+    destination_aggregate = DynamicModelMultipleChoiceField(
+        queryset=Aggregate.objects.all(),
+        required=False,
+        label="Destination Aggregate",
+    )    
+    destination_service = DynamicModelMultipleChoiceField(
+        queryset=Service.objects.all(),
+        required=False,
+        label="Destination Service",
     )
     protocol = forms.ChoiceField(
         choices=add_blank_choice(ACLProtocolChoices),
@@ -224,6 +318,31 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
     )
 
     fieldsets = (
-        FieldSet("access_list", "action", "source_prefix", "desintation_prefix", "protocol", name=_('Rule Details')),
-        FieldSet("q", "tag",name=None)
+        FieldSet("q", "tag",name=None),
+        FieldSet(
+            "access_list",
+            "action",
+            "protocol",
+            name=_('Rule Details')
+        ),
+        FieldSet(
+            TabbedGroups(
+                FieldSet('source_prefix', name=_('Prefix')),
+                FieldSet('source_iprange', name=_('IP Range')),
+                FieldSet('source_ipaddress', name=_('IP Address')),
+                FieldSet('source_aggregate', name=_('Aggregate')),
+                FieldSet('source_service', name=_('Service')),
+            ),
+            "source_ports",
+        ),
+        FieldSet(
+            TabbedGroups(
+                FieldSet('destination_prefix', name=_('Prefix')),
+                FieldSet('destination_iprange', name=_('IP Range')),
+                FieldSet('destination_ipaddress', name=_('IP Address')),
+                FieldSet('destination_aggregate', name=_('Aggregate')),
+                FieldSet('destination_service', name=_('Service')),
+            ),
+            "destination_ports",
+        ),
     )

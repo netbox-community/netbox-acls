@@ -22,7 +22,26 @@ COL_HOST_ASSIGNMENT = """
     <a href="{{ record.assigned_object.virtual_machine.get_absolute_url }}">{{ record.assigned_object.virtual_machine|placeholder }}</a>
     {% endif %}
  """
-
+COL_SOURCE_AND_DESTINATION_ASSIGNMENT = """
+    {% if record.#replaceme#_prefix %}
+        <a href="{{ record.#replaceme#_prefix.get_absolute_url }}">{{ record.#replaceme#_prefix|placeholder }}</a>
+        <span class="badge text-bg-grey">Prefix</span>
+    {% elif record.#replaceme#_iprange %}
+        <a href="{{ record.#replaceme#_iprange.get_absolute_url }}">{{ record.#replaceme#_iprange|placeholder }}</a>
+        <span class="badge text-bg-grey">IP-Range</span>
+    {% elif record.#replaceme#_ipaddress %}
+        <a href="{{ record.#replaceme#_ipaddress.get_absolute_url }}">{{ record.#replaceme#_ipaddress|placeholder }}</a>
+        <span class="badge text-bg-grey">IP-Address</span>
+    {% elif record.#replaceme#_aggregate %}
+        <a href="{{ record.#replaceme#_aggregate.get_absolute_url }}">{{ record.#replaceme#_aggregate|placeholder }}</a>
+        <span class="badge text-bg-grey">Aggregate</span>
+    {% elif record.#replaceme#_service %}
+        <a href="{{ record.#replaceme#_service.get_absolute_url }}">{{ record.#replaceme#_service|placeholder }}</a>
+        <span class="badge text-bg-grey">Service</span>
+    {% else %}
+        {{ ''|placeholder }}
+    {% endif %}
+ """
 
 class AccessListTable(NetBoxTable):
     """
@@ -92,6 +111,7 @@ class ACLInterfaceAssignmentTable(NetBoxTable):
     direction = ChoiceFieldColumn()
     host = tables.TemplateColumn(
         template_code=COL_HOST_ASSIGNMENT,
+        orderable=False,
     )
     assigned_object = tables.Column(
         linkify=True,
@@ -138,6 +158,10 @@ class ACLStandardRuleTable(NetBoxTable):
     tags = columns.TagColumn(
         url_name="plugins:netbox_acls:aclstandardrule_list",
     )
+    source = tables.TemplateColumn(
+        template_code=COL_SOURCE_AND_DESTINATION_ASSIGNMENT.replace('#replaceme#', 'source'),
+        order_by=('source_prefix', 'source_iprange', 'source_ipaddress', 'source_aggregate', 'source_service')
+    )
 
     class Meta(NetBoxTable.Meta):
         model = ACLStandardRule
@@ -150,14 +174,14 @@ class ACLStandardRuleTable(NetBoxTable):
             "remark",
             "tags",
             "description",
-            "source_prefix",
+            "source",
         )
         default_columns = (
             "access_list",
             "index",
             "action",
             "remark",
-            "source_prefix",
+            "source",
             "tags",
         )
 
@@ -177,6 +201,14 @@ class ACLExtendedRuleTable(NetBoxTable):
     tags = columns.TagColumn(
         url_name="plugins:netbox_acls:aclextendedrule_list",
     )
+    source = tables.TemplateColumn(
+        template_code=COL_SOURCE_AND_DESTINATION_ASSIGNMENT.replace('#replaceme#', 'source'),
+        order_by=('source_prefix', 'source_iprange', 'source_ipaddress', 'source_aggregate', 'source_service')
+    )
+    destination = tables.TemplateColumn(
+        template_code=COL_SOURCE_AND_DESTINATION_ASSIGNMENT.replace('#replaceme#', 'destination'),
+        order_by=('destination_prefix', 'destination_iprange', 'destination_ipaddress', 'destination_aggregate', 'destination_service')
+    )
     protocol = ChoiceFieldColumn()
 
     class Meta(NetBoxTable.Meta):
@@ -190,9 +222,9 @@ class ACLExtendedRuleTable(NetBoxTable):
             "remark",
             "tags",
             "description",
-            "source_prefix",
+            "source",
             "source_ports",
-            "destination_prefix",
+            "destination",
             "destination_ports",
             "protocol",
         )
@@ -202,9 +234,11 @@ class ACLExtendedRuleTable(NetBoxTable):
             "action",
             "remark",
             "tags",
-            "source_prefix",
+            "source",
             "source_ports",
-            "destination_prefix",
+            "destination",         
             "destination_ports",
             "protocol",
         )
+
+

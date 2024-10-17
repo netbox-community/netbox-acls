@@ -323,6 +323,10 @@ class ACLStandardRuleView(generic.ObjectView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service"
     )
 
 
@@ -335,6 +339,10 @@ class ACLStandardRuleListView(generic.ObjectListView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service"
     )
     table = tables.ACLStandardRuleTable
     filterset = filtersets.ACLStandardRuleFilterSet
@@ -346,11 +354,14 @@ class ACLStandardRuleEditView(generic.ObjectEditView):
     """
     Defines the edit view for the ACLStandardRule django model.
     """
-
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service"
     )
     form = forms.ACLStandardRuleForm
 
@@ -363,7 +374,6 @@ class ACLStandardRuleEditView(generic.ObjectEditView):
             "access_list": request.GET.get("access_list") or request.POST.get("access_list"),
         }
 
-
 @register_model_view(models.ACLStandardRule, "delete")
 class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
     """
@@ -374,6 +384,10 @@ class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service"
     )
 
 
@@ -382,6 +396,10 @@ class ACLStandardRuleBulkDeleteView(generic.BulkDeleteView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service"
     )
     filterset = filtersets.ACLStandardRuleFilterSet
     table = tables.ACLStandardRuleTable
@@ -402,7 +420,15 @@ class ACLExtendedRuleView(generic.ObjectView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service",
         "destination_prefix",
+        "destination_iprange",
+        "destination_ipaddress",
+        "destination_aggregate",
+        "destination_service"
     )
 
 
@@ -415,7 +441,15 @@ class ACLExtendedRuleListView(generic.ObjectListView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service",
         "destination_prefix",
+        "destination_iprange",
+        "destination_ipaddress",
+        "destination_aggregate",
+        "destination_service"
     )
     table = tables.ACLExtendedRuleTable
     filterset = filtersets.ACLExtendedRuleFilterSet
@@ -432,7 +466,15 @@ class ACLExtendedRuleEditView(generic.ObjectEditView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service",
         "destination_prefix",
+        "destination_iprange",
+        "destination_ipaddress",
+        "destination_aggregate",
+        "destination_service"
     )
     form = forms.ACLExtendedRuleForm
 
@@ -456,7 +498,15 @@ class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service",
         "destination_prefix",
+        "destination_iprange",
+        "destination_ipaddress",
+        "destination_aggregate",
+        "destination_service"
     )
 
 
@@ -465,7 +515,15 @@ class ACLExtendedRuleBulkDeleteView(generic.BulkDeleteView):
         "access_list",
         "tags",
         "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service",
         "destination_prefix",
+        "destination_iprange",
+        "destination_ipaddress",
+        "destination_aggregate",
+        "destination_service"
     )
     filterset = filtersets.ACLExtendedRuleFilterSet
     table = tables.ACLExtendedRuleTable

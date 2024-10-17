@@ -6,7 +6,14 @@ from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChass
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.utils.safestring import mark_safe
-from ipam.models import Prefix
+from django.utils.translation import gettext_lazy as _
+from ipam.models import (
+    Prefix,
+    IPRange,
+    IPAddress,
+    Aggregate,
+    Service,
+)
 from netbox.forms import NetBoxModelForm
 from utilities.forms.rendering import FieldSet
 from utilities.forms.fields import CommentField, DynamicModelChoiceField
@@ -17,7 +24,7 @@ from virtualization.models import (
     VirtualMachine,
     VMInterface,
 )
-
+from utilities.forms.rendering import FieldSet, TabbedGroups
 from ..choices import ACLTypeChoices
 from ..models import (
     AccessList,
@@ -44,11 +51,18 @@ help_text_acl_rule_index = "Determines the order of the rule in the ACL processi
 
 # Sets a standard error message for ACL rules with an action of remark, but no remark set.
 error_message_no_remark = "Action is set to remark, you MUST add a remark."
-# Sets a standard error message for ACL rules with an action of remark, but no source_prefix is set.
-error_message_action_remark_source_prefix_set = "Action is set to remark, Source Prefix CANNOT be set."
 # Sets a standard error message for ACL rules with an action not set to remark, but no remark is set.
 error_message_remark_without_action_remark = "CANNOT set remark unless action is set to remark."
 
+# Sets a standard error message for ACL rules with an action of remark, but no source is set.
+error_message_action_remark_source_set = "Action is set to remark, Source CANNOT be set."
+# Sets a standard error message for ACL rules with an action of remark, but no destination is set.
+error_message_action_remark_destination_set = "Action is set to remark, Destination CANNOT be set."
+
+# Sets a standard error message for ACL rules when more than one IP/Host sources are set.
+error_message_sources_more_than_one = "Only one IP/Host related Source can be specified."
+# Sets a standard error message for ACL rules when more than one IP/Host destinations are set.
+error_message_destinations_more_than_one = "Only one IP/Host related Destination can be specified."
 
 class AccessListForm(NetBoxModelForm):
     """
@@ -445,17 +459,64 @@ class ACLStandardRuleForm(NetBoxModelForm):
         ),
         label="Access List",
     )
+
     source_prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
         help_text=help_text_acl_rule_logic,
         label="Source Prefix",
     )
+    source_iprange = DynamicModelChoiceField(
+        queryset=IPRange.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Source IP-Range",
+    )
+    source_ipaddress = DynamicModelChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Source IP-Address",
+    )
+    source_aggregate = DynamicModelChoiceField(
+        queryset=Aggregate.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Source Aggregate",
+    )    
+    source_service = DynamicModelChoiceField(
+        queryset=Service.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Source Service",
+    )
 
     fieldsets = (
-        FieldSet("access_list", "description", "tags", name=_('Access List Details')),
-        FieldSet("index", "action", "remark", "source_prefix", name=_('Rule Definition'))
+        FieldSet(
+            "access_list", 
+            "description", 
+            "tags",
+            name=_('Access List Details')
+        ),
+        FieldSet(
+            "index", 
+            "action", 
+            "remark", 
+            name=_('Rule Definition')
+        ),
+        FieldSet(
+            TabbedGroups(
+                FieldSet('source_prefix', name=_('Prefix')),
+                FieldSet('source_iprange', name=_('IP Range')),
+                FieldSet('source_ipaddress', name=_('IP Address')),
+                FieldSet('source_aggregate', name=_('Aggregate')),
+                FieldSet('source_service', name=_('Service')),
+            )
+        )
     )
+
+
+
     class Meta:
         model = ACLStandardRule
         fields = (
@@ -463,7 +524,13 @@ class ACLStandardRuleForm(NetBoxModelForm):
             "index",
             "action",
             "remark",
+
             "source_prefix",
+            "source_iprange",
+            "source_ipaddress",
+            "source_aggregate",
+            "source_service",
+
             "tags",
             "description",
         )
@@ -475,7 +542,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
             "index": help_text_acl_rule_index,
             "action": help_text_acl_action,
             "remark": mark_safe(
-                "<b>*Note:</b> CANNOT be set if source prefix OR action is set.",
+                "<b>*Note:</b> CANNOT be set if source OR action is set.",
             ),
         }
 
@@ -483,8 +550,9 @@ class ACLStandardRuleForm(NetBoxModelForm):
         """
         Validates form inputs before submitting:
           - Check if action set to remark, but no remark set.
-          - Check if action set to remark, but source_prefix set.
+          - Check if action set to remark, but source set.
           - Check remark set, but action not set to remark.
+          - Check not more than one source is set.
         """
         super().clean()
         cleaned_data = self.cleaned_data
@@ -492,18 +560,23 @@ class ACLStandardRuleForm(NetBoxModelForm):
 
         action = cleaned_data.get("action")
         remark = cleaned_data.get("remark")
-        source_prefix = cleaned_data.get("source_prefix")
+        sources = ["source_prefix", "source_iprange", "source_ipaddress", "source_aggregate", "source_service"]
 
         if action == "remark":
             # Check if action set to remark, but no remark set.
             if not remark:
                 error_message["remark"] = [error_message_no_remark]
-            # Check if action set to remark, but source_prefix set.
-            if source_prefix:
-                error_message["source_prefix"] = [error_message_action_remark_source_prefix_set]
+            # Check if action set to remark, but source set.
+            if any(cleaned_data.get(source) for source in sources):
+                for source in sources:
+                    error_message[source] = [error_message_action_remark_source_set]
         # Check remark set, but action not set to remark.
         elif remark:
             error_message["remark"] = [error_message_remark_without_action_remark]
+        # Check not more than one source is set.
+        elif sum(bool(cleaned_data.get(source)) for source in sources) > 1:
+            for source in sources:
+                error_message[source] = [error_message_sources_more_than_one]
 
         if error_message:
             raise ValidationError(error_message)
@@ -533,15 +606,96 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         help_text=help_text_acl_rule_logic,
         label="Source Prefix",
     )
+    source_iprange = DynamicModelChoiceField(
+        queryset=IPRange.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Source IP-Range",
+    )
+    source_ipaddress = DynamicModelChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Source IP-Address",
+    )
+    source_aggregate = DynamicModelChoiceField(
+        queryset=Aggregate.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Source Aggregate",
+    )    
+    source_service = DynamicModelChoiceField(
+        queryset=Service.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Source Service",
+    )
+
     destination_prefix = DynamicModelChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
         help_text=help_text_acl_rule_logic,
         label="Destination Prefix",
     )
+    destination_iprange = DynamicModelChoiceField(
+        queryset=IPRange.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Destination IP-Range",
+    )
+    destination_ipaddress = DynamicModelChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Destination IP-Address",
+    )
+    destination_aggregate = DynamicModelChoiceField(
+        queryset=Aggregate.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Destination Aggregate",
+    )    
+    destination_service = DynamicModelChoiceField(
+        queryset=Service.objects.all(),
+        required=False,
+        help_text=help_text_acl_rule_logic,
+        label="Destination Service",
+    )
+
     fieldsets = (
-        FieldSet("access_list", "description", "tags", name=_('Access List Details')),
-        FieldSet("index", "action", "remark", "source_prefix", "source_ports", "destination_prefix", "destination_ports", "protocol", name=_('Rule Definition'))
+        FieldSet(
+            "access_list", 
+            "description", 
+            "tags",
+            name=_('Access List Details')
+        ),
+        FieldSet(
+            "index", 
+            "action", 
+            "remark", 
+            "protocol",
+            name=_('Rule Definition')
+        ),
+        FieldSet(
+            TabbedGroups(
+                FieldSet('source_prefix', name=_('Prefix')),
+                FieldSet('source_iprange', name=_('IP Range')),
+                FieldSet('source_ipaddress', name=_('IP Address')),
+                FieldSet('source_aggregate', name=_('Aggregate')),
+                FieldSet('source_service', name=_('Service')),
+            ),
+            "source_ports",
+        ),
+        FieldSet(
+            TabbedGroups(
+                FieldSet('destination_prefix', name=_('Prefix')),
+                FieldSet('destination_iprange', name=_('IP Range')),
+                FieldSet('destination_ipaddress', name=_('IP Address')),
+                FieldSet('destination_aggregate', name=_('Aggregate')),
+                FieldSet('destination_service', name=_('Service')),
+            ),
+            "destination_ports",
+        ),
     )
     class Meta:
         model = ACLExtendedRule
@@ -550,9 +704,20 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             "index",
             "action",
             "remark",
+
             "source_prefix",
-            "source_ports",
+            "source_iprange",
+            "source_ipaddress",
+            "source_aggregate",
+            "source_service",
+
             "destination_prefix",
+            "destination_iprange",
+            "destination_ipaddress",
+            "destination_aggregate",
+            "destination_service",
+
+            "source_ports",
             "destination_ports",
             "protocol",
             "tags",
@@ -560,26 +725,26 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         )
 
         help_texts = {
-            "action": help_text_acl_action,
-            "destination_ports": help_text_acl_rule_logic,
             "index": help_text_acl_rule_index,
-            "protocol": help_text_acl_rule_logic,
+            "action": help_text_acl_action,
             "remark": mark_safe(
                 "<b>*Note:</b> CANNOT be set if action is not set to remark.",
             ),
             "source_ports": help_text_acl_rule_logic,
+            "destination_ports": help_text_acl_rule_logic,
+            "protocol": help_text_acl_rule_logic,
         }
 
     def clean(self):
         """
         Validates form inputs before submitting:
         - Check if action set to remark, but no remark set.
-        - Check if action set to remark, but source_prefix set.
-        - Check if action set to remark, but source_ports set.
-        - Check if action set to remark, but destination_prefix set.
-        - Check if action set to remark, but destination_ports set.
-        - Check if action set to remark, but protocol set.
+        - Check if action set to remark, but source set.
+        - Check if action set to remark, but destination set.
+        - Check if action set to remark, but protocol set
         - Check remark set, but action not set to remark.
+        - Check not more than one source is set.
+        - Check not more than one destination is set.
         """
         super().clean()
         cleaned_data = self.cleaned_data
@@ -587,27 +752,44 @@ class ACLExtendedRuleForm(NetBoxModelForm):
 
         action = cleaned_data.get("action")
         remark = cleaned_data.get("remark")
-        source_prefix = cleaned_data.get("source_prefix")
+
+        sources = ["source_prefix", "source_iprange", "source_ipaddress", "source_aggregate", "source_service"]
+        destinations = ["destination_prefix", "destination_iprange", "destination_ipaddress", "destination_aggregate", "destination_service"]
+        
         source_ports = cleaned_data.get("source_ports")
-        destination_prefix = cleaned_data.get("destination_prefix")
         destination_ports = cleaned_data.get("destination_ports")
         protocol = cleaned_data.get("protocol")
 
         if action == "remark":
             if not remark:
                 error_message["remark"] = [error_message_no_remark]
-            if source_prefix:
-                error_message["source_prefix"] = [error_message_action_remark_source_prefix_set]
+
+            # Check if action set to remark, but source set.
+            for source in sources:
+                error_message[source] = [error_message_action_remark_source_set]
+                
+            # Check if action set to remark, but destination set.
+            for destination in destinations:
+                error_message[destination] = [error_message_action_remark_destination_set]
+
             if source_ports:
                 error_message["source_ports"] = ["Action is set to remark, Source Ports CANNOT be set."]
-            if destination_prefix:
-                error_message["destination_prefix"] = ["Action is set to remark, Destination Prefix CANNOT be set."]
             if destination_ports:
                 error_message["destination_ports"] = ["Action is set to remark, Destination Ports CANNOT be set."]
             if protocol:
                 error_message["protocol"] = ["Action is set to remark, Protocol CANNOT be set."]
         elif remark:
             error_message["remark"] = [error_message_remark_without_action_remark]
+
+        # Check not more than one source is set.
+        elif sum(bool(cleaned_data.get(source)) for source in sources) > 1:
+            for source in sources:
+                error_message[source] = [error_message_sources_more_than_one]
+
+        # Check not more than one destination is set.
+        elif sum(bool(cleaned_data.get(destination)) for destination in destinations) > 1:
+            for destination in destinations:
+                error_message[destination] = [error_message_destinations_more_than_one]
 
         if error_message:
             raise ValidationError(error_message)

@@ -5,8 +5,10 @@ Define the django models for this plugin.
 from django.apps import apps
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
+from django.db.models import Q
 from django.urls import reverse
 from netbox.models import NetBoxModel
+from ipam.models import Prefix, IPRange, IPAddress, Aggregate, Service
 
 from ..choices import ACLProtocolChoices, ACLRuleActionChoices, ACLTypeChoices
 from .access_lists import AccessList
@@ -16,7 +18,6 @@ __all__ = (
     "ACLStandardRule",
     "ACLExtendedRule",
 )
-
 
 class ACLRule(NetBoxModel):
     """
@@ -43,16 +44,57 @@ class ACLRule(NetBoxModel):
         choices=ACLRuleActionChoices,
         max_length=30,
     )
+    
     source_prefix = models.ForeignKey(
         blank=True,
         null=True,
         on_delete=models.PROTECT,
         related_name="+",
-        to="ipam.Prefix",
+        to=Prefix,
         verbose_name="Source Prefix",
     )
+    source_iprange = models.ForeignKey(
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+        to=IPRange,
+        verbose_name="Source IP-Range",
+    )
+    source_ipaddress = models.ForeignKey(
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+        to=IPAddress,
+        verbose_name="Source IP-Address",
+    )
+    source_aggregate = models.ForeignKey(
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+        to=Aggregate,
+        verbose_name="Source Aggregate",
+    )
+    source_service = models.ForeignKey(
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+        to=Service,
+        verbose_name="Source Service",
+    )
 
-    clone_fields = ("access_list", "action", "source_prefix")
+    clone_fields = (
+        "access_list", 
+        "action", 
+        "source_prefix",
+        "source_iprange",
+        "source_ipaddress",
+        "source_aggregate",
+        "source_service"
+    )
 
     def __str__(self):
         return f"{self.access_list}: Rule {self.index}"
@@ -62,7 +104,14 @@ class ACLRule(NetBoxModel):
 
     @classmethod
     def get_prerequisite_models(cls):
-        return [apps.get_model("ipam.Prefix"), AccessList]
+        return [
+            Prefix, 
+            IPRange,
+            IPAddress,
+            Aggregate,
+            Service,
+            AccessList
+        ]
 
     class Meta:
         """
@@ -99,7 +148,14 @@ class ACLStandardRule(ACLRule):
 
     @classmethod
     def get_prerequisite_models(cls):
-        return [AccessList]
+        return [
+            Prefix, 
+            IPRange,
+            IPAddress,
+            Aggregate,
+            Service,
+            AccessList
+        ]
 
     class Meta(ACLRule.Meta):
         """
@@ -112,33 +168,93 @@ class ACLStandardRule(ACLRule):
         verbose_name = "ACL Standard Rule"
         verbose_name_plural = "ACL Standard Rules"
 
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=False) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=False) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=False) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=False) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=False)
+                    )
+                ),
+                name='not_more_than_one_source_for_standard_rule'
+            )
+        ]
+
 
 class ACLExtendedRule(ACLRule):
     """
     Inherits ACLRule.
-    Add ACLExtendedRule specific fields: source_ports, desintation_prefix, destination_ports, and protocol
+    Add ACLExtendedRule specific fields: destination, source_ports, destination_ports and protocol
     """
 
     access_list = models.ForeignKey(
         on_delete=models.CASCADE,
         to=AccessList,
         verbose_name="Extended Access List",
-        limit_choices_to={"type": "extended"},
+        limit_choices_to={"type": ACLTypeChoices.TYPE_EXTENDED},
         related_name="aclextendedrules",
     )
-    source_ports = ArrayField(
-        base_field=models.PositiveIntegerField(),
-        blank=True,
-        null=True,
-        verbose_name="Soure Ports",
-    )
+
     destination_prefix = models.ForeignKey(
         blank=True,
         null=True,
         on_delete=models.PROTECT,
         related_name="+",
-        to="ipam.Prefix",
+        to=Prefix,
         verbose_name="Destination Prefix",
+    )
+    destination_iprange = models.ForeignKey(
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+        to=IPRange,
+        verbose_name="Destination IP-Range",
+    )
+    destination_ipaddress = models.ForeignKey(
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+        to=IPAddress,
+        verbose_name="Destination IP-Address",
+    )
+    destination_aggregate = models.ForeignKey(
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+        to=Aggregate,
+        verbose_name="Destination Aggregate",
+    )
+    destination_service = models.ForeignKey(
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+        to=Service,
+        verbose_name="Destination Service",
+    )
+
+    source_ports = ArrayField(
+        base_field=models.PositiveIntegerField(),
+        blank=True,
+        null=True,
+        verbose_name="Source Ports",
     )
     destination_ports = ArrayField(
         base_field=models.PositiveIntegerField(),
@@ -164,7 +280,14 @@ class ACLExtendedRule(ACLRule):
 
     @classmethod
     def get_prerequisite_models(cls):
-        return [apps.get_model("ipam.Prefix"), AccessList]
+        return [
+            Prefix, 
+            IPRange,
+            IPAddress,
+            Aggregate,
+            Service,
+            AccessList
+        ]
 
     class Meta(ACLRule.Meta):
         """
@@ -176,3 +299,52 @@ class ACLExtendedRule(ACLRule):
 
         verbose_name = "ACL Extended Rule"
         verbose_name_plural = "ACL Extended Rules"
+
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=False) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=False) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=False) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=False) & Q(source_service__isnull=True)
+                    ) |
+                    (
+                        Q(source_prefix__isnull=True) & Q(source_iprange__isnull=True) & Q(source_ipaddress__isnull=True) & Q(source_aggregate__isnull=True) & Q(source_service__isnull=False)
+                    )
+                ),
+                name='not_more_than_one_source_for_extended_rule'
+            ),
+            models.CheckConstraint(
+                check=(
+                    (
+                        Q(destination_prefix__isnull=True) & Q(destination_iprange__isnull=True) & Q(destination_ipaddress__isnull=True) & Q(destination_aggregate__isnull=True) & Q(destination_service__isnull=True)
+                    ) |
+                    (
+                        Q(destination_prefix__isnull=False) & Q(destination_iprange__isnull=True) & Q(destination_ipaddress__isnull=True) & Q(destination_aggregate__isnull=True) & Q(destination_service__isnull=True)
+                    ) |
+                    (
+                        Q(destination_prefix__isnull=True) & Q(destination_iprange__isnull=False) & Q(destination_ipaddress__isnull=True) & Q(destination_aggregate__isnull=True) & Q(destination_service__isnull=True)
+                    ) |
+                    (
+                        Q(destination_prefix__isnull=True) & Q(destination_iprange__isnull=True) & Q(destination_ipaddress__isnull=False) & Q(destination_aggregate__isnull=True) & Q(destination_service__isnull=True)
+                    ) |
+                    (
+                        Q(destination_prefix__isnull=True) & Q(destination_iprange__isnull=True) & Q(destination_ipaddress__isnull=True) & Q(destination_aggregate__isnull=False) & Q(destination_service__isnull=True)
+                    ) |
+                    (
+                        Q(destination_prefix__isnull=True) & Q(destination_iprange__isnull=True) & Q(destination_ipaddress__isnull=True) & Q(destination_aggregate__isnull=True) & Q(destination_service__isnull=False)
+                    )
+                ),
+                name='not_more_than_one_destination_for_extended_rule'
+            )
+        ]

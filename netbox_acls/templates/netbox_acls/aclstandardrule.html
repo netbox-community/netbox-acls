@@ -1,34 +1,33 @@
-{% extends 'generic/object.html' %} {% block content %}
-<div class="row mb-3">
-  <div class="col col-md-6">
-    <div class="card">
-      <h2 class="card-header">ACL Standard Rule</h2>
-      <table class="table table-hover attr-table">
-        <tr>
-          <th scope="row">Access List</th>
-          <td>
-            <a href="{{ object.access_list.get_absolute_url }}"
-              >{{ object.access_list }}</a
-            >
-          </td>
-        </tr>
-        <tr>
-          <th scope="row">Index</th>
-          <td>{{ object.index }}</td>
-        </tr>
-        <tr>
-          <th scope="row">Description</th>
-          <td>{{ object.description|placeholder }}</td>
-        </tr>
-      </table>
+{% extends 'generic/object.html' %}
+
+{% block content %}
+  <div class="row mb-3">
+    <div class="col col-md-6">
+      <div class="card">
+        <h2 class="card-header">ACL Standard Rule</h2>
+        <table class="table table-hover attr-table">
+          <tr>
+            <th scope="row">Access List</th>
+            <td>
+              <a href="{{ object.access_list.get_absolute_url }}">{{ object.access_list }}</a>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Index</th>
+            <td>{{ object.index }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Description</th>
+            <td>{{ object.description|placeholder }}</td>
+          </tr>
+        </table>
+      </div>
+      {% include 'inc/panels/custom_fields.html' %}
+      {% include 'inc/panels/tags.html' %}
     </div>
-    {% include 'inc/panels/custom_fields.html' %} {% include
-    'inc/panels/tags.html' %}
-  </div>
-  <div class="col col-md-6">
-    <div class="card">
-      <h5 class="card-header">Details</h5>
-      <div class="card-body">
+    <div class="col col-md-6">
+      <div class="card">
+        <h2 class="card-header">Details</h2>
         <table class="table table-hover attr-table">
           <tr>
             <th scope="row">Remark</th>
@@ -42,43 +41,31 @@
             <th scope="row">Source</th>
             <td>
               {% if object.source_prefix %}
-              <span class="badge text-bg-grey">Prefix</span>
-              <a href="{{ object.source_prefix.get_absolute_url }}"
-                >{{ object.source_prefix }}</a
-              >
+                <span class="badge text-bg-grey">Prefix</span>
+                <a href="{{ object.source_prefix.get_absolute_url }}">{{ object.source_prefix }}</a>
               {% elif object.source_iprange %}
-              <span class="badge text-bg-grey">IP-Range</span>
-              <a href="{{ object.source_iprange.get_absolute_url }}"
-                >{{ object.source_iprange }}</a
-              >
+                <span class="badge text-bg-grey">IP-Range</span>
+                <a href="{{ object.source_iprange.get_absolute_url }}">{{ object.source_iprange }}</a>
               {% elif object.source_ipaddress %}
-              <span class="badge text-bg-grey">IP-Address</span>
-              <a href="{{ object.source_ipaddress.get_absolute_url }}"
-                >{{ object.source_ipaddress }}</a
-              >
+                <span class="badge text-bg-grey">IP-Address</span>
+                <a href="{{ object.source_ipaddress.get_absolute_url }}">{{ object.source_ipaddress }}</a>
               {% elif object.source_aggregate %}
-              <span class="badge text-bg-grey">Aggregate</span>
-              <a href="{{ object.source_aggregate.get_absolute_url }}"
-                >{{ object.source_aggregate }}</a
-              >
+                <span class="badge text-bg-grey">Aggregate</span>
+                <a href="{{ object.source_aggregate.get_absolute_url }}">{{ object.source_aggregate }}</a>
               {% elif object.source_service %}
-              <span class="badge text-bg-grey">Service</span>
-              <a href="{{ object.source_service.get_absolute_url }}"
-                >{{ object.source_service }}</a
-              >
-              {% else %} {{ ''|placeholder }} {% endif %}
+                <span class="badge text-bg-grey">Service</span>
+                <a href="{{ object.source_service.get_absolute_url }}">{{ object.source_service }}</a>
+              {% else %}
+                {{ ''|placeholder }}
+              {% endif %}
             </td>
           </tr>
           <tr>
             <th scope="row">Action</th>
-            <td>
-              {% badge object.get_action_display
-              bg_color=object.get_action_color %}
-            </td>
+            <td>{% badge object.get_action_display bg_color=object.get_action_color %}</td>
           </tr>
         </table>
       </div>
     </div>
   </div>
-</div>
 {% endblock content %}

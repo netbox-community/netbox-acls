@@ -18,7 +18,6 @@ from ..models import (
     ACLInterfaceAssignment,
     ACLStandardRule,
 )
-from .nested_serializers import NestedAccessListSerializer
 
 __all__ = [
     "AccessListSerializer",
@@ -33,13 +32,13 @@ error_message_no_remark = "Action is set to remark, you MUST add a remark."
 error_message_action_remark_source_prefix_set = "Action is set to remark, Source Prefix CANNOT be set."
 # Sets a standard error message for ACL rules with an action not set to remark, but no remark is set.
 error_message_remark_without_action_remark = "CANNOT set remark unless action is set to remark."
-# Sets a standard error message for ACL rules no associated to an ACL of the same type.
+# Sets a standard error message for ACL rules no associated with an ACL of the same type.
 error_message_acl_type = "Provided parent Access List is not of right type."
 
 
 class AccessListSerializer(NetBoxModelSerializer):
     """
-    Defines the serializer for the django AccessList model & associates it to a view.
+    Defines the serializer for the django AccessList model and associates it with a view.
     """
 
     url = serializers.HyperlinkedIdentityField(
@@ -106,13 +105,13 @@ class AccessListSerializer(NetBoxModelSerializer):
 
 class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
     """
-    Defines the serializer for the django ACLInterfaceAssignment model & associates it to a view.
+    Defines the serializer for the django ACLInterfaceAssignment model and associates it with a view.
     """
 
     url = serializers.HyperlinkedIdentityField(
         view_name="plugins-api:netbox_acls-api:aclinterfaceassignment-detail",
     )
-    access_list = NestedAccessListSerializer()
+    access_list = AccessListSerializer(nested=True, required=True)
     assigned_object_type = ContentTypeField(
         queryset=ContentType.objects.filter(ACL_INTERFACE_ASSIGNMENT_MODELS),
     )
@@ -142,9 +141,7 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
 
     @extend_schema_field(serializers.DictField())
     def get_assigned_object(self, obj):
-        serializer = get_serializer_for_model(
-            obj.assigned_object
-        )
+        serializer = get_serializer_for_model(obj.assigned_object)
         context = {"request": self.context["request"]}
         return serializer(obj.assigned_object, nested=True, context=context).data
 
@@ -160,7 +157,9 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
         if data["assigned_object_type"].model == "interface":
             interface_host = data["assigned_object_type"].get_object_for_this_type(id=data["assigned_object_id"]).device
         elif data["assigned_object_type"].model == "vminterface":
-            interface_host = data["assigned_object_type"].get_object_for_this_type(id=data["assigned_object_id"]).virtual_machine
+            interface_host = (
+                data["assigned_object_type"].get_object_for_this_type(id=data["assigned_object_id"]).virtual_machine
+            )
         else:
             interface_host = None
         # Check that the associated interface's parent host has the selected ACL defined.
@@ -177,18 +176,18 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
 
 class ACLStandardRuleSerializer(NetBoxModelSerializer):
     """
-    Defines the serializer for the django ACLStandardRule model & associates it to a view.
+    Defines the serializer for the django ACLStandardRule model and associates it with a view.
     """
 
     url = serializers.HyperlinkedIdentityField(
         view_name="plugins-api:netbox_acls-api:aclstandardrule-detail",
     )
-    access_list = NestedAccessListSerializer()
+    access_list = AccessListSerializer(nested=True, required=True)
     source_prefix = PrefixSerializer(
+        nested=True,
         required=False,
         allow_null=True,
         default=None,
-        nested=True
     )
 
     class Meta:
@@ -242,24 +241,24 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
 
 class ACLExtendedRuleSerializer(NetBoxModelSerializer):
     """
-    Defines the serializer for the django ACLExtendedRule model & associates it to a view.
+    Defines the serializer for the django ACLExtendedRule model and associates it with a view.
     """
 
     url = serializers.HyperlinkedIdentityField(
         view_name="plugins-api:netbox_acls-api:aclextendedrule-detail",
     )
-    access_list = NestedAccessListSerializer()
+    access_list = AccessListSerializer(nested=True, required=True)
     source_prefix = PrefixSerializer(
+        nested=True,
         required=False,
         allow_null=True,
         default=None,
-        nested=True
     )
     destination_prefix = PrefixSerializer(
+        nested=True,
         required=False,
         allow_null=True,
         default=None,
-        nested=True
     )
 
     class Meta:
@@ -288,6 +287,7 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
             "remark",
         )
         brief_fields = ("id", "url", "display")
+
     def validate(self, data):
         """
         Validate the ACLExtendedRule django model's inputs before allowing it to update the instance:

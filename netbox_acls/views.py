@@ -51,7 +51,7 @@ class AccessListView(generic.ObjectView):
     def get_extra_context(self, request, instance):
         """
         Depending on the Access List type, the list view will return
-        the required ACL Rule using the previous defined tables in tables.py.
+        the required ACL Rule using the previously defined tables in tables.py.
         """
 
         if instance.type == choices.ACLTypeChoices.TYPE_EXTENDED:
@@ -92,7 +92,6 @@ class AccessListEditView(generic.ObjectEditView):
 
     queryset = models.AccessList.objects.prefetch_related("tags")
     form = forms.AccessListForm
-    template_name = "netbox_acls/accesslist_edit.html"
 
 
 @register_model_view(models.AccessList, "delete")
@@ -220,7 +219,6 @@ class ACLInterfaceAssignmentEditView(generic.ObjectEditView):
         "tags",
     )
     form = forms.ACLInterfaceAssignmentForm
-    template_name = "netbox_acls/aclinterfaceassignment_edit.html"
 
     def get_extra_addanother_params(self, request):
         """

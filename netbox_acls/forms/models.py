@@ -1,15 +1,16 @@
 """
 Defines each django model's GUI form to add or edit objects for each django model.
 """
-from django.utils.translation import gettext_lazy as _
+
 from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelForm
-from utilities.forms.rendering import FieldSet
 from utilities.forms.fields import CommentField, DynamicModelChoiceField
+from utilities.forms.rendering import FieldSet, TabbedGroups
 from virtualization.models import (
     Cluster,
     ClusterGroup,
@@ -117,14 +118,41 @@ class AccessListForm(NetBoxModelForm):
             "cluster_group_id": "$cluster_group",
         },
     )
-
     comments = CommentField()
+
     fieldsets = (
-        FieldSet('region', 'site_group', 'site', 'virtual_machine', 'virtual_chassis', 'device', name=_('Assignment')),
-        FieldSet('name', 'type', 'default_action', name=_('Access List')),
-        FieldSet('comments', 'tags', name=_('')),
+        FieldSet(
+            "name",
+            "type",
+            "default_action",
+            "tags",
+            name=_("Access List Details"),
+        ),
+        FieldSet(
+            TabbedGroups(
+                FieldSet(
+                    "region",
+                    "site_group",
+                    "site",
+                    "device",
+                    name=_("Device"),
+                ),
+                FieldSet(
+                    "virtual_chassis",
+                    name=_("Virtual Chassis"),
+                ),
+                FieldSet(
+                    "cluster_type",
+                    "cluster_group",
+                    "cluster",
+                    "virtual_machine",
+                    name=_("Virtual Machine"),
+                ),
+            ),
+            name=_("Host Assignment"),
+        ),
     )
-    
+
     class Meta:
         model = AccessList
         fields = (
@@ -145,7 +173,7 @@ class AccessListForm(NetBoxModelForm):
             "default_action": "The default behavior of the ACL.",
             "name": "The name uniqueness per device is case insensitive.",
             "type": mark_safe(
-                "<b>*Note:</b> CANNOT be changed if ACL Rules are assoicated to this Access List.",
+                "<b>*Note:</b> CANNOT be changed if ACL Rules are associated to this Access List.",
             ),
         }
 
@@ -200,14 +228,22 @@ class AccessListForm(NetBoxModelForm):
         # Check if more than one host type selected.
         if (device and virtual_chassis) or (device and virtual_machine) or (virtual_chassis and virtual_machine):
             raise ValidationError(
-                {"__all__": "Access Lists must be assigned to one host at a time. Either a device, virtual chassis or virtual machine."},
+                {
+                    "__all__": (
+                        "Access Lists must be assigned to one host at a time. Either a device, virtual chassis or "
+                        "virtual machine."
+                    )
+                },
             )
 
         # Check if no hosts selected.
         if not device and not virtual_chassis and not virtual_machine:
-            raise ValidationError({"__all__": "Access Lists must be assigned to a device, virtual chassis or virtual machine."})
+            raise ValidationError(
+                {"__all__": "Access Lists must be assigned to a device, virtual chassis or virtual machine."}
+            )
 
         existing_acls = None
+        host_type = None
         if device:
             host_type = "device"
             existing_acls = AccessList.objects.filter(name=name, device=device).exists()
@@ -233,7 +269,9 @@ class AccessListForm(NetBoxModelForm):
     def save(self, *args, **kwargs):
         # Set assigned object
         self.instance.assigned_object = (
-            self.cleaned_data.get("device") or self.cleaned_data.get("virtual_chassis") or self.cleaned_data.get("virtual_machine")
+            self.cleaned_data.get("device")
+            or self.cleaned_data.get("virtual_chassis")
+            or self.cleaned_data.get("virtual_machine")
         )
 
         return super().save(*args, **kwargs)
@@ -292,10 +330,29 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         ),
     )
     comments = CommentField()
+
     fieldsets = (
-        FieldSet('device', 'interface', 'virtual_machine', 'vminterface', name=_('Assignment')),
-        FieldSet('access_list', 'direction', name=_('Access List Details')),
-        FieldSet('comments', 'tags', name=_('')),
+        FieldSet(
+            "access_list",
+            "direction",
+            "tags",
+            name=_("Access List Details"),
+        ),
+        FieldSet(
+            TabbedGroups(
+                FieldSet(
+                    "device",
+                    "interface",
+                    name=_("Device"),
+                ),
+                FieldSet(
+                    "virtual_machine",
+                    "vminterface",
+                    name=_("Virtual Machine"),
+                ),
+            ),
+            name=_("Interface Assignment"),
+        ),
     )
 
     def __init__(self, *args, **kwargs):
@@ -453,9 +510,21 @@ class ACLStandardRuleForm(NetBoxModelForm):
     )
 
     fieldsets = (
-        FieldSet("access_list", "description", "tags", name=_('Access List Details')),
-        FieldSet("index", "action", "remark", "source_prefix", name=_('Rule Definition'))
+        FieldSet(
+            "access_list",
+            "description",
+            "tags",
+            name=_("Access List Details"),
+        ),
+        FieldSet(
+            "index",
+            "action",
+            "remark",
+            "source_prefix",
+            name=_("Rule Definition"),
+        ),
     )
+
     class Meta:
         model = ACLStandardRule
         fields = (
@@ -467,9 +536,6 @@ class ACLStandardRuleForm(NetBoxModelForm):
             "tags",
             "description",
         )
-
-
-
 
         help_texts = {
             "index": help_text_acl_rule_index,
@@ -540,9 +606,25 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         label="Destination Prefix",
     )
     fieldsets = (
-        FieldSet("access_list", "description", "tags", name=_('Access List Details')),
-        FieldSet("index", "action", "remark", "source_prefix", "source_ports", "destination_prefix", "destination_ports", "protocol", name=_('Rule Definition'))
+        FieldSet(
+            "access_list",
+            "description",
+            "tags",
+            name=_("Access List Details"),
+        ),
+        FieldSet(
+            "index",
+            "action",
+            "remark",
+            "source_prefix",
+            "source_ports",
+            "destination_prefix",
+            "destination_ports",
+            "protocol",
+            name=_("Rule Definition"),
+        ),
     )
+
     class Meta:
         model = ACLExtendedRule
         fields = (

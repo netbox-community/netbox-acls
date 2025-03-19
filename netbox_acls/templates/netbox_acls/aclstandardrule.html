@@ -1,5 +1,10 @@
 {% extends 'generic/object.html' %}
 
+{% block breadcrumbs %}
+  {{ block.super }}
+  <li class="breadcrumb-item"><a href="{% url 'plugins:netbox_acls:aclstandardrule_list' %}?access_list_id={{ object.access_list.pk }}">{{ object.access_list }}</a></li>
+{% endblock breadcrumbs %}
+
 {% block content %}
   <div class="row mb-3">
     <div class="col col-md-6">
@@ -8,9 +13,7 @@
         <table class="table table-hover attr-table">
           <tr>
             <th scope="row">Access List</th>
-            <td>
-              <a href="{{ object.access_list.get_absolute_url }}">{{ object.access_list }}</a>
-            </td>
+            <td>{{ object.access_list|linkify }}</td>
           </tr>
           <tr>
             <th scope="row">Index</th>
@@ -30,26 +33,16 @@
         <h2 class="card-header">Details</h2>
         <table class="table table-hover attr-table">
           <tr>
-            <th scope="row">Remark</th>
-            <td>{{ object.get_remark_display|placeholder }}</td>
+            <th scope="row">Action</th>
+            <td>{% badge object.get_action_display bg_color=object.get_action_color %}</td>
           </tr>
           <tr>
-            <th scope="row">Protocol</th>
-            <td>{{ object.get_protocol_display|placeholder }}</td>
+            <th scope="row">Remark</th>
+            <td>{{ object.remark|placeholder }}</td>
           </tr>
           <tr>
             <th scope="row">Source Prefix</th>
-            <td>
-              {% if object.source_prefix %}
-                <a href="{{ object.source_prefix.get_absolute_url }}">{{ object.source_prefix }}</a>
-              {% else %}
-                {{ ''|placeholder }}
-              {% endif %}
-            </td>
-          </tr>
-          <tr>
-            <th scope="row">Action</th>
-            <td>{% badge object.get_action_display bg_color=object.get_action_color %}</td>
+            <td>{{ object.source_prefix|linkify|placeholder }}</td>
           </tr>
         </table>
       </div>

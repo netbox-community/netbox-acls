@@ -28,7 +28,7 @@ alphanumeric_plus = RegexValidator(
 
 class AccessList(NetBoxModel):
     """
-    Model defintion for Access Lists.
+    Model definition for Access Lists.
     """
 
     name = models.CharField(
@@ -89,10 +89,9 @@ class AccessList(NetBoxModel):
 
 class ACLInterfaceAssignment(NetBoxModel):
     """
-    Model defintion for Access Lists associations with other Host interfaces:
+    Model definition for Access Lists associations with other Host interfaces:
       - VM interfaces
       - device interface
-      - tbd on more
     """
 
     access_list = models.ForeignKey(
@@ -119,6 +118,7 @@ class ACLInterfaceAssignment(NetBoxModel):
     )
 
     clone_fields = ("access_list", "direction")
+    prerequisite_models = ("netbox_acls.AccessList",)
 
     class Meta:
         unique_together = [
@@ -136,6 +136,9 @@ class ACLInterfaceAssignment(NetBoxModel):
         verbose_name = "ACL Interface Assignment"
         verbose_name_plural = "ACL Interface Assignments"
 
+    def __str__(self):
+        return f"{self.access_list}: Interface {self.assigned_object}"
+
     def get_absolute_url(self):
         """
         The method is a Django convention; although not strictly required,
@@ -145,10 +148,6 @@ class ACLInterfaceAssignment(NetBoxModel):
             "plugins:netbox_acls:aclinterfaceassignment",
             args=[self.pk],
         )
-
-    @classmethod
-    def get_prerequisite_models(cls):
-        return [AccessList]
 
     def get_direction_color(self):
         return ACLAssignmentDirectionChoices.colors.get(self.direction)

@@ -73,13 +73,13 @@ class AccessListSerializer(NetBoxModelSerializer):
             "last_updated",
             "rule_count",
         )
-        brief_fields = ("id", "url", "name", "display")
+        brief_fields = ("id", "url", "display", "name")
 
-    @extend_schema_field(serializers.DictField())
+    @extend_schema_field(serializers.JSONField(allow_null=True))
     def get_assigned_object(self, obj):
-        serializer = get_serializer_for_model(
-            obj.assigned_object,
-        )
+        if obj.assigned_object is None:
+            return None
+        serializer = get_serializer_for_model(obj.assigned_object)
         context = {"request": self.context["request"]}
         return serializer(obj.assigned_object, nested=True, context=context).data
 
@@ -126,6 +126,7 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
         fields = (
             "id",
             "url",
+            "display",
             "access_list",
             "direction",
             "assigned_object_type",
@@ -137,10 +138,12 @@ class ACLInterfaceAssignmentSerializer(NetBoxModelSerializer):
             "created",
             "last_updated",
         )
-        brief_fields = ("id", "url", "access_list")
+        brief_fields = ("id", "url", "display", "access_list")
 
-    @extend_schema_field(serializers.DictField())
+    @extend_schema_field(serializers.JSONField(allow_null=True))
     def get_assigned_object(self, obj):
+        if obj.assigned_object is None:
+            return None
         serializer = get_serializer_for_model(obj.assigned_object)
         context = {"request": self.context["request"]}
         return serializer(obj.assigned_object, nested=True, context=context).data
@@ -203,15 +206,15 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
             "access_list",
             "index",
             "action",
-            "tags",
-            "description",
             "remark",
+            "source_prefix",
+            "description",
+            "tags",
             "created",
             "custom_fields",
             "last_updated",
-            "source_prefix",
         )
-        brief_fields = ("id", "url", "display")
+        brief_fields = ("id", "url", "display", "access_list", "index")
 
     def validate(self, data):
         """
@@ -274,19 +277,19 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
             "access_list",
             "index",
             "action",
-            "tags",
-            "description",
-            "created",
-            "custom_fields",
-            "last_updated",
+            "remark",
+            "protocol",
             "source_prefix",
             "source_ports",
             "destination_prefix",
             "destination_ports",
-            "protocol",
-            "remark",
+            "description",
+            "tags",
+            "created",
+            "custom_fields",
+            "last_updated",
         )
-        brief_fields = ("id", "url", "display")
+        brief_fields = ("id", "url", "display", "access_list", "index")
 
     def validate(self, data):
         """

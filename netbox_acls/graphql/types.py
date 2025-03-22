@@ -32,15 +32,6 @@ class AccessListType(NetBoxObjectType):
         strawberry.union("ACLAssignmentType"),
     ]
 
-    class Meta:
-        """
-        Associates the filterset, fields, and model for the django model AccessList.
-        """
-
-        @strawberry_django.field
-        def accesslists(self) -> List[Annotated["AccessList", strawberry.lazy("accesslists.graphql.types")]]:
-            return self.accesslists.all()
-
 
 @strawberry_django.type(
     models.ACLInterfaceAssignment,
@@ -63,17 +54,6 @@ class ACLInterfaceAssignmentType(NetBoxObjectType):
         strawberry.union("ACLInterfaceAssignmentType"),
     ]
 
-    class Meta:
-        """
-        Associates the filterset, fields, and model for the django model ACLInterfaceAssignment.
-        """
-
-        @strawberry_django.field
-        def aclinterfaceassignments(
-            self,
-        ) -> List[Annotated["ACLInterfaceAssignment", strawberry.lazy("aclinterfaceassignments.graphql.types")]]:
-            return self.aclinterfaceassignments.all()
-
 
 @strawberry_django.type(
     models.ACLExtendedRule,
@@ -91,17 +71,6 @@ class ACLExtendedRuleType(NetBoxObjectType):
     destination_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]
     source_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]
 
-    class Meta:
-        """
-        Associates the filterset, fields, and model for the django model ACLExtendedRule.
-        """
-
-        @strawberry_django.field
-        def aclextendedrules(
-            self,
-        ) -> List[Annotated["ACLExtendedRule", strawberry.lazy("aclextendedrule.graphql.types")]]:
-            return self.aclextendedrules.all()
-
 
 @strawberry_django.type(
     models.ACLStandardRule,
@@ -115,14 +84,3 @@ class ACLStandardRuleType(NetBoxObjectType):
 
     access_list: Annotated["AccessListType", strawberry.lazy("netbox_acls.graphql.types")]
     source_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]
-
-    class Meta:
-        """
-        Associates the filterset, fields, and model for the django model ACLExtendedRule.
-        """
-
-        @strawberry_django.field
-        def aclstandardrules(
-            self,
-        ) -> List[Annotated["ACLStandardRule", strawberry.lazy("aclstandardrule.graphql.types")]]:
-            return self.aclstandardrules.all()

@@ -6,7 +6,7 @@ from typing import Annotated, List, Union
 
 import strawberry
 import strawberry_django
-from netbox.graphql.types import OrganizationalObjectType
+from netbox.graphql.types import NetBoxObjectType
 
 from .. import models
 from . import filters
@@ -18,7 +18,7 @@ from . import filters
     exclude=["assigned_object_type", "assigned_object_id"],
     filters=filters.AccessListFilter,
 )
-class AccessListType(OrganizationalObjectType):
+class AccessListType(NetBoxObjectType):
     """
     Defines the object type for the django model AccessList.
     """
@@ -48,7 +48,7 @@ class AccessListType(OrganizationalObjectType):
     exclude=["assigned_object_type", "assigned_object_id"],
     filters=filters.ACLInterfaceAssignmentFilter,
 )
-class ACLInterfaceAssignmentType(OrganizationalObjectType):
+class ACLInterfaceAssignmentType(NetBoxObjectType):
     """
     Defines the object type for the django model AccessList.
     """
@@ -80,7 +80,7 @@ class ACLInterfaceAssignmentType(OrganizationalObjectType):
     fields="__all__",
     filters=filters.ACLExtendedRuleFilter,
 )
-class ACLExtendedRuleType(OrganizationalObjectType):
+class ACLExtendedRuleType(NetBoxObjectType):
     """
     Defines the object type for the django model ACLExtendedRule.
     """
@@ -108,7 +108,7 @@ class ACLExtendedRuleType(OrganizationalObjectType):
     fields="__all__",
     filters=filters.ACLStandardRuleFilter,
 )
-class ACLStandardRuleType(OrganizationalObjectType):
+class ACLStandardRuleType(NetBoxObjectType):
     """
     Defines the object type for the django model ACLStandardRule.
     """

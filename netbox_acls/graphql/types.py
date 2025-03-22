@@ -81,6 +81,6 @@ class ACLExtendedRuleType(NetBoxObjectType):
 
     access_list: Annotated["AccessListType", strawberry.lazy("netbox_acls.graphql.types")]
     source_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]
-    source_ports: List[int]
+    source_ports: List[int] | None
     destination_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]
-    destination_ports: List[int]
+    destination_ports: List[int] | None

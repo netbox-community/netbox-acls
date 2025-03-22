@@ -1,7 +1,3 @@
-from .schema import *
-from .types import *
+from .schema import NetBoxACLSQuery
 
-schema = [
-    schema.NetBoxACLSQuery
-]
-
+schema = [NetBoxACLSQuery]

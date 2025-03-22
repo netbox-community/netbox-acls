@@ -66,7 +66,7 @@ class ACLStandardRuleType(NetBoxObjectType):
     """
 
     access_list: Annotated["AccessListType", strawberry.lazy("netbox_acls.graphql.types")]
-    source_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]
+    source_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")] | None
 
 
 @strawberry_django.type(
@@ -80,7 +80,7 @@ class ACLExtendedRuleType(NetBoxObjectType):
     """
 
     access_list: Annotated["AccessListType", strawberry.lazy("netbox_acls.graphql.types")]
-    source_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]
+    source_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")] | None
     source_ports: List[int] | None
-    destination_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]
+    destination_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")] | None
     destination_ports: List[int] | None

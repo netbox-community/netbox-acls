@@ -56,23 +56,6 @@ class ACLInterfaceAssignmentType(NetBoxObjectType):
 
 
 @strawberry_django.type(
-    models.ACLExtendedRule,
-    fields="__all__",
-    filters=filters.ACLExtendedRuleFilter,
-)
-class ACLExtendedRuleType(NetBoxObjectType):
-    """
-    Defines the object type for the django model ACLExtendedRule.
-    """
-
-    source_ports: List[int]
-    destination_ports: List[int]
-    access_list: Annotated["AccessListType", strawberry.lazy("netbox_acls.graphql.types")]
-    destination_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]
-    source_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]
-
-
-@strawberry_django.type(
     models.ACLStandardRule,
     fields="__all__",
     filters=filters.ACLStandardRuleFilter,
@@ -84,3 +67,20 @@ class ACLStandardRuleType(NetBoxObjectType):
 
     access_list: Annotated["AccessListType", strawberry.lazy("netbox_acls.graphql.types")]
     source_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]
+
+
+@strawberry_django.type(
+    models.ACLExtendedRule,
+    fields="__all__",
+    filters=filters.ACLExtendedRuleFilter,
+)
+class ACLExtendedRuleType(NetBoxObjectType):
+    """
+    Defines the object type for the django model ACLExtendedRule.
+    """
+
+    access_list: Annotated["AccessListType", strawberry.lazy("netbox_acls.graphql.types")]
+    source_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]
+    source_ports: List[int]
+    destination_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]
+    destination_ports: List[int]

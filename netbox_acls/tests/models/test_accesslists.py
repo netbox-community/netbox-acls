@@ -1,9 +1,10 @@
 from itertools import cycle
 
-from dcim.models import Device
+from dcim.models import Device, VirtualChassis
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from ipam.models import Prefix
+from virtualization.models import VirtualMachine
 
 from netbox_acls.models import AccessList
 
@@ -19,6 +20,84 @@ class TestAccessList(BaseTestCase):
         "type": "extended",
         "default_action": "permit",
     }
+
+    def test_accesslist_standard_creation(self):
+        """
+        Test that AccessList Standard creation passes validation.
+        """
+        acl_name = "Test-ACL-Standard-Type"
+
+        created_acl = AccessList(
+            name=acl_name,
+            assigned_object=self.device1,
+            type="standard",
+            default_action="deny",
+        )
+
+        self.assertTrue(isinstance(created_acl, AccessList), True)
+        self.assertEqual(created_acl.name, acl_name)
+        self.assertEqual(created_acl.type, "standard")
+        self.assertEqual(created_acl.default_action, "deny")
+        self.assertEqual(isinstance(created_acl.assigned_object, Device), True)
+        self.assertEqual(created_acl.assigned_object, self.device1)
+
+    def test_accesslist_extended_creation(self):
+        """
+        Test that AccessList Extended creation passes validation.
+        """
+        acl_name = "Test-ACL-Extended-Type"
+
+        created_acl = AccessList(
+            name=acl_name,
+            assigned_object=self.device2,
+            type="extended",
+            default_action="permit",
+        )
+
+        self.assertTrue(isinstance(created_acl, AccessList))
+        self.assertEqual(created_acl.name, acl_name)
+        self.assertEqual(created_acl.type, "extended")
+        self.assertEqual(created_acl.default_action, "permit")
+        self.assertEqual(isinstance(created_acl.assigned_object, Device), True)
+        self.assertEqual(created_acl.assigned_object, self.device2)
+
+    def test_accesslist_creation_with_virtual_chassis(self):
+        """
+        Test that AccessList creation with an assigned virtual chassis passes validation.
+        """
+        acl_name = "Test-ACL-with-Virtual-Machine"
+
+        created_acl = AccessList(
+            name=acl_name,
+            assigned_object=self.virtual_chassis1,
+            **self.common_acl_params,
+        )
+
+        self.assertTrue(isinstance(created_acl, AccessList))
+        self.assertEqual(created_acl.name, acl_name)
+        self.assertEqual(created_acl.type, "extended")
+        self.assertEqual(created_acl.default_action, "permit")
+        self.assertEqual(isinstance(created_acl.assigned_object, VirtualChassis), True)
+        self.assertEqual(created_acl.assigned_object, self.virtual_chassis1)
+
+    def test_accesslist_creation_with_virtual_machine(self):
+        """
+        Test that AccessList creation with an assigned virtual machine passes validation.
+        """
+        acl_name = "Test-ACL-with-Virtual-Machine"
+
+        created_acl = AccessList(
+            name=acl_name,
+            assigned_object=self.virtual_machine1,
+            **self.common_acl_params,
+        )
+
+        self.assertTrue(isinstance(created_acl, AccessList))
+        self.assertEqual(created_acl.name, acl_name)
+        self.assertEqual(created_acl.type, "extended")
+        self.assertEqual(created_acl.default_action, "permit")
+        self.assertEqual(isinstance(created_acl.assigned_object, VirtualMachine), True)
+        self.assertEqual(created_acl.assigned_object, self.virtual_machine1)
 
     def test_wrong_assigned_object_type_fail(self):
         """
@@ -57,13 +136,22 @@ class TestAccessList(BaseTestCase):
             **self.common_acl_params,
         )
         device_acl.full_clean()
-        # TODO: test_duplicate_name_success - VirtualChassis, VirtualMachine & Cluster
-        # vc_acl = AccessList(
-        #    "name": "GOOD-DUPLICATE-ACL",
-        #    assigned_object_type=ContentType.objects.get_for_model(VirtualChassis),
-        #    **self.common_acl_params,
-        # )
-        # vc_acl.full_clean()
+
+        # Virtual Chassis
+        vc_acl = AccessList(
+            name="GOOD-DUPLICATE-ACL",
+            assigned_object=self.virtual_chassis1,
+            **self.common_acl_params,
+        )
+        vc_acl.full_clean()
+
+        # Virtual Machine
+        vm_acl = AccessList(
+            name="GOOD-DUPLICATE-ACL",
+            assigned_object=self.virtual_machine1,
+            **self.common_acl_params,
+        )
+        vm_acl.full_clean()
 
     def test_alphanumeric_plus_fail(self):
         """
@@ -96,7 +184,38 @@ class TestAccessList(BaseTestCase):
         acl_2 = AccessList(**params)
         with self.assertRaises(ValidationError):
             acl_2.full_clean()
-        # TODO: test_duplicate_name_fail - VirtualChassis & Cluster
+
+    def test_duplicate_name_per_virtual_chassis_fail(self):
+        """
+        Test that AccessList names must be unique per virtual chassis.
+        """
+        params = {
+            "name": "FAIL-DUPLICATE-ACL",
+            "assigned_object_type": ContentType.objects.get_for_model(VirtualChassis),
+            "assigned_object_id": self.virtual_chassis1.id,
+            **self.common_acl_params,
+        }
+        acl_1 = AccessList.objects.create(**params)
+        acl_1.save()
+        acl_2 = AccessList(**params)
+        with self.assertRaises(ValidationError):
+            acl_2.full_clean()
+
+    def test_duplicate_name_per_virtual_machine_fail(self):
+        """
+        Test that AccessList names must be unique per virtual machine.
+        """
+        params = {
+            "name": "FAIL-DUPLICATE-ACL",
+            "assigned_object_type": ContentType.objects.get_for_model(VirtualMachine),
+            "assigned_object_id": self.virtual_machine1.id,
+            **self.common_acl_params,
+        }
+        acl_1 = AccessList.objects.create(**params)
+        acl_1.save()
+        acl_2 = AccessList(**params)
+        with self.assertRaises(ValidationError):
+            acl_2.full_clean()
 
     def test_valid_acl_choices(self):
         """

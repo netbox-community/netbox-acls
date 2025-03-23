@@ -4,7 +4,6 @@ from dcim.models import Device
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from ipam.models import Prefix
-from virtualization.models import VirtualMachine
 
 from netbox_acls.models import AccessList
 
@@ -20,16 +19,16 @@ class TestAccessList(BaseTestCase):
         "type": "extended",
         "default_action": "permit",
     }
-    # device = Device.objects.first()
 
     def test_wrong_assigned_object_type_fail(self):
         """
-        Test that AccessList cannot be assigned to an object type other than Device, VirtualChassis, VirtualMachine, or Cluster.
+        Test that AccessList cannot be assigned to an object type other than Device, VirtualChassis, VirtualMachine,
+        or Cluster.
         """
         acl_bad_gfk = AccessList(
             name="TestACL_Wrong_GFK",
             assigned_object_type=ContentType.objects.get_for_model(Prefix),
-            assigned_object_id=Prefix.objects.first(),
+            assigned_object_id=self.prefix1.id,
             **self.common_acl_params,
         )
         with self.assertRaises(ValidationError):
@@ -40,31 +39,24 @@ class TestAccessList(BaseTestCase):
         Test that AccessList names with alphanumeric characters, '_', or '-' pass validation.
         """
         acl_good_name = AccessList(
-            name="Testacl-Good_Name-1",
+            name="Test-ACL-Good_Name-1",
             assigned_object_type=ContentType.objects.get_for_model(Device),
-            assigned_object_id=1,  # TODO - replace with Device.objects.first()
+            assigned_object_id=self.device1.id,
             **self.common_acl_params,
         )
         acl_good_name.full_clean()
-        # TODO: test_alphanumeric_plus_success - VirtualChassis, VirtualMachine & Cluster
 
     def test_duplicate_name_success(self):
         """
         Test that AccessList names can be non-unique if associated with different devices.
         """
-        AccessList.objects.create(
+        # Device
+        device_acl = AccessList(
             name="GOOD-DUPLICATE-ACL",
-            assigned_object_type=ContentType.objects.get_for_model(Device),
-            assigned_object_id=1,  # TODO - replace with Device.objects.first()
+            assigned_object=self.device1,
             **self.common_acl_params,
         )
-        vm_acl = AccessList(
-            name="GOOD-DUPLICATE-ACL",
-            assigned_object_type=ContentType.objects.get_for_model(VirtualMachine),
-            assigned_object_id=1,  # TODO - replace with VirtualMachine.objects.first().id,
-            **self.common_acl_params,
-        )
-        vm_acl.full_clean()
+        device_acl.full_clean()
         # TODO: test_duplicate_name_success - VirtualChassis, VirtualMachine & Cluster
         # vc_acl = AccessList(
         #    "name": "GOOD-DUPLICATE-ACL",
@@ -81,23 +73,23 @@ class TestAccessList(BaseTestCase):
 
         for i, char in enumerate(non_alphanumeric_plus_chars, start=1):
             bad_acl_name = AccessList(
-                name=f"Testacl-bad_name_{i}_{char}",
-                assigned_object_type=ContentType.objects.get_for_model(Device),
+                name=f"Test-ACL-bad_name_{i}_{char}",
+                assigned_object=self.device1,
                 comments=f'ACL with "{char}" in name',
                 **self.common_acl_params,
             )
             with self.assertRaises(ValidationError):
                 bad_acl_name.full_clean()
 
-    def test_duplicate_name_fail(self):
+    def test_duplicate_name_per_device_fail(self):
         """
         Test that AccessList names must be unique per device.
         """
         params = {
             "name": "FAIL-DUPLICATE-ACL",
             "assigned_object_type": ContentType.objects.get_for_model(Device),
+            "assigned_object_id": self.device1.id,
             **self.common_acl_params,
-            "assigned_object_id": 1,  # TODO - replace with Device.objects.first()
         }
         acl_1 = AccessList.objects.create(**params)
         acl_1.save()
@@ -122,11 +114,10 @@ class TestAccessList(BaseTestCase):
         for default_action, acl_type in valid_acl_choices:
             valid_acl_choice = AccessList(
                 name=f"TestACL_Valid_Choice_{default_action}_{acl_type}",
-                comments=f"VALID ACL CHOICES USED: {default_action=} {acl_type=}",
+                assigned_object=self.device1,
                 type=acl_type,
                 default_action=default_action,
-                assigned_object_type=ContentType.objects.get_for_model(Device),
-                assigned_object_id=1,  # TODO - replace with Device.objects.first()
+                comments=f"VALID ACL CHOICES USED: {default_action=} {acl_type=}",
             )
             valid_acl_choice.full_clean()
 
@@ -138,11 +129,10 @@ class TestAccessList(BaseTestCase):
         invalid_acl_default_action_choice = "log"
         invalid_acl_default_action = AccessList(
             name=f"TestACL_Valid_Choice_{invalid_acl_default_action_choice}_{valid_acl_types[0]}",
-            comments=f"INVALID ACL DEFAULT CHOICE USED: default_action='{invalid_acl_default_action_choice}'",
+            assigned_object=self.device1,
             type=valid_acl_types[0],
             default_action=invalid_acl_default_action_choice,
-            assigned_object_type=ContentType.objects.get_for_model(Device),
-            assigned_object_id=1,  # TODO - replace with Device.objects.first()
+            comments=f"INVALID ACL DEFAULT CHOICE USED: default_action='{invalid_acl_default_action_choice}'",
         )
         with self.assertRaises(ValidationError):
             invalid_acl_default_action.full_clean()
@@ -151,11 +141,10 @@ class TestAccessList(BaseTestCase):
         invalid_acl_type = "super-dupper-extended"
         invalid_acl_type = AccessList(
             name=f"TestACL_Valid_Choice_{valid_acl_default_action_choices[0]}_{invalid_acl_type}",
-            comments=f"INVALID ACL DEFAULT CHOICE USED: type='{invalid_acl_type}'",
+            assigned_object=self.device1,
             type=invalid_acl_type,
             default_action=valid_acl_default_action_choices[0],
-            assigned_object_type=ContentType.objects.get_for_model(Device),
-            assigned_object_id=1,  # TODO - replace with Device.objects.first()
+            comments=f"INVALID ACL DEFAULT CHOICE USED: type='{invalid_acl_type}'",
         )
         with self.assertRaises(ValidationError):
             invalid_acl_type.full_clean()

@@ -178,17 +178,11 @@ class TestAccessList(BaseTestCase):
         valid_acl_default_action_choices = ["permit", "deny"]
         valid_acl_types = ["standard", "extended"]
         if len(valid_acl_default_action_choices) > len(valid_acl_types):
-            valid_acl_choices = list(
-                zip(valid_acl_default_action_choices, cycle(valid_acl_types))
-            )
+            valid_acl_choices = list(zip(valid_acl_default_action_choices, cycle(valid_acl_types)))
         elif len(valid_acl_default_action_choices) < len(valid_acl_types):
-            valid_acl_choices = list(
-                zip(cycle(valid_acl_default_action_choices), valid_acl_types)
-            )
+            valid_acl_choices = list(zip(cycle(valid_acl_default_action_choices), valid_acl_types))
         else:
-            valid_acl_choices = list(
-                zip(valid_acl_default_action_choices, valid_acl_types)
-            )
+            valid_acl_choices = list(zip(valid_acl_default_action_choices, valid_acl_types))
 
         for default_action, acl_type in valid_acl_choices:
             valid_acl_choice = AccessList(
@@ -257,12 +251,12 @@ class TestACLInterfaceAssignment(BaseTestCase):
                 VMInterface(name="Interface 2", virtual_machine=virtual_machine),
             )
         )
-        #prefixes = Prefix.objects.bulk_create(
+        # prefixes = Prefix.objects.bulk_create(
         #    (
         #        Prefix(prefix=IPNetwork("10.0.0.0/24")),
         #        Prefix(prefix=IPNetwork("192.168.1.0/24")),
         #    )
-        #)
+        # )
 
     def test_acl_interface_assignment_success(self):
         """

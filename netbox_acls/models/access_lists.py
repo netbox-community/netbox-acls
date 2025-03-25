@@ -156,21 +156,17 @@ class ACLInterfaceAssignment(NetBoxModel):
             args=[self.pk],
         )
 
-    def clean(self):
-        super().clean()
-
-        # Get the model type of the assigned interface.
-        if self.assigned_object_type.model_class() == VMInterface:
-            interface_host = self.assigned_object.virtual_machine
-        elif self.assigned_object_type.model_class() == Interface:
-            interface_host = self.assigned_object.device
-        # Check if the assigned interface's host is the same as the host assigned to the access list.
-        if interface_host != self.access_list.assigned_object:
+    def save(self, *args, **kwargs):
+        """Saves the current instance to the database."""
+        # Ensure the assigned interface's host matches the host assigned to the access list.
+        if self.assigned_object.parent_object != self.access_list.assigned_object:
             raise ValidationError(
                 {
                     "assigned_object": "The assigned object must be the same as the device assigned to it."
                 }
             )
+
+        super().save(*args, **kwargs)
 
     def get_direction_color(self):
         return ACLAssignmentDirectionChoices.colors.get(self.direction)

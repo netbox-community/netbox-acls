@@ -3,6 +3,7 @@ Define the django models for this plugin.
 """
 
 from django.contrib.postgres.fields import ArrayField
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -16,6 +17,29 @@ __all__ = (
     "ACLStandardRule",
     "ACLExtendedRule",
 )
+
+# Error message when the action is 'remark', but no remark is provided.
+ERROR_MESSAGE_NO_REMARK = _("When the action is 'remark', a remark is required.")
+
+# Error message when the action is 'remark', but the source_prefix is set.
+ERROR_MESSAGE_ACTION_REMARK_SOURCE_PREFIX_SET = _("When the action is 'remark', the Source Prefix must not be set.")
+
+# Error message when the action is 'remark', but the source_ports are set.
+ERROR_MESSAGE_ACTION_REMARK_SOURCE_PORTS_SET = _("When the action is 'remark', Source Ports must not be set.")
+
+# Error message when the action is 'remark', but the destination_prefix is set.
+ERROR_MESSAGE_ACTION_REMARK_DESTINATION_PREFIX_SET = _(
+    "When the action is 'remark', the Destination Prefix must not be set."
+)
+
+# Error message when the action is 'remark', but the destination_ports are set.
+ERROR_MESSAGE_ACTION_REMARK_DESTINATION_PORTS_SET = _("When the action is 'remark', Destination Ports must not be set.")
+
+# Error message when the action is 'remark', but the protocol is set.
+ERROR_MESSAGE_ACTION_REMARK_PROTOCOL_SET = _("When the action is 'remark', Protocol must not be set.")
+
+# Error message when a remark is provided, but the action is not set to 'remark'.
+ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK = _("A remark cannot be set unless the action is 'remark'.")
 
 
 class ACLRule(NetBoxModel):
@@ -111,6 +135,31 @@ class ACLStandardRule(ACLRule):
         verbose_name = _("ACL Standard Rule")
         verbose_name_plural = _("ACL Standard Rules")
 
+    def clean(self):
+        """
+        Validate the ACL Standard Rule inputs.
+
+        If the action is 'remark', then the remark field must be provided (non-empty),
+        and the source_prefix field must be empty.
+        Conversely, if the remark field is provided, the action must be set to 'remark'.
+        """
+
+        super().clean()
+        errors = {}
+
+        # Validate that only the remark field is filled
+        if self.action == ACLRuleActionChoices.ACTION_REMARK:
+            if not self.remark:
+                errors["remark"] = ERROR_MESSAGE_NO_REMARK
+            if self.source_prefix:
+                errors["source_prefix"] = ERROR_MESSAGE_ACTION_REMARK_SOURCE_PREFIX_SET
+        # Validate that the action is "remark", when the remark field is provided
+        elif self.remark:
+            errors["remark"] = ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK
+
+        if errors:
+            raise ValidationError(errors)
+
 
 class ACLExtendedRule(ACLRule):
     """
@@ -172,6 +221,44 @@ class ACLExtendedRule(ACLRule):
 
         verbose_name = _("ACL Extended Rule")
         verbose_name_plural = _("ACL Extended Rules")
+
+    def clean(self):
+        """
+        Validate the ACL Extended Rule inputs.
+
+        When the action is 'remark', the remark field must be provided (non-empty),
+        and the following fields must be empty:
+          - source_prefix
+          - source_ports
+          - destination_prefix
+          - destination_ports
+          - protocol
+
+        Conversely, if a remark is provided, the action must be set to 'remark'.
+        """
+        super().clean()
+        errors = {}
+
+        # Validate that only the remark field is filled
+        if self.action == ACLRuleActionChoices.ACTION_REMARK:
+            if not self.remark:
+                errors["remark"] = ERROR_MESSAGE_NO_REMARK
+            if self.source_prefix:
+                errors["source_prefix"] = ERROR_MESSAGE_ACTION_REMARK_SOURCE_PREFIX_SET
+            if self.source_ports:
+                errors["source_ports"] = ERROR_MESSAGE_ACTION_REMARK_SOURCE_PORTS_SET
+            if self.destination_prefix:
+                errors["destination_prefix"] = ERROR_MESSAGE_ACTION_REMARK_DESTINATION_PREFIX_SET
+            if self.destination_ports:
+                errors["destination_ports"] = ERROR_MESSAGE_ACTION_REMARK_DESTINATION_PORTS_SET
+            if self.protocol:
+                errors["protocol"] = ERROR_MESSAGE_ACTION_REMARK_PROTOCOL_SET
+        # Validate that the action is "remark", when the remark field is provided
+        elif self.remark:
+            errors["remark"] = ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK
+
+        if errors:
+            raise ValidationError(errors)
 
     def get_protocol_color(self):
         return ACLProtocolChoices.colors.get(self.protocol)

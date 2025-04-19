@@ -71,6 +71,7 @@ class AccessListView(generic.ObjectView):
         return {}
 
 
+@register_model_view(models.AccessList, "list", path="", detail=False)
 class AccessListListView(generic.ObjectListView):
     """
     Defines the list view for the AccessLists django model.
@@ -84,6 +85,7 @@ class AccessListListView(generic.ObjectListView):
     filterset_form = forms.AccessListFilterForm
 
 
+@register_model_view(models.AccessList, "add", detail=False)
 @register_model_view(models.AccessList, "edit")
 class AccessListEditView(generic.ObjectEditView):
     """
@@ -103,6 +105,7 @@ class AccessListDeleteView(generic.ObjectDeleteView):
     queryset = models.AccessList.objects.prefetch_related("tags")
 
 
+@register_model_view(models.AccessList, "bulk_delete", path="delete", detail=False)
 class AccessListBulkDeleteView(generic.BulkDeleteView):
     queryset = models.AccessList.objects.prefetch_related("tags")
     filterset = filtersets.AccessListFilterSet
@@ -194,6 +197,7 @@ class ACLInterfaceAssignmentView(generic.ObjectView):
     )
 
 
+@register_model_view(models.ACLInterfaceAssignment, "list", path="", detail=False)
 class ACLInterfaceAssignmentListView(generic.ObjectListView):
     """
     Defines the list view for the ACLInterfaceAssignments django model.
@@ -208,6 +212,7 @@ class ACLInterfaceAssignmentListView(generic.ObjectListView):
     filterset_form = forms.ACLInterfaceAssignmentFilterForm
 
 
+@register_model_view(models.ACLInterfaceAssignment, "add", detail=False)
 @register_model_view(models.ACLInterfaceAssignment, "edit")
 class ACLInterfaceAssignmentEditView(generic.ObjectEditView):
     """
@@ -243,6 +248,7 @@ class ACLInterfaceAssignmentDeleteView(generic.ObjectDeleteView):
     )
 
 
+@register_model_view(models.ACLInterfaceAssignment, "bulk_delete", path="delete", detail=False)
 class ACLInterfaceAssignmentBulkDeleteView(generic.BulkDeleteView):
     queryset = models.ACLInterfaceAssignment.objects.prefetch_related(
         "access_list",
@@ -288,9 +294,7 @@ class InterfaceACLInterfaceAssignmentView(ACLInterfaceAssignmentChildView):
 
 
 @register_model_view(VMInterface, "acl_interface_assignments")
-class VirtualMachineInterfaceACLInterfaceAssignmentView(
-    ACLInterfaceAssignmentChildView,
-):
+class VirtualMachineInterfaceACLInterfaceAssignmentView(ACLInterfaceAssignmentChildView):
     queryset = VMInterface.objects.prefetch_related("virtual_machine", "tags")
     tab = ViewTab(
         label="ACL Interface Assignments",
@@ -324,6 +328,7 @@ class ACLStandardRuleView(generic.ObjectView):
     )
 
 
+@register_model_view(models.ACLStandardRule, "list", path="", detail=False)
 class ACLStandardRuleListView(generic.ObjectListView):
     """
     Defines the list view for the ACLStandardRule django model.
@@ -339,6 +344,7 @@ class ACLStandardRuleListView(generic.ObjectListView):
     filterset_form = forms.ACLStandardRuleFilterForm
 
 
+@register_model_view(models.ACLStandardRule, "add", detail=False)
 @register_model_view(models.ACLStandardRule, "edit")
 class ACLStandardRuleEditView(generic.ObjectEditView):
     """
@@ -375,6 +381,7 @@ class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
     )
 
 
+@register_model_view(models.ACLStandardRule, "bulk_delete", path="delete", detail=False)
 class ACLStandardRuleBulkDeleteView(generic.BulkDeleteView):
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
@@ -404,6 +411,7 @@ class ACLExtendedRuleView(generic.ObjectView):
     )
 
 
+@register_model_view(models.ACLExtendedRule, "list", path="", detail=False)
 class ACLExtendedRuleListView(generic.ObjectListView):
     """
     Defines the list view for the ACLExtendedRule django model.
@@ -420,6 +428,7 @@ class ACLExtendedRuleListView(generic.ObjectListView):
     filterset_form = forms.ACLExtendedRuleFilterForm
 
 
+@register_model_view(models.ACLExtendedRule, "add", detail=False)
 @register_model_view(models.ACLExtendedRule, "edit")
 class ACLExtendedRuleEditView(generic.ObjectEditView):
     """
@@ -458,6 +467,7 @@ class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
     )
 
 
+@register_model_view(models.ACLExtendedRule, "bulk_delete", path="delete", detail=False)
 class ACLExtendedRuleBulkDeleteView(generic.BulkDeleteView):
     queryset = models.ACLExtendedRule.objects.prefetch_related(
         "access_list",

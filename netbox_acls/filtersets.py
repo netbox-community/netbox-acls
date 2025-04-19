@@ -1,13 +1,17 @@
 """
 Filters enable users to request only a specific subset of objects matching a query;
-when filtering the sites list by status or region, for instance.
+when filtering the site list by status or region, for instance.
 """
+
 import django_filters
 from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from django.db.models import Q
+from django.utils.translation import gettext_lazy as _
+from ipam.models import Prefix
 from netbox.filtersets import NetBoxModelFilterSet
 from virtualization.models import VirtualMachine, VMInterface
 
+from .choices import ACLTypeChoices
 from .models import AccessList, ACLExtendedRule, ACLInterfaceAssignment, ACLStandardRule
 
 __all__ = (
@@ -22,6 +26,7 @@ class AccessListFilterSet(NetBoxModelFilterSet):
     """
     Define the filter set for the django model AccessList.
     """
+
     region = django_filters.ModelMultipleChoiceFilter(
         field_name="device__site__region",
         queryset=Region.objects.all(),
@@ -102,13 +107,13 @@ class AccessListFilterSet(NetBoxModelFilterSet):
         Override the default search behavior for the django model.
         """
         query = (
-                Q(name__icontains=value)
-                | Q(device__name__icontains=value)
-                | Q(virtual_chassis__name__icontains=value)
-                | Q(virtual_machine__name__icontains=value)
-                | Q(type__icontains=value)
-                | Q(default_action__icontains=value)
-                | Q(comments__icontains=value)
+            Q(name__icontains=value)
+            | Q(device__name__icontains=value)
+            | Q(virtual_chassis__name__icontains=value)
+            | Q(virtual_machine__name__icontains=value)
+            | Q(type__icontains=value)
+            | Q(default_action__icontains=value)
+            | Q(comments__icontains=value)
         )
         return queryset.filter(query)
 
@@ -118,6 +123,16 @@ class ACLInterfaceAssignmentFilterSet(NetBoxModelFilterSet):
     Define the filter set for the django model ACLInterfaceAssignment.
     """
 
+    access_list = django_filters.ModelMultipleChoiceFilter(
+        queryset=AccessList.objects.all(),
+        to_field_name="name",
+        label=_("Access List (name)"),
+    )
+    access_list_id = django_filters.ModelMultipleChoiceFilter(
+        queryset=AccessList.objects.all(),
+        to_field_name="id",
+        label=_("Access List (ID)"),
+    )
     interface = django_filters.ModelMultipleChoiceFilter(
         field_name="interface__name",
         queryset=Interface.objects.all(),
@@ -175,6 +190,32 @@ class ACLStandardRuleFilterSet(NetBoxModelFilterSet):
     Define the filter set for the django model ACLStandardRule.
     """
 
+    # Access List
+    access_list = django_filters.ModelMultipleChoiceFilter(
+        queryset=AccessList.objects.all(),
+        to_field_name="name",
+        label=_("Access List (name)"),
+    )
+    access_list_id = django_filters.ModelMultipleChoiceFilter(
+        queryset=AccessList.objects.all(),
+        to_field_name="id",
+        label=_("Access List (ID)"),
+    )
+
+    # Source
+    source_prefix = django_filters.ModelMultipleChoiceFilter(
+        field_name="source_prefix",
+        queryset=Prefix.objects.all(),
+        to_field_name="name",
+        label=_("Source Prefix (name)"),
+    )
+    source_prefix_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="source_prefix",
+        queryset=Prefix.objects.all(),
+        to_field_name="id",
+        label=_("Source Prefix (ID)"),
+    )
+
     class Meta:
         """
         Associates the django model ACLStandardRule & fields to the filter set.
@@ -200,6 +241,46 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
     Define the filter set for the django model ACLExtendedRule.
     """
 
+    # Access List
+    access_list = django_filters.ModelMultipleChoiceFilter(
+        queryset=AccessList.objects.filter(type=ACLTypeChoices.TYPE_EXTENDED),
+        to_field_name="name",
+        label=_("Access List (name)"),
+    )
+    access_list_id = django_filters.ModelMultipleChoiceFilter(
+        queryset=AccessList.objects.filter(type=ACLTypeChoices.TYPE_EXTENDED),
+        to_field_name="id",
+        label=_("Access List (ID)"),
+    )
+
+    # Source
+    source_prefix = django_filters.ModelMultipleChoiceFilter(
+        field_name="source_prefix",
+        queryset=Prefix.objects.all(),
+        to_field_name="name",
+        label=_("Source Prefix (name)"),
+    )
+    source_prefix_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="source_prefix",
+        queryset=Prefix.objects.all(),
+        to_field_name="id",
+        label=_("Source Prefix (ID)"),
+    )
+
+    # Destination
+    destination_prefix = django_filters.ModelMultipleChoiceFilter(
+        field_name="destination_prefix",
+        queryset=Prefix.objects.all(),
+        to_field_name="name",
+        label=_("Destination Prefix (name)"),
+    )
+    destination_prefix_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="destination_prefix",
+        queryset=Prefix.objects.all(),
+        to_field_name="id",
+        label=_("Destination Prefix (ID)"),
+    )
+
     class Meta:
         """
         Associates the django model ACLExtendedRule & fields to the filter set.
@@ -213,9 +294,9 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
         Override the default search behavior for the django model.
         """
         query = (
-                Q(access_list__name__icontains=value)
-                | Q(index__icontains=value)
-                | Q(action__icontains=value)
-                | Q(protocol__icontains=value)
+            Q(access_list__name__icontains=value)
+            | Q(index__icontains=value)
+            | Q(action__icontains=value)
+            | Q(protocol__icontains=value)
         )
         return queryset.filter(query)

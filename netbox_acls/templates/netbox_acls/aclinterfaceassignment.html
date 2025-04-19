@@ -1,6 +1,11 @@
 {% extends 'generic/object.html' %}
 {% load render_table from django_tables2 %}
 
+{% block breadcrumbs %}
+  {{ block.super }}
+  <li class="breadcrumb-item"><a href="{% url 'plugins:netbox_acls:aclinterfaceassignment_list' %}?access_list_id={{ object.access_list.pk }}">{{ object.access_list }}</a></li>
+{% endblock breadcrumbs %}
+
 {% block content %}
   <div class="row mb-3">
     <div class="col col-md-6">
@@ -11,23 +16,19 @@
             <th scope="row">Host</th>
             <td>
               {% if object.assigned_object.device %}
-                <a href="{{ object.assigned_object.device.get_absolute_url }}">{{ object.assigned_object.device|placeholder }}</a>
+                {{ object.assigned_object.device|linkify|placeholder }}
               {% else %}
-                <a href="{{ object.assigned_object.virtual_machine.get_absolute_url }}">{{ object.assigned_object.virtual_machine|placeholder }}</a>
+                {{ object.assigned_object.virtual_machine|linkify|placeholder }}
               {% endif %}
             </td>
           </tr>
           <tr>
             <th scope="row">Interface</th>
-            <td>
-              <a href="{{ object.assigned_object.get_absolute_url }}">{{ object.assigned_object }}</a>
-            </td>
+            <td>{{ object.assigned_object|linkify|placeholder }}</td>
           </tr>
           <tr>
             <th scope="row">Access List</th>
-            <td>
-              <a href="{{ object.access_list.get_absolute_url }}">{{ object.access_list }}</a>
-            </td>
+            <td>{{ object.access_list|linkify }}</td>
           </tr>
           <tr>
             <th scope="row">Direction</th>

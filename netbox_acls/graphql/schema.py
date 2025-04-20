@@ -1,14 +1,21 @@
+from typing import List
+
 import strawberry
 import strawberry_django
-from .types import *
-from ..models import *
-from typing import List
+
+from .types import (
+    AccessListType,
+    ACLExtendedRuleType,
+    ACLStandardRuleType,
+)
+
 
 @strawberry.type(name="Query")
 class NetBoxACLSQuery:
     """
     Defines the queries available to this plugin via the graphql api.
     """
+
     access_list: AccessListType = strawberry_django.field()
     access_list_list: List[AccessListType] = strawberry_django.field()
 
@@ -17,4 +24,3 @@ class NetBoxACLSQuery:
 
     acl_standard_rule: ACLStandardRuleType = strawberry_django.field()
     acl_standard_rule_list: List[ACLStandardRuleType] = strawberry_django.field()
-

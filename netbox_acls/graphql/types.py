@@ -23,6 +23,7 @@ class AccessListType(NetBoxObjectType):
     Defines the object type for the django model AccessList.
     """
 
+    # Model fields
     assigned_object_type: Annotated["ContentTypeType", strawberry.lazy("netbox.graphql.types")]
     assigned_object: Annotated[
         Union[
@@ -41,9 +42,10 @@ class AccessListType(NetBoxObjectType):
 )
 class ACLInterfaceAssignmentType(NetBoxObjectType):
     """
-    Defines the object type for the django model AccessList.
+    Defines the object type for the django model ACLInterfaceAssignment.
     """
 
+    # Model fields
     access_list: Annotated["AccessListType", strawberry.lazy("netbox_acls.graphql.types")]
     assigned_object_type: Annotated["ContentTypeType", strawberry.lazy("netbox.graphql.types")]
     assigned_object: Annotated[
@@ -51,7 +53,7 @@ class ACLInterfaceAssignmentType(NetBoxObjectType):
             Annotated["InterfaceType", strawberry.lazy("dcim.graphql.types")],
             Annotated["VMInterfaceType", strawberry.lazy("virtualization.graphql.types")],
         ],
-        strawberry.union("ACLInterfaceAssignmentType"),
+        strawberry.union("ACLInterfaceAssignedObjectType"),
     ]
 
 
@@ -65,6 +67,7 @@ class ACLStandardRuleType(NetBoxObjectType):
     Defines the object type for the django model ACLStandardRule.
     """
 
+    # Model fields
     access_list: Annotated["AccessListType", strawberry.lazy("netbox_acls.graphql.types")]
     source_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")] | None
 
@@ -79,6 +82,7 @@ class ACLExtendedRuleType(NetBoxObjectType):
     Defines the object type for the django model ACLExtendedRule.
     """
 
+    # Model fields
     access_list: Annotated["AccessListType", strawberry.lazy("netbox_acls.graphql.types")]
     source_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")] | None
     source_ports: List[int] | None

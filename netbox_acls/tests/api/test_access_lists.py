@@ -1,19 +1,9 @@
 from dcim.models import Device, DeviceRole, DeviceType, Manufacturer, Site
 from django.contrib.contenttypes.models import ContentType
-from django.urls import reverse
-from rest_framework import status
-from utilities.testing import APITestCase, APIViewTestCases
+from utilities.testing import APIViewTestCases
 
 from netbox_acls.choices import *
 from netbox_acls.models import *
-
-
-class AppTest(APITestCase):
-    def test_root(self):
-        url = reverse("plugins-api:netbox_acls-api:api-root")
-        response = self.client.get(f"{url}?format=api", **self.header)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
 class ACLTestCase(

@@ -1,7 +1,7 @@
 ---
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0
     hooks:
       - id: check-docstring-first
       - id: check-merge-conflict
@@ -14,14 +14,14 @@ repos:
       - id: requirements-txt-fixer
       - id: trailing-whitespace
   - repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
+    rev: 6.0.1
     hooks:
       - id: isort
         args:
           - "--profile=black"
         exclude: ^.devcontainer/
   - repo: https://github.com/psf/black
-    rev: 23.9.1
+    rev: 25.1.0
     hooks:
       - id: black
         language_version: python3
@@ -33,22 +33,22 @@ repos:
         args:
           - "--py36-plus"
   - repo: https://github.com/PyCQA/flake8
-    rev: 6.1.0
+    rev: 7.2.0
     hooks:
       - id: flake8
         exclude: ^.devcontainer/
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
+    rev: v3.19.1
     hooks:
       - id: pyupgrade
         args:
-          - "--py39-plus"
+          - "--py310-plus"
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.32.0
+    rev: v1.37.1
     hooks:
       - id: yamllint
   - repo: https://github.com/econchick/interrogate
-    rev: 1.5.0
+    rev: 1.7.0
     hooks:
       - id: interrogate
         args: [--fail-under=90, --verbose]
@@ -59,13 +59,17 @@ repos:
   #    - id: htmlhint
   #      args: [--config, .htmlhintrc]
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.37.0
+    rev: v0.44.0
     hooks:
       - id: markdownlint
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.292
+    rev: v0.11.10
     hooks:
+      # Run the linter.
       - id: ruff
+        args: [--fix]
+      # Run the formatter.
+      - id: ruff-format
   #- repo: local
   #  hooks:
   #    - id: wily
@@ -84,3 +88,4 @@ repos:
   #      args:
   #        - --diff=git diff HEAD
   #        - --no-summary
+...

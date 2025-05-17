@@ -33,6 +33,20 @@ class AccessListType(NetBoxObjectType):
         strawberry.union("ACLAssignmentType"),
     ]
 
+    # Related models
+    aclstandardrules: List[
+        Annotated[
+            "ACLStandardRuleType",
+            strawberry.lazy("netbox_acls.graphql.types"),
+        ]
+    ]
+    aclextendedrules: List[
+        Annotated[
+            "ACLExtendedRuleType",
+            strawberry.lazy("netbox_acls.graphql.types"),
+        ]
+    ]
+
 
 @strawberry_django.type(
     models.ACLInterfaceAssignment,

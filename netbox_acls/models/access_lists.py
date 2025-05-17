@@ -8,6 +8,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.validators import RegexValidator
 from django.db import models
 from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 from netbox.models import NetBoxModel
 from virtualization.models import VirtualMachine, VMInterface
 
@@ -22,7 +23,7 @@ __all__ = (
 
 alphanumeric_plus = RegexValidator(
     r"^[a-zA-Z0-9-_]+$",
-    "Only alphanumeric, hyphens, and underscores characters are allowed.",
+    _("Only alphanumeric, hyphens, and underscores characters are allowed."),
 )
 
 
@@ -32,13 +33,15 @@ class AccessList(NetBoxModel):
     """
 
     name = models.CharField(
+        verbose_name=_("Name"),
         max_length=500,
         validators=[alphanumeric_plus],
     )
     assigned_object_type = models.ForeignKey(
         to=ContentType,
-        limit_choices_to=ACL_HOST_ASSIGNMENT_MODELS,
         on_delete=models.PROTECT,
+        limit_choices_to=ACL_HOST_ASSIGNMENT_MODELS,
+        verbose_name=_("Assigned Object Type"),
     )
     assigned_object_id = models.PositiveBigIntegerField()
     assigned_object = GenericForeignKey(
@@ -46,29 +49,30 @@ class AccessList(NetBoxModel):
         fk_field="assigned_object_id",
     )
     type = models.CharField(
+        verbose_name=_("Type"),
         max_length=30,
         choices=ACLTypeChoices,
     )
     default_action = models.CharField(
-        default=ACLActionChoices.ACTION_DENY,
+        verbose_name=_("Default Action"),
         max_length=30,
+        default=ACLActionChoices.ACTION_DENY,
         choices=ACLActionChoices,
-        verbose_name="Default Action",
     )
     comments = models.TextField(
         blank=True,
     )
 
     clone_fields = (
-        "type",
         "default_action",
+        "type",
     )
 
     class Meta:
         unique_together = ["assigned_object_type", "assigned_object_id", "name"]
         ordering = ["assigned_object_type", "assigned_object_id", "name"]
-        verbose_name = "Access List"
-        verbose_name_plural = "Access Lists"
+        verbose_name = _("Access List")
+        verbose_name_plural = _("Access Lists")
 
     def __str__(self):
         return self.name
@@ -95,18 +99,20 @@ class ACLInterfaceAssignment(NetBoxModel):
     """
 
     access_list = models.ForeignKey(
-        on_delete=models.CASCADE,
         to=AccessList,
-        verbose_name="Access List",
+        on_delete=models.CASCADE,
+        verbose_name=_("Access List"),
     )
     direction = models.CharField(
+        verbose_name=_("Direction"),
         max_length=30,
         choices=ACLAssignmentDirectionChoices,
     )
     assigned_object_type = models.ForeignKey(
         to=ContentType,
-        limit_choices_to=ACL_INTERFACE_ASSIGNMENT_MODELS,
         on_delete=models.PROTECT,
+        limit_choices_to=ACL_INTERFACE_ASSIGNMENT_MODELS,
+        verbose_name=_("Assigned Object Type"),
     )
     assigned_object_id = models.PositiveBigIntegerField()
     assigned_object = GenericForeignKey(
@@ -133,8 +139,8 @@ class ACLInterfaceAssignment(NetBoxModel):
             "access_list",
             "direction",
         ]
-        verbose_name = "ACL Interface Assignment"
-        verbose_name_plural = "ACL Interface Assignments"
+        verbose_name = _("ACL Interface Assignment")
+        verbose_name_plural = _("ACL Interface Assignments")
 
     def __str__(self):
         return f"{self.access_list}: Interface {self.assigned_object}"

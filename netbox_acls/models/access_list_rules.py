@@ -2,10 +2,10 @@
 Define the django models for this plugin.
 """
 
-from django.apps import apps
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 from netbox.models import NetBoxModel
 
 from ..choices import ACLProtocolChoices, ACLRuleActionChoices, ACLTypeChoices
@@ -21,48 +21,42 @@ __all__ = (
 class ACLRule(NetBoxModel):
     """
     Abstract model for ACL Rules.
-    Inherrited by both ACLStandardRule and ACLExtendedRule.
+    Inherited by both ACLStandardRule and ACLExtendedRule.
     """
 
     access_list = models.ForeignKey(
-        on_delete=models.CASCADE,
         to=AccessList,
-        verbose_name="Access List",
+        on_delete=models.CASCADE,
         related_name="rules",
+        verbose_name=_("Access List"),
     )
     index = models.PositiveIntegerField()
     remark = models.CharField(
+        verbose_name=_("Remark"),
         max_length=500,
         blank=True,
     )
     description = models.CharField(
+        verbose_name=_("Description"),
         max_length=500,
         blank=True,
     )
     action = models.CharField(
-        choices=ACLRuleActionChoices,
+        verbose_name=_("Action"),
         max_length=30,
+        choices=ACLRuleActionChoices,
     )
     source_prefix = models.ForeignKey(
-        blank=True,
-        null=True,
+        to="ipam.prefix",
         on_delete=models.PROTECT,
         related_name="+",
-        to="ipam.Prefix",
-        verbose_name="Source Prefix",
+        verbose_name=_("Source Prefix"),
+        blank=True,
+        null=True,
     )
 
     clone_fields = ("access_list", "action", "source_prefix")
-
-    def __str__(self):
-        return f"{self.access_list}: Rule {self.index}"
-
-    def get_action_color(self):
-        return ACLRuleActionChoices.colors.get(self.action)
-
-    @classmethod
-    def get_prerequisite_models(cls):
-        return [apps.get_model("ipam.Prefix"), AccessList]
+    prerequisite_models = ("netbox_acls.AccessList",)
 
     class Meta:
         """
@@ -76,6 +70,22 @@ class ACLRule(NetBoxModel):
         ordering = ["access_list", "index"]
         unique_together = ["access_list", "index"]
 
+    def __str__(self):
+        return f"{self.access_list}: Rule {self.index}"
+
+    def get_absolute_url(self):
+        """
+        The method is a Django convention; although not strictly required,
+        it conveniently returns the absolute URL for any particular object.
+        """
+        return reverse(
+            f"plugins:{self._meta.app_label}:{self._meta.model_name}",
+            args=[self.pk],
+        )
+
+    def get_action_color(self):
+        return ACLRuleActionChoices.colors.get(self.action)
+
 
 class ACLStandardRule(ACLRule):
     """
@@ -83,23 +93,12 @@ class ACLStandardRule(ACLRule):
     """
 
     access_list = models.ForeignKey(
-        on_delete=models.CASCADE,
         to=AccessList,
-        verbose_name="Standard Access List",
-        limit_choices_to={"type": ACLTypeChoices.TYPE_STANDARD},
+        on_delete=models.CASCADE,
         related_name="aclstandardrules",
+        limit_choices_to={"type": ACLTypeChoices.TYPE_STANDARD},
+        verbose_name=_("Standard Access List"),
     )
-
-    def get_absolute_url(self):
-        """
-        The method is a Django convention; although not strictly required,
-        it conveniently returns the absolute URL for any particular object.
-        """
-        return reverse("plugins:netbox_acls:aclstandardrule", args=[self.pk])
-
-    @classmethod
-    def get_prerequisite_models(cls):
-        return [AccessList]
 
     class Meta(ACLRule.Meta):
         """
@@ -109,62 +108,59 @@ class ACLStandardRule(ACLRule):
           - verbose name plural (for displaying in the GUI)
         """
 
-        verbose_name = "ACL Standard Rule"
-        verbose_name_plural = "ACL Standard Rules"
+        verbose_name = _("ACL Standard Rule")
+        verbose_name_plural = _("ACL Standard Rules")
 
 
 class ACLExtendedRule(ACLRule):
     """
     Inherits ACLRule.
-    Add ACLExtendedRule specific fields: source_ports, desintation_prefix, destination_ports, and protocol
+    Add ACLExtendedRule specific fields: source_ports, destination_prefix, destination_ports, and protocol
     """
 
     access_list = models.ForeignKey(
-        on_delete=models.CASCADE,
         to=AccessList,
-        verbose_name="Extended Access List",
-        limit_choices_to={"type": "extended"},
+        on_delete=models.CASCADE,
         related_name="aclextendedrules",
+        limit_choices_to={"type": "extended"},
+        verbose_name=_("Extended Access List"),
     )
     source_ports = ArrayField(
         base_field=models.PositiveIntegerField(),
+        verbose_name=_("Source Ports"),
         blank=True,
         null=True,
-        verbose_name="Soure Ports",
     )
     destination_prefix = models.ForeignKey(
-        blank=True,
-        null=True,
+        to="ipam.prefix",
         on_delete=models.PROTECT,
         related_name="+",
-        to="ipam.Prefix",
-        verbose_name="Destination Prefix",
+        verbose_name=_("Destination Prefix"),
+        blank=True,
+        null=True,
     )
     destination_ports = ArrayField(
         base_field=models.PositiveIntegerField(),
+        verbose_name=_("Destination Ports"),
         blank=True,
         null=True,
-        verbose_name="Destination Ports",
     )
     protocol = models.CharField(
-        blank=True,
-        choices=ACLProtocolChoices,
+        verbose_name=_("Protocol"),
         max_length=30,
+        choices=ACLProtocolChoices,
+        blank=True,
     )
 
-    def get_absolute_url(self):
-        """
-        The method is a Django convention; although not strictly required,
-        it conveniently returns the absolute URL for any particular object.
-        """
-        return reverse("plugins:netbox_acls:aclextendedrule", args=[self.pk])
-
-    def get_protocol_color(self):
-        return ACLProtocolChoices.colors.get(self.protocol)
-
-    @classmethod
-    def get_prerequisite_models(cls):
-        return [apps.get_model("ipam.Prefix"), AccessList]
+    clone_fields = (
+        "access_list",
+        "action",
+        "source_prefix",
+        "source_ports",
+        "destination_prefix",
+        "destination_ports",
+        "protocol",
+    )
 
     class Meta(ACLRule.Meta):
         """
@@ -174,5 +170,8 @@ class ACLExtendedRule(ACLRule):
           - verbose name plural (for displaying in the GUI)
         """
 
-        verbose_name = "ACL Extended Rule"
-        verbose_name_plural = "ACL Extended Rules"
+        verbose_name = _("ACL Extended Rule")
+        verbose_name_plural = _("ACL Extended Rules")
+
+    def get_protocol_color(self):
+        return ACLProtocolChoices.colors.get(self.protocol)

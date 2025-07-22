@@ -43,13 +43,6 @@ help_text_acl_action = "Action the rule will take (remark, deny, or allow)."
 # Sets a standard help_text value to be used by the various classes for acl index
 help_text_acl_rule_index = "Determines the order of the rule in the ACL processing. AKA Sequence Number."
 
-# Sets a standard error message for ACL rules with an action of remark, but no remark set.
-error_message_no_remark = "Action is set to remark, you MUST add a remark."
-# Sets a standard error message for ACL rules with an action of remark, but no source_prefix is set.
-error_message_action_remark_source_prefix_set = "Action is set to remark, Source Prefix CANNOT be set."
-# Sets a standard error message for ACL rules with an action not set to remark, but no remark is set.
-error_message_remark_without_action_remark = "CANNOT set remark unless action is set to remark."
-
 
 class AccessListForm(NetBoxModelForm):
     """
@@ -545,35 +538,6 @@ class ACLStandardRuleForm(NetBoxModelForm):
             ),
         }
 
-    def clean(self):
-        """
-        Validates form inputs before submitting:
-          - Check if action set to remark, but no remark set.
-          - Check if action set to remark, but source_prefix set.
-          - Check remark set, but action not set to remark.
-        """
-        super().clean()
-        cleaned_data = self.cleaned_data
-        error_message = {}
-
-        action = cleaned_data.get("action")
-        remark = cleaned_data.get("remark")
-        source_prefix = cleaned_data.get("source_prefix")
-
-        if action == "remark":
-            # Check if action set to remark, but no remark set.
-            if not remark:
-                error_message["remark"] = [error_message_no_remark]
-            # Check if action set to remark, but source_prefix set.
-            if source_prefix:
-                error_message["source_prefix"] = [error_message_action_remark_source_prefix_set]
-        # Check remark set, but action not set to remark.
-        elif remark:
-            error_message["remark"] = [error_message_remark_without_action_remark]
-
-        if error_message:
-            raise ValidationError(error_message)
-
 
 class ACLExtendedRuleForm(NetBoxModelForm):
     """
@@ -651,45 +615,3 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             ),
             "source_ports": help_text_acl_rule_logic,
         }
-
-    def clean(self):
-        """
-        Validates form inputs before submitting:
-        - Check if action set to remark, but no remark set.
-        - Check if action set to remark, but source_prefix set.
-        - Check if action set to remark, but source_ports set.
-        - Check if action set to remark, but destination_prefix set.
-        - Check if action set to remark, but destination_ports set.
-        - Check if action set to remark, but protocol set.
-        - Check remark set, but action not set to remark.
-        """
-        super().clean()
-        cleaned_data = self.cleaned_data
-        error_message = {}
-
-        action = cleaned_data.get("action")
-        remark = cleaned_data.get("remark")
-        source_prefix = cleaned_data.get("source_prefix")
-        source_ports = cleaned_data.get("source_ports")
-        destination_prefix = cleaned_data.get("destination_prefix")
-        destination_ports = cleaned_data.get("destination_ports")
-        protocol = cleaned_data.get("protocol")
-
-        if action == "remark":
-            if not remark:
-                error_message["remark"] = [error_message_no_remark]
-            if source_prefix:
-                error_message["source_prefix"] = [error_message_action_remark_source_prefix_set]
-            if source_ports:
-                error_message["source_ports"] = ["Action is set to remark, Source Ports CANNOT be set."]
-            if destination_prefix:
-                error_message["destination_prefix"] = ["Action is set to remark, Destination Prefix CANNOT be set."]
-            if destination_ports:
-                error_message["destination_ports"] = ["Action is set to remark, Destination Ports CANNOT be set."]
-            if protocol:
-                error_message["protocol"] = ["Action is set to remark, Protocol CANNOT be set."]
-        elif remark:
-            error_message["remark"] = [error_message_remark_without_action_remark]
-
-        if error_message:
-            raise ValidationError(error_message)

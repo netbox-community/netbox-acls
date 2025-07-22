@@ -5,6 +5,7 @@ Define the django models for this plugin.
 from dcim.models import Device, Interface, VirtualChassis
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
 from django.urls import reverse
@@ -154,6 +155,18 @@ class ACLInterfaceAssignment(NetBoxModel):
             "plugins:netbox_acls:aclinterfaceassignment",
             args=[self.pk],
         )
+
+    def save(self, *args, **kwargs):
+        """Saves the current instance to the database."""
+        # Ensure the assigned interface's host matches the host assigned to the access list.
+        if self.assigned_object.parent_object != self.access_list.assigned_object:
+            raise ValidationError(
+                {
+                    "assigned_object": "The assigned object must be the same as the device assigned to it."
+                }
+            )
+
+        super().save(*args, **kwargs)
 
     def get_direction_color(self):
         return ACLAssignmentDirectionChoices.colors.get(self.direction)

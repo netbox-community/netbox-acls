@@ -2,6 +2,28 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
+def copy_prefix_assignments(apps, schema_editor):
+    """
+    Copy Source and Destination Prefix ForeignKey IDs to the GenericForeignKey
+    fields.
+    """
+    ContentType = apps.get_model("contenttypes", "ContentType")
+    Prefix = apps.get_model("ipam", "Prefix")
+    ACLStandardRule = apps.get_model("netbox_acls", "ACLStandardRule")
+    ACLExtendedRule = apps.get_model("netbox_acls", "ACLExtendedRule")
+
+    ACLStandardRule.objects.filter(_source_prefix__isnull=False).update(
+        source_type=ContentType.objects.get_for_model(Prefix),
+        source_id=models.F("_source_prefix_id"),
+    )
+    ACLExtendedRule.objects.filter(_source_prefix__isnull=False).filter(_destination_prefix__isnull=False).update(
+        source_type=ContentType.objects.get_for_model(Prefix),
+        source_id=models.F("_source_prefix_id"),
+        destination_type=ContentType.objects.get_for_model(Prefix),
+        destination_id=models.F("_destination_prefix_id"),
+    )
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ('contenttypes', '0002_remove_content_type_name'),
@@ -226,4 +248,6 @@ class Migration(migrations.Migration):
             model_name="aclstandardrule",
             index=models.Index(fields=["source_type", "source_id"], name="netbox_acls_source__01d2fa_idx"),
         ),
+        # Copy over existing Prefix assignments
+        migrations.RunPython(code=copy_prefix_assignments, reverse_code=migrations.RunPython.noop),
     ]

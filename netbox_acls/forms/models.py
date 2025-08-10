@@ -4,13 +4,22 @@ Defines each django model's GUI form to add or edit objects for each django mode
 
 from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelForm
-from utilities.forms.fields import CommentField, DynamicModelChoiceField
+from utilities.forms import (
+    get_field_value,
+)
+from utilities.forms.fields import (
+    CommentField,
+    ContentTypeChoiceField,
+    DynamicModelChoiceField,
+)
 from utilities.forms.rendering import FieldSet, TabbedGroups
+from utilities.forms.widgets import HTMXSelect
+from utilities.templatetags.builtins.filters import bettertitle
 from virtualization.models import (
     Cluster,
     ClusterGroup,
@@ -20,6 +29,7 @@ from virtualization.models import (
 )
 
 from ..choices import ACLTypeChoices
+from ..constants import ACL_RULE_SOURCE_DESTINATION_MODELS
 from ..models import (
     AccessList,
     ACLExtendedRule,
@@ -225,7 +235,7 @@ class AccessListForm(NetBoxModelForm):
                     "__all__": (
                         "Access Lists must be assigned to one host at a time. Either a device, virtual chassis or "
                         "virtual machine."
-                    )
+                    ),
                 },
             )
 
@@ -348,21 +358,6 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
         ),
     )
 
-    def __init__(self, *args, **kwargs):
-        # Initialize helper selectors
-        instance = kwargs.get("instance")
-        initial = kwargs.get("initial", {}).copy()
-        if instance:
-            if type(instance.assigned_object) is Interface:
-                initial["interface"] = instance.assigned_object
-                initial["device"] = "device"
-            elif type(instance.assigned_object) is VMInterface:
-                initial["vminterface"] = instance.assigned_object
-                initial["virtual_machine"] = "virtual_machine"
-        kwargs["initial"] = initial
-
-        super().__init__(*args, **kwargs)
-
     class Meta:
         model = ACLInterfaceAssignment
         fields = (
@@ -381,6 +376,21 @@ class ACLInterfaceAssignmentForm(NetBoxModelForm):
                 "<b>*Note:</b> CANNOT assign 2 ACLs to the same interface & direction.",
             ),
         }
+
+    def __init__(self, *args, **kwargs):
+        # Initialize helper selectors
+        instance = kwargs.get("instance")
+        initial = kwargs.get("initial", {}).copy()
+        if instance:
+            if type(instance.assigned_object) is Interface:
+                initial["interface"] = instance.assigned_object
+                initial["device"] = "device"
+            elif type(instance.assigned_object) is VMInterface:
+                initial["vminterface"] = instance.assigned_object
+                initial["virtual_machine"] = "virtual_machine"
+        kwargs["initial"] = initial
+
+        super().__init__(*args, **kwargs)
 
     def clean(self):
         """
@@ -495,11 +505,22 @@ class ACLStandardRuleForm(NetBoxModelForm):
         ),
         label="Access List",
     )
-    source_prefix = DynamicModelChoiceField(
-        queryset=Prefix.objects.all(),
+
+    # Source
+    source_type = ContentTypeChoiceField(
+        queryset=ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS),
         required=False,
+        widget=HTMXSelect(),
+        label=_("Source Type"),
         help_text=help_text_acl_rule_logic,
-        label="Source Prefix",
+    )
+    source = DynamicModelChoiceField(
+        queryset=Prefix.objects.none(),  # Initial queryset
+        selector=True,
+        required=False,
+        label=_("Source"),
+        help_text=help_text_acl_rule_logic,
+        disabled=True,
     )
 
     fieldsets = (
@@ -512,9 +533,16 @@ class ACLStandardRuleForm(NetBoxModelForm):
         FieldSet(
             "index",
             "action",
-            "remark",
-            "source_prefix",
             name=_("Rule Definition"),
+        ),
+        FieldSet(
+            "remark",
+            name=_("Remark"),
+        ),
+        FieldSet(
+            "source_type",
+            "source",
+            name=_("Source Definition"),
         ),
     )
 
@@ -525,7 +553,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
             "index",
             "action",
             "remark",
-            "source_prefix",
+            "source_type",
             "tags",
             "description",
         )
@@ -534,9 +562,53 @@ class ACLStandardRuleForm(NetBoxModelForm):
             "index": help_text_acl_rule_index,
             "action": help_text_acl_action,
             "remark": mark_safe(
-                "<b>*Note:</b> CANNOT be set if source prefix OR action is set.",
+                "<b>*Note:</b> CANNOT be set if source OR action is set.",
             ),
         }
+
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Initialize the ACLStandardRuleForm.
+        """
+
+        # Initialize fields with initial values
+        instance = kwargs.get("instance")
+        initial = kwargs.get("initial", {}).copy()
+
+        if instance is not None and instance.source:
+            # Initialize the source object field
+            initial["source"] = instance.source
+
+        kwargs["initial"] = initial
+
+        super().__init__(*args, **kwargs)
+
+        if source_type_id := get_field_value(self, "source_type"):
+            try:
+                # Retrieve the ContentType model class based on the source type
+                source_type = ContentType.objects.get(pk=source_type_id)
+                source_model = source_type.model_class()
+
+                # Configure the queryset and label for the source field
+                self.fields["source"].queryset = source_model.objects.all()
+                self.fields["source"].widget.attrs["selector"] = source_model._meta.label_lower
+                self.fields["source"].disabled = False
+                self.fields["source"].label = _("Source " + bettertitle(source_model._meta.verbose_name))
+            except ObjectDoesNotExist:
+                pass
+
+            # Clears the source field if the selected type changes
+            if self.instance and self.instance.pk and source_type_id != self.instance.source_type_id:
+                self.initial["source"] = None
+
+    def clean(self):
+        """
+        Validate form fields for the ACL Standard Rule form.
+        """
+        super().clean()
+
+        # Ensure the selected source object gets assigned
+        self.instance.source = self.cleaned_data.get("source")
 
 
 class ACLExtendedRuleForm(NetBoxModelForm):
@@ -557,18 +629,40 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         label="Access List",
     )
 
-    source_prefix = DynamicModelChoiceField(
-        queryset=Prefix.objects.all(),
+    # Source
+    source_type = ContentTypeChoiceField(
+        queryset=ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS),
         required=False,
+        widget=HTMXSelect(),
+        label=_("Source Type"),
         help_text=help_text_acl_rule_logic,
-        label="Source Prefix",
     )
-    destination_prefix = DynamicModelChoiceField(
-        queryset=Prefix.objects.all(),
+    source = DynamicModelChoiceField(
+        queryset=Prefix.objects.none(),  # Initial queryset
+        selector=True,
         required=False,
+        label=_("Source"),
         help_text=help_text_acl_rule_logic,
-        label="Destination Prefix",
+        disabled=True,
     )
+
+    # Destination
+    destination_type = ContentTypeChoiceField(
+        queryset=ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS),
+        required=False,
+        widget=HTMXSelect(),
+        label=_("Destination Type"),
+        help_text=help_text_acl_rule_logic,
+    )
+    destination = DynamicModelChoiceField(
+        queryset=Prefix.objects.none(),  # Initial queryset
+        selector=True,
+        required=False,
+        label=_("Destination"),
+        help_text=help_text_acl_rule_logic,
+        disabled=True,
+    )
+
     fieldsets = (
         FieldSet(
             "access_list",
@@ -579,13 +673,27 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         FieldSet(
             "index",
             "action",
-            "remark",
-            "source_prefix",
-            "source_ports",
-            "destination_prefix",
-            "destination_ports",
-            "protocol",
             name=_("Rule Definition"),
+        ),
+        FieldSet(
+            "remark",
+            name=_("Remark"),
+        ),
+        FieldSet(
+            "protocol",
+            name=_("Protocol"),
+        ),
+        FieldSet(
+            "source_type",
+            "source",
+            "source_ports",
+            name=_("Source Definition"),
+        ),
+        FieldSet(
+            "destination_type",
+            "destination",
+            "destination_ports",
+            name=_("Destination Definition"),
         ),
     )
 
@@ -596,9 +704,9 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             "index",
             "action",
             "remark",
-            "source_prefix",
+            "source_type",
             "source_ports",
-            "destination_prefix",
+            "destination_type",
             "destination_ports",
             "protocol",
             "tags",
@@ -615,3 +723,73 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             ),
             "source_ports": help_text_acl_rule_logic,
         }
+
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Initialize the ACLExtendedRuleForm.
+        """
+
+        # Initialize fields with initial values
+        instance = kwargs.get("instance")
+        initial = kwargs.get("initial", {}).copy()
+
+        if instance is not None and instance.source:
+            # Initialize the source object field
+            initial["source"] = instance.source
+        if instance is not None and instance.destination:
+            # Initialize the destination object field
+            initial["destination"] = instance.destination
+
+        kwargs["initial"] = initial
+
+        super().__init__(*args, **kwargs)
+
+        # Source
+        if source_type_id := get_field_value(self, "source_type"):
+            try:
+                # Retrieve the ContentType model class based on the source type
+                source_type = ContentType.objects.get(pk=source_type_id)
+                source_model = source_type.model_class()
+
+                # Configure the queryset and label for the source field
+                self.fields["source"].queryset = source_model.objects.all()
+                self.fields["source"].widget.attrs["selector"] = source_model._meta.label_lower
+                self.fields["source"].disabled = False
+                self.fields["source"].label = _("Source " + bettertitle(source_model._meta.verbose_name))
+            except ObjectDoesNotExist:
+                pass
+
+            # Clears the source field if the selected type changes
+            if self.instance and self.instance.pk and source_type_id != self.instance.source_type_id:
+                self.initial["source"] = None
+
+        # Destination
+        if destination_type_id := get_field_value(self, "destination_type"):
+            try:
+                # Retrieve the ContentType model class based on the destination type
+                destination_type = ContentType.objects.get(pk=destination_type_id)
+                destination_model = destination_type.model_class()
+
+                # Configure the queryset and label for the destination field
+                self.fields["destination"].queryset = destination_model.objects.all()
+                self.fields["destination"].widget.attrs["selector"] = destination_model._meta.label_lower
+                self.fields["destination"].disabled = False
+                self.fields["destination"].label = _("Destination " + bettertitle(destination_model._meta.verbose_name))
+            except ObjectDoesNotExist:
+                pass
+
+            # Clears the destination field if the selected type changes
+            if self.instance and self.instance.pk and destination_type_id != self.instance.destination_type_id:
+                self.initial["destination"] = None
+
+    def clean(self):
+        """
+        Validate form fields for the ACL Extended Rule form.
+        """
+        super().clean()
+
+        # Ensure the selected source object gets assigned
+        self.instance.source = self.cleaned_data.get("source")
+
+        # Ensure the selected destination object gets assigned
+        self.instance.destination = self.cleaned_data.get("destination")

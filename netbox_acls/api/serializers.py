@@ -5,13 +5,16 @@ while Django itself handles the database abstraction.
 
 from django.contrib.contenttypes.models import ContentType
 from drf_spectacular.utils import extend_schema_field
-from ipam.api.serializers import PrefixSerializer
 from netbox.api.fields import ContentTypeField
 from netbox.api.serializers import NetBoxModelSerializer
 from rest_framework import serializers
 from utilities.api import get_serializer_for_model
 
-from ..constants import ACL_HOST_ASSIGNMENT_MODELS, ACL_INTERFACE_ASSIGNMENT_MODELS
+from ..constants import (
+    ACL_HOST_ASSIGNMENT_MODELS,
+    ACL_INTERFACE_ASSIGNMENT_MODELS,
+    ACL_RULE_SOURCE_DESTINATION_MODELS,
+)
 from ..models import (
     AccessList,
     ACLExtendedRule,
@@ -28,8 +31,8 @@ __all__ = [
 
 # Sets a standard error message for ACL rules with an action of remark, but no remark set.
 error_message_no_remark = "Action is set to remark, you MUST add a remark."
-# Sets a standard error message for ACL rules with an action of remark, but no source_prefix is set.
-error_message_action_remark_source_prefix_set = "Action is set to remark, Source Prefix CANNOT be set."
+# Sets a standard error message for ACL rules with an action of remark, but no source is set.
+error_message_action_remark_source_set = "Action is set to remark, Source CANNOT be set."
 # Sets a standard error message for ACL rules with an action not set to remark, but no remark is set.
 error_message_remark_without_action_remark = "CANNOT set remark unless action is set to remark."
 # Sets a standard error message for ACL rules no associated with an ACL of the same type.
@@ -186,12 +189,18 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
         view_name="plugins-api:netbox_acls-api:aclstandardrule-detail",
     )
     access_list = AccessListSerializer(nested=True, required=True)
-    source_prefix = PrefixSerializer(
-        nested=True,
+    source_type = ContentTypeField(
+        queryset=ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS),
         required=False,
-        allow_null=True,
         default=None,
+        allow_null=True,
     )
+    source_id = serializers.IntegerField(
+        required=False,
+        default=None,
+        allow_null=True,
+    )
+    source = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         """
@@ -207,20 +216,36 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
             "index",
             "action",
             "remark",
-            "source_prefix",
+            "source_type",
+            "source_id",
+            "source",
             "description",
             "tags",
             "created",
             "custom_fields",
             "last_updated",
         )
-        brief_fields = ("id", "url", "display", "access_list", "index")
+        brief_fields = (
+            "id",
+            "url",
+            "display",
+            "access_list",
+            "index",
+        )
+
+    @extend_schema_field(serializers.JSONField(allow_null=True))
+    def get_source(self, obj):
+        if obj.source_id is None:
+            return None
+        serializer = get_serializer_for_model(obj.source)
+        context = {"request": self.context["request"]}
+        return serializer(obj.source, nested=True, context=context).data
 
     def validate(self, data):
         """
         Validate the ACLStandardRule django model's inputs before allowing it to update the instance:
           - Check if action set to remark, but no remark set.
-          - Check if action set to remark, but source_prefix set.
+          - Check if action set to remark, but source set.
         """
         error_message = {}
 
@@ -230,10 +255,10 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
                 error_message["remark"] = [
                     error_message_no_remark,
                 ]
-            # Check if action set to remark, but source_prefix set.
-            if data.get("source_prefix"):
-                error_message["source_prefix"] = [
-                    error_message_action_remark_source_prefix_set,
+            # Check if action set to remark, but the source set.
+            if data.get("source"):
+                error_message["source"] = [
+                    error_message_action_remark_source_set,
                 ]
 
         if error_message:
@@ -251,18 +276,30 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
         view_name="plugins-api:netbox_acls-api:aclextendedrule-detail",
     )
     access_list = AccessListSerializer(nested=True, required=True)
-    source_prefix = PrefixSerializer(
-        nested=True,
+    source_type = ContentTypeField(
+        queryset=ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS),
         required=False,
-        allow_null=True,
         default=None,
+        allow_null=True,
     )
-    destination_prefix = PrefixSerializer(
-        nested=True,
+    source_id = serializers.IntegerField(
         required=False,
-        allow_null=True,
         default=None,
+        allow_null=True,
     )
+    source = serializers.SerializerMethodField(read_only=True)
+    destination_type = ContentTypeField(
+        queryset=ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS),
+        required=False,
+        default=None,
+        allow_null=True,
+    )
+    destination_id = serializers.IntegerField(
+        required=False,
+        default=None,
+        allow_null=True,
+    )
+    destination = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         """
@@ -279,9 +316,13 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
             "action",
             "remark",
             "protocol",
-            "source_prefix",
+            "source_type",
+            "source_id",
+            "source",
             "source_ports",
-            "destination_prefix",
+            "destination_type",
+            "destination_id",
+            "destination",
             "destination_ports",
             "description",
             "tags",
@@ -289,15 +330,37 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
             "custom_fields",
             "last_updated",
         )
-        brief_fields = ("id", "url", "display", "access_list", "index")
+        brief_fields = (
+            "id",
+            "url",
+            "display",
+            "access_list",
+            "index",
+        )
+
+    @extend_schema_field(serializers.JSONField(allow_null=True))
+    def get_source(self, obj):
+        if obj.source_id is None:
+            return None
+        serializer = get_serializer_for_model(obj.source)
+        context = {"request": self.context["request"]}
+        return serializer(obj.source, nested=True, context=context).data
+
+    @extend_schema_field(serializers.JSONField(allow_null=True))
+    def get_destination(self, obj):
+        if obj.destination_id is None:
+            return None
+        serializer = get_serializer_for_model(obj.destination)
+        context = {"request": self.context["request"]}
+        return serializer(obj.destination, nested=True, context=context).data
 
     def validate(self, data):
         """
         Validate the ACLExtendedRule django model's inputs before allowing it to update the instance:
           - Check if action set to remark, but no remark set.
-          - Check if action set to remark, but source_prefix set.
+          - Check if action set to remark, but source set.
           - Check if action set to remark, but source_ports set.
-          - Check if action set to remark, but destination_prefix set.
+          - Check if action set to remark, but destination set.
           - Check if action set to remark, but destination_ports set.
           - Check if action set to remark, but protocol set.
           - Check if action set to remark, but protocol set.
@@ -310,19 +373,19 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
                 error_message["remark"] = [
                     error_message_no_remark,
                 ]
-            # Check if action set to remark, but source_prefix set.
-            if data.get("source_prefix"):
-                error_message["source_prefix"] = [
-                    error_message_action_remark_source_prefix_set,
+            # Check if action set to remark, but the source set.
+            if data.get("source"):
+                error_message["source"] = [
+                    error_message_action_remark_source_set,
                 ]
             # Check if action set to remark, but source_ports set.
             if data.get("source_ports"):
                 error_message["source_ports"] = [
                     "Action is set to remark, Source Ports CANNOT be set.",
                 ]
-            # Check if action set to remark, but destination_prefix set.
-            if data.get("destination_prefix"):
-                error_message["destination_prefix"] = [
+            # Check if action set to remark, but destination set.
+            if data.get("destination"):
+                error_message["destination"] = [
                     "Action is set to remark, Destination Prefix CANNOT be set.",
                 ]
             # Check if action set to remark, but destination_ports set.

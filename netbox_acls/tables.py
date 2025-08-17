@@ -180,8 +180,16 @@ class ACLExtendedRuleTable(ACLRuleTable):
     Defines the table view for the ACLExtendedRule model.
     """
 
+    source_ports = columns.ArrayColumn(
+        verbose_name=_("Source Ports"),
+        empty_values=([],),
+    )
     destination_prefix = tables.Column(
         linkify=True,
+    )
+    destination_ports = columns.ArrayColumn(
+        verbose_name=_("Destination Ports"),
+        empty_values=([],),
     )
     protocol = ChoiceFieldColumn()
 

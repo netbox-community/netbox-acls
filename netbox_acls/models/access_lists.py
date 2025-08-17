@@ -8,7 +8,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from netbox.models import NetBoxModel
 from virtualization.models import VirtualMachine, VMInterface
@@ -78,13 +77,6 @@ class AccessList(NetBoxModel):
     def __str__(self):
         return self.name
 
-    def get_absolute_url(self):
-        """
-        The method is a Django convention; although not strictly required,
-        it conveniently returns the absolute URL for any particular object.
-        """
-        return reverse("plugins:netbox_acls:accesslist", args=[self.pk])
-
     def get_default_action_color(self):
         return ACLActionChoices.colors.get(self.default_action)
 
@@ -145,16 +137,6 @@ class ACLInterfaceAssignment(NetBoxModel):
 
     def __str__(self):
         return f"{self.access_list}: Interface {self.assigned_object}"
-
-    def get_absolute_url(self):
-        """
-        The method is a Django convention; although not strictly required,
-        it conveniently returns the absolute URL for any particular object.
-        """
-        return reverse(
-            "plugins:netbox_acls:aclinterfaceassignment",
-            args=[self.pk],
-        )
 
     def save(self, *args, **kwargs):
         """Saves the current instance to the database."""

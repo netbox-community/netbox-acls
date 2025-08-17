@@ -5,7 +5,6 @@ Define the django models for this plugin.
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from netbox.models import NetBoxModel
 
@@ -96,16 +95,6 @@ class ACLRule(NetBoxModel):
 
     def __str__(self):
         return f"{self.access_list}: Rule {self.index}"
-
-    def get_absolute_url(self):
-        """
-        The method is a Django convention; although not strictly required,
-        it conveniently returns the absolute URL for any particular object.
-        """
-        return reverse(
-            f"plugins:{self._meta.app_label}:{self._meta.model_name}",
-            args=[self.pk],
-        )
 
     def get_action_color(self):
         return ACLRuleActionChoices.colors.get(self.action)

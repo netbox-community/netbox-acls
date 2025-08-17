@@ -125,9 +125,9 @@ class ACLInterfaceAssignmentTable(NetBoxTable):
         )
 
 
-class ACLStandardRuleTable(NetBoxTable):
+class ACLRuleTable(NetBoxTable):
     """
-    Defines the table view for the ACLStandardRule model.
+    Abstract table for all ACL rules.
     """
 
     access_list = tables.Column(
@@ -140,9 +140,11 @@ class ACLStandardRuleTable(NetBoxTable):
     tags = columns.TagColumn(
         url_name="plugins:netbox_acls:aclstandardrule_list",
     )
+    source_prefix = tables.Column(
+        linkify=True,
+    )
 
     class Meta(NetBoxTable.Meta):
-        model = ACLStandardRule
         fields = (
             "pk",
             "id",
@@ -159,52 +161,39 @@ class ACLStandardRuleTable(NetBoxTable):
             "index",
             "action",
             "remark",
-            "source_prefix",
             "tags",
+            "source_prefix",
         )
 
 
-class ACLExtendedRuleTable(NetBoxTable):
+class ACLStandardRuleTable(ACLRuleTable):
+    """
+    Defines the table view for the ACLStandardRule model.
+    """
+
+    class Meta(ACLRuleTable.Meta):
+        model = ACLStandardRule
+
+
+class ACLExtendedRuleTable(ACLRuleTable):
     """
     Defines the table view for the ACLExtendedRule model.
     """
 
-    access_list = tables.Column(
+    destination_prefix = tables.Column(
         linkify=True,
-    )
-    index = tables.Column(
-        linkify=True,
-    )
-    action = ChoiceFieldColumn()
-    tags = columns.TagColumn(
-        url_name="plugins:netbox_acls:aclextendedrule_list",
     )
     protocol = ChoiceFieldColumn()
 
-    class Meta(NetBoxTable.Meta):
+    class Meta(ACLRuleTable.Meta):
         model = ACLExtendedRule
-        fields = (
-            "pk",
-            "id",
-            "access_list",
-            "index",
-            "action",
-            "remark",
-            "tags",
-            "description",
-            "source_prefix",
+        fields = ACLRuleTable.Meta.fields + (
             "source_ports",
             "destination_prefix",
             "destination_ports",
             "protocol",
         )
-        default_columns = (
-            "access_list",
-            "index",
-            "action",
-            "remark",
-            "tags",
-            "source_prefix",
+        default_columns = ACLRuleTable.Meta.default_columns + (
             "source_ports",
             "destination_prefix",
             "destination_ports",

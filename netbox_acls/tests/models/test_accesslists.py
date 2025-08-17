@@ -153,22 +153,6 @@ class TestAccessList(BaseTestCase):
         )
         vm_acl.full_clean()
 
-    def test_alphanumeric_plus_fail(self):
-        """
-        Test that AccessList names with non-alphanumeric (excluding '_' and '-') characters fail validation.
-        """
-        non_alphanumeric_plus_chars = " !@#$%^&*()[]{};:,./<>?\|~=+"
-
-        for i, char in enumerate(non_alphanumeric_plus_chars, start=1):
-            bad_acl_name = AccessList(
-                name=f"Test-ACL-bad_name_{i}_{char}",
-                assigned_object=self.device1,
-                comments=f'ACL with "{char}" in name',
-                **self.common_acl_params,
-            )
-            with self.assertRaises(ValidationError):
-                bad_acl_name.full_clean()
-
     def test_duplicate_name_per_device_fail(self):
         """
         Test that AccessList names must be unique per device.

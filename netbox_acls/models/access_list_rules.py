@@ -110,6 +110,11 @@ class ACLRule(NetBoxModel):
     def get_action_color(self):
         return ACLRuleActionChoices.colors.get(self.action)
 
+    def to_objectchange(self, action):
+        objectchange = super().to_objectchange(action)
+        objectchange.related_object = self.access_list
+        return objectchange
+
 
 class ACLStandardRule(ACLRule):
     """

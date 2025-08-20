@@ -6,6 +6,7 @@ from dcim.models import Device, Interface, VirtualChassis
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
+from django.core.validators import validate_slug
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -26,9 +27,10 @@ class AccessList(NetBoxModel):
     Model definition for Access Lists.
     """
 
-    name = models.SlugField(
+    name = models.CharField(
         verbose_name=_("Name"),
         max_length=500,
+        validators=[validate_slug],
     )
     assigned_object_type = models.ForeignKey(
         to=ContentType,

@@ -251,6 +251,7 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
             "access_list_id",
             "index",
             "action",
+            "remark",
             name=_("ACL Details"),
         ),
         FieldSet(
@@ -278,6 +279,10 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
         choices=add_blank_choice(ACLRuleActionChoices),
         required=False,
         label=_("Action"),
+    )
+    remark = forms.CharField(
+        required=False,
+        label=_("Remark"),
     )
 
     # Source selectors
@@ -322,6 +327,7 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
             "access_list_id",
             "index",
             "action",
+            "remark",
             "protocol",
             name=_("ACL Details"),
         ),
@@ -330,6 +336,7 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
             "source_ipaddress_id",
             "source_iprange_id",
             "source_prefix_id",
+            "source_port",
             name=_("Source Details"),
         ),
         FieldSet(
@@ -337,6 +344,7 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
             "destination_ipaddress_id",
             "destination_iprange_id",
             "destination_prefix_id",
+            "destination_port",
             name=_("Destination Details"),
         ),
     )
@@ -357,6 +365,10 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
         choices=add_blank_choice(ACLRuleActionChoices),
         required=False,
         label=_("Action"),
+    )
+    remark = forms.CharField(
+        required=False,
+        label=_("Remark"),
     )
     protocol = forms.ChoiceField(
         choices=add_blank_choice(ACLProtocolChoices),
@@ -385,6 +397,10 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_("Source Prefix"),
     )
+    source_port = forms.IntegerField(
+        label=_("Source Port"),
+        required=False,
+    )
 
     # Destination selectors
     destination_aggregate_id = DynamicModelMultipleChoiceField(
@@ -406,6 +422,10 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
         queryset=Prefix.objects.all(),
         required=False,
         label=_("Destination Prefix"),
+    )
+    destination_port = forms.IntegerField(
+        label=_("Destination Port"),
+        required=False,
     )
 
     # Tag selector

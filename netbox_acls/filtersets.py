@@ -9,6 +9,7 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.filtersets import NetBoxModelFilterSet
+from utilities.filters import ContentTypeFilter, NumericArrayFilter
 from virtualization.models import VirtualMachine, VMInterface
 
 from .choices import ACLTypeChoices
@@ -203,6 +204,9 @@ class ACLStandardRuleFilterSet(NetBoxModelFilterSet):
     )
 
     # Source
+    source_type = ContentTypeFilter(
+        label=_("Source Type"),
+    )
     source_aggregate = django_filters.ModelMultipleChoiceFilter(
         field_name="_source_aggregate__prefix",
         queryset=Aggregate.objects.all(),
@@ -263,6 +267,7 @@ class ACLStandardRuleFilterSet(NetBoxModelFilterSet):
             "access_list",
             "index",
             "action",
+            "remark",
             "source_type",
             "source_id",
         )
@@ -293,6 +298,9 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
     )
 
     # Source
+    source_type = ContentTypeFilter(
+        label=_("Source Type"),
+    )
     source_aggregate = django_filters.ModelMultipleChoiceFilter(
         field_name="_source_aggregate__prefix",
         queryset=Aggregate.objects.all(),
@@ -341,8 +349,16 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
         to_field_name="id",
         label=_("Source Prefix (ID)"),
     )
+    source_port = NumericArrayFilter(
+        field_name="source_ports",
+        lookup_expr="contains",
+        label=_("Source Port"),
+    )
 
     # Destination
+    destination_type = ContentTypeFilter(
+        label=_("Destination Type"),
+    )
     destination_aggregate = django_filters.ModelMultipleChoiceFilter(
         field_name="_destination_aggregate__prefix",
         queryset=Aggregate.objects.all(),
@@ -391,6 +407,11 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
         to_field_name="id",
         label=_("Destination Prefix (ID)"),
     )
+    destination_port = NumericArrayFilter(
+        field_name="destination_ports",
+        lookup_expr="contains",
+        label=_("Destination Port"),
+    )
 
     class Meta:
         """
@@ -403,10 +424,13 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
             "access_list",
             "index",
             "action",
+            "remark",
             "source_type",
             "source_id",
+            "source_port",
             "destination_type",
             "destination_id",
+            "destination_port",
             "protocol",
         )
 

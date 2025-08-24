@@ -26,13 +26,13 @@ from ..choices import (
 from ..models import (
     AccessList,
     ACLExtendedRule,
-    ACLInterfaceAssignment,
+    ACLAssignment,
     ACLStandardRule,
 )
 
 __all__ = (
     "AccessListFilterForm",
-    "ACLInterfaceAssignmentFilterForm",
+    "ACLAssignmentFilterForm",
     "ACLStandardRuleFilterForm",
     "ACLExtendedRuleFilterForm",
 )
@@ -55,21 +55,6 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
             "default_action",
             name=_("ACL Details"),
         ),
-        FieldSet(
-            "region_id",
-            "site_group_id",
-            "site_id",
-            "device_id",
-            name=_("Device Details"),
-        ),
-        FieldSet(
-            "virtual_chassis_id",
-            name=_("Virtual Chassis Details"),
-        ),
-        FieldSet(
-            "virtual_machine_id",
-            name=_("Virtual Machine Details"),
-        ),
     )
 
     # ACL selector
@@ -84,61 +69,16 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
         label=_("Default Action"),
     )
 
-    # Device selector
-    region_id = DynamicModelChoiceField(
-        queryset=Region.objects.all(),
-        required=False,
-        label=_("Region"),
-    )
-    site_group_id = DynamicModelChoiceField(
-        queryset=SiteGroup.objects.all(),
-        required=False,
-        label=_("Site Group"),
-    )
-    site_id = DynamicModelChoiceField(
-        queryset=Site.objects.all(),
-        required=False,
-        query_params={
-            "region_id": "$region_id",
-            "group_id": "$site_group_id",
-        },
-        label=_("Site"),
-    )
-    device_id = DynamicModelChoiceField(
-        queryset=Device.objects.all(),
-        query_params={
-            "region_id": "$region_id",
-            "group_id": "$site_group_id",
-            "site_id": "$site_id",
-        },
-        required=False,
-        label=_("Device"),
-    )
-
-    # Virtual Chassis selector
-    virtual_chassis_id = DynamicModelChoiceField(
-        queryset=VirtualChassis.objects.all(),
-        required=False,
-        label=_("Virtual Chassis"),
-    )
-
-    # Virtual Machine selector
-    virtual_machine_id = DynamicModelChoiceField(
-        queryset=VirtualMachine.objects.all(),
-        required=False,
-        label=_("Virtual Machine"),
-    )
-
     # Tag selector
     tag = TagFilterField(model)
 
 
-class ACLInterfaceAssignmentFilterForm(NetBoxModelFilterSetForm):
+class ACLAssignmentFilterForm(NetBoxModelFilterSetForm):
     """
-    GUI filter form to search the django AccessList model.
+    GUI filter form to search the django ACLAssignment model.
     """
 
-    model = ACLInterfaceAssignment
+    model = ACLAssignment
     fieldsets = (
         FieldSet(
             "q",
@@ -159,6 +99,10 @@ class ACLInterfaceAssignmentFilterForm(NetBoxModelFilterSetForm):
             name=_("Device Details"),
         ),
         FieldSet(
+            "virtual_chassis_id",
+            name=_("Virtual Chassis Details"),
+        ),
+        FieldSet(
             "virtual_machine_id",
             "vminterface_id",
             name=_("Virtual Machine Details"),
@@ -177,7 +121,7 @@ class ACLInterfaceAssignmentFilterForm(NetBoxModelFilterSetForm):
         label=_("Direction"),
     )
 
-    # Device Interface selector
+    # Device and Interface selectors
     region_id = DynamicModelChoiceField(
         queryset=Region.objects.all(),
         required=False,
@@ -216,7 +160,14 @@ class ACLInterfaceAssignmentFilterForm(NetBoxModelFilterSetForm):
         label=_("Device Interface"),
     )
 
-    # Virtual Machine Interface selector
+    # Virtual Chassis selector
+    virtual_chassis_id = DynamicModelChoiceField(
+        queryset=VirtualChassis.objects.all(),
+        required=False,
+        label=_("Virtual Chassis"),
+    )
+
+    # Virtual Machine and VM Interface selectors
     virtual_machine_id = DynamicModelChoiceField(
         queryset=VirtualMachine.objects.all(),
         required=False,

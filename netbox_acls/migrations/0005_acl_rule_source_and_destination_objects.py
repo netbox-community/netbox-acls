@@ -7,16 +7,20 @@ def copy_prefix_assignments(apps, schema_editor):
     Copy Source and Destination Prefix ForeignKey IDs to the GenericForeignKey
     fields.
     """
+
+    db_alias = schema_editor.connection.alias
     ContentType = apps.get_model("contenttypes", "ContentType")
     Prefix = apps.get_model("ipam", "Prefix")
     ACLStandardRule = apps.get_model("netbox_acls", "ACLStandardRule")
     ACLExtendedRule = apps.get_model("netbox_acls", "ACLExtendedRule")
 
-    ACLStandardRule.objects.filter(_source_prefix__isnull=False).update(
+    ACLStandardRule.objects.using(db_alias).filter(_source_prefix__isnull=False).update(
         source_type=ContentType.objects.get_for_model(Prefix),
         source_id=models.F("_source_prefix_id"),
     )
-    ACLExtendedRule.objects.filter(_source_prefix__isnull=False).filter(_destination_prefix__isnull=False).update(
+    ACLExtendedRule.objects.using(db_alias).filter(_source_prefix__isnull=False).filter(
+        _destination_prefix__isnull=False
+    ).update(
         source_type=ContentType.objects.get_for_model(Prefix),
         source_id=models.F("_source_prefix_id"),
         destination_type=ContentType.objects.get_for_model(Prefix),
@@ -26,10 +30,10 @@ def copy_prefix_assignments(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('contenttypes', '0002_remove_content_type_name'),
-        ('extras', '0128_tableconfig'),
-        ('ipam', '0081_remove_service_device_virtual_machine_add_parent_gfk_index'),
-        ('netbox_acls', '0004_netbox_acls'),
+        ("contenttypes", "0002_remove_content_type_name"),
+        ("extras", "0128_tableconfig"),
+        ("ipam", "0081_remove_service_device_virtual_machine_add_parent_gfk_index"),
+        ("netbox_acls", "0004_netbox_acls"),
     ]
 
     operations = [

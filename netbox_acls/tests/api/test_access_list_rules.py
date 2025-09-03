@@ -3,8 +3,13 @@ from ipam.models import Prefix
 from utilities.testing import APIViewTestCases
 from virtualization.models import Cluster, ClusterType, VirtualMachine
 
-from netbox_acls.choices import *
-from netbox_acls.models import *
+from netbox_acls.choices import (
+    ACLActionChoices,
+    ACLProtocolChoices,
+    ACLRuleActionChoices,
+    ACLTypeChoices,
+)
+from netbox_acls.models import AccessList, ACLExtendedRule, ACLStandardRule
 
 
 class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):

@@ -4,8 +4,12 @@ from django.contrib.contenttypes.models import ContentType
 from utilities.testing import APIViewTestCases
 from virtualization.models import Cluster, ClusterType, VirtualMachine, VMInterface
 
-from netbox_acls.choices import *
-from netbox_acls.models import *
+from netbox_acls.choices import (
+    ACLActionChoices,
+    ACLAssignmentDirectionChoices,
+    ACLTypeChoices,
+)
+from netbox_acls.models import AccessList, ACLInterfaceAssignment
 
 
 class AccessListAPIViewTestCase(APIViewTestCases.APIViewTestCase):
@@ -116,7 +120,7 @@ class AccessListAPIViewTestCase(APIViewTestCases.APIViewTestCase):
             },
         ]
         cls.bulk_update_data = {
-            "default_action": ACLActionChoices.ACTION_PERMIT,
+            "comments": "Rule bulk update",
         }
 
 

@@ -3,10 +3,10 @@ Defines the business logic for the plugin.
 Specifically, all the various interactions with a client.
 """
 
-from django.contrib.contenttypes.models import ContentType
-from django.utils.translation import gettext_lazy as _
 from dcim.models import Device, Interface, VirtualChassis
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Count
+from django.utils.translation import gettext_lazy as _
 from netbox.views import generic
 from utilities.views import ViewTab, register_model_view
 from virtualization.models import VirtualMachine, VMInterface
@@ -53,6 +53,7 @@ class ACLAssignmentChildrenView(generic.ObjectChildrenView):
         weight=1100,
     )
     table = tables.ACLAssignmentTable
+    template_name = "inc/view_tab.html"
 
     def get_children(self, request, parent):
         """
@@ -152,6 +153,38 @@ class AccessListBulkDeleteView(generic.BulkDeleteView):
     queryset = models.AccessList.objects.prefetch_related("tags")
     filterset = filtersets.AccessListFilterSet
     table = tables.AccessListTable
+
+
+@register_model_view(models.AccessList, "aclassignments", path="assignments")
+class AccessListACLAssignmentView(ACLAssignmentChildrenView):
+    """
+    Children view of ACL Assignment of AccessLists.
+    """
+
+    queryset = models.AccessList.objects.all()
+    tab = ViewTab(
+        label=_("Assignments"),
+        badge=lambda obj: obj.aclassignments.count(),
+        permission="netbox_acls.view_aclassignment",
+        weight=1100,
+    )
+
+    def get_children(self, request, parent):
+        """Return all children objects to the current parent object."""
+        return super().get_children(request, parent).filter(access_list=parent.pk)
+
+    def get_table(self, *args, **kwargs):
+        """Return the table with the assigned object colum hidden."""
+        table = super().get_table(*args, **kwargs)
+
+        # Hide the access list column
+        table.columns.hide("access_list")
+        # Hide the type column
+        table.columns.hide("type")
+        # Hide the default action column
+        table.columns.hide("default_action")
+
+        return table
 
 
 #
@@ -266,7 +299,6 @@ class InterfaceACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = Interface.objects.all()
-    template_name = "inc/view_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -291,7 +323,6 @@ class VirtualChassisACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = VirtualChassis.objects.all()
-    template_name = "inc/view_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -318,7 +349,6 @@ class VirtualMachineACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = VirtualMachine.objects.all()
-    template_name = "inc/view_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -345,7 +375,6 @@ class VMInterfaceACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = VMInterface.objects.all()
-    template_name = "inc/view_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""

@@ -1,6 +1,11 @@
 from django.core.exceptions import ValidationError
 
-from netbox_acls.choices import ACLProtocolChoices, ACLTypeChoices
+from netbox_acls.choices import (
+    ACLActionChoices,
+    ACLFamilyChoices,
+    ACLProtocolChoices,
+    ACLTypeChoices,
+)
 from netbox_acls.models import AccessList, ACLExtendedRule
 
 from .base import BaseTestCase
@@ -19,6 +24,7 @@ class TestACLExtendedRule(BaseTestCase):
         super().setUpTestData()
 
         cls.acl_type = ACLTypeChoices.TYPE_EXTENDED
+        cls.family = ACLFamilyChoices.FAMILY_IPV4
         cls.default_action = "deny"
         cls.protocol = ACLProtocolChoices.PROTOCOL_TCP
 
@@ -26,14 +32,30 @@ class TestACLExtendedRule(BaseTestCase):
         cls.extended_acl1 = AccessList.objects.create(
             name="EXTENDED_ACL",
             type=cls.acl_type,
+            family=cls.family,
             default_action=cls.default_action,
             comments="EXTENDED_ACL",
         )
         cls.extended_acl2 = AccessList.objects.create(
             name="EXTENDED_ACL",
             type=cls.acl_type,
+            family=cls.family,
             default_action=cls.default_action,
             comments="EXTENDED_ACL",
+        )
+        cls.extended_acl_v6 = AccessList.objects.create(
+            name="EXTENDED_ACL_V6",
+            type=cls.acl_type,
+            family=ACLFamilyChoices.FAMILY_IPV6,
+            default_action=cls.default_action,
+            comments="EXTENDED_ACL_V6",
+        )
+        cls.extended_acl_dual = AccessList.objects.create(
+            name="EXTENDED_ACL_DUAL",
+            type=cls.acl_type,
+            family=ACLFamilyChoices.FAMILY_DUAL,
+            default_action=cls.default_action,
+            comments="EXTENDED_ACL_DUAL",
         )
 
     def test_acl_extended_rule_creation_success(self):
@@ -868,3 +890,63 @@ class TestACLExtendedRule(BaseTestCase):
 
         with self.assertRaises(ValidationError):
             invalid_acl_rule_protocol.full_clean()
+
+    def test_acl_extended_rule_family_v4_acl_rejects_v6_objects(self):
+        """
+        Test that IPv4 ACL must not accept rules carrying IPv6 objects.
+        """
+        acl_v4 = AccessList.objects.create(
+            name="RF4",
+            type=self.acl_type,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=self.default_action,
+        )
+        invalid_rule = ACLExtendedRule(
+            access_list=acl_v4,
+            index=10,
+            action=ACLActionChoices.ACTION_PERMIT,
+            source=self.prefix1_v6,
+            destination=self.prefix1_v6,
+        )
+        with self.assertRaises(ValidationError):
+            invalid_rule.full_clean()
+
+    def test_acl_extended_rule_family_v6_acl_rejects_v4_objects(self):
+        """
+        Test that IPv6 ACL must not accept rules carrying IPv4 objects.
+        """
+        acl = AccessList.objects.create(
+            name="RF6",
+            type=self.acl_type,
+            family=ACLFamilyChoices.FAMILY_IPV6,
+            default_action=self.default_action,
+        )
+        invalid_rule = ACLExtendedRule(
+            access_list=acl,
+            index=10,
+            action=ACLActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+            destination=self.prefix1_v6,
+        )
+        with self.assertRaises(ValidationError):
+            invalid_rule.full_clean()
+
+    def test_acl_extended_rule_family_dual_forbids_mixing_families_within_one_rule(self):
+        """
+        Test that dual ACLs forbid mixing of IPv4 and IPv6 objects within one rule.
+        """
+        acl = AccessList.objects.create(
+            name="RFD",
+            type=self.acl_type,
+            family=ACLFamilyChoices.FAMILY_DUAL,
+            default_action=self.default_action,
+        )
+        mixed = ACLExtendedRule(
+            access_list=acl,
+            index=10,
+            action=ACLActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+            destination=self.prefix1_v6,
+        )
+        with self.assertRaises(ValidationError):
+            mixed.full_clean()

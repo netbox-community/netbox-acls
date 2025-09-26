@@ -38,6 +38,7 @@ class AccessListFilterSet(NetBoxModelFilterSet):
             "id",
             "name",
             "type",
+            "family",
             "default_action",
             "comments",
         )
@@ -166,6 +167,7 @@ class ACLAssignmentFilterSet(NetBoxModelFilterSet):
         fields = (
             "id",
             "access_list",
+            "family",
             "site",
             "site_group",
             "region",

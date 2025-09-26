@@ -11,8 +11,14 @@ from django.utils.translation import gettext_lazy as _
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.models import NetBoxModel
 
-from ..choices import ACLProtocolChoices, ACLRuleActionChoices, ACLTypeChoices
+from ..choices import (
+    ACLFamilyChoices,
+    ACLProtocolChoices,
+    ACLRuleActionChoices,
+    ACLTypeChoices,
+)
 from ..constants import ACL_RULE_SOURCE_DESTINATION_MODELS
+from ..validators import infer_family_from_object
 from .access_lists import AccessList
 
 __all__ = (
@@ -191,6 +197,9 @@ class ACLRule(NetBoxModel):
             )
         super().clean()
 
+        # Validate rule family
+        self._validate_rule_family()
+
     def save(self, *args, **kwargs):
         """
         Saves the current instance to the database.
@@ -217,6 +226,32 @@ class ACLRule(NetBoxModel):
                 self._source_prefix = self.source
 
     cache_related_source_object.alters_data = True
+
+    def _validate_rule_family(self):
+        acl_family = self.access_list.family
+        families = set()
+
+        # Source
+        source = getattr(self, "source", None)
+        if source:
+            fam = infer_family_from_object(source)
+            if fam:
+                families.add(fam)
+
+        # Destination (extended only)
+        destination = getattr(self, "destination", None)
+        if destination:
+            fam = infer_family_from_object(destination)
+            if fam:
+                families.add(fam)
+
+        # Enforce
+        if acl_family == ACLFamilyChoices.FAMILY_IPV4 and ACLFamilyChoices.FAMILY_IPV6 in families:
+            raise ValidationError(_("IPv4 ACL: Rule contains IPv6 criteria."))
+        if acl_family == ACLFamilyChoices.FAMILY_IPV6 and ACLFamilyChoices.FAMILY_IPV4 in families:
+            raise ValidationError(_("IPv6 ACL: Rule contains IPv4 criteria."))
+        if acl_family == ACLFamilyChoices.FAMILY_DUAL and len(families) > 1:
+            raise ValidationError(_("Dual-stack ACL: A single rule must not mix IPv4 and IPv6 criteria."))
 
     def get_action_color(self):
         """

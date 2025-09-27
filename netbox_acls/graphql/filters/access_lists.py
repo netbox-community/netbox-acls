@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from ..enums import (
         ACLActionEnum,
         ACLAssignmentDirectionEnum,
+        ACLFamilyEnum,
         ACLTypeEnum,
     )
 
@@ -31,6 +32,9 @@ class AccessListFilter(NetBoxModelFilterMixin):
 
     name: FilterLookup[str] | None = strawberry_django.filter_field()
     type: Annotated["ACLTypeEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (
+        strawberry_django.filter_field()
+    )
+    family: Annotated["ACLFamilyEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (
         strawberry_django.filter_field()
     )
     default_action: Annotated["ACLActionEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (
@@ -53,5 +57,8 @@ class ACLAssignmentFilter(NetBoxModelFilterMixin):
     )
     assigned_object_id: ID | None = strawberry_django.filter_field()
     direction: Annotated["ACLAssignmentDirectionEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (
+        strawberry_django.filter_field()
+    )
+    family: Annotated["ACLFamilyEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (
         strawberry_django.filter_field()
     )

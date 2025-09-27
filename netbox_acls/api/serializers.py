@@ -48,7 +48,7 @@ class AccessListSerializer(NetBoxModelSerializer):
 
     class Meta:
         """
-        Associates the django model AccessList & fields to the serializer.
+        Associates the django model AccessList & fields with the serializer.
         """
 
         model = AccessList
@@ -58,6 +58,7 @@ class AccessListSerializer(NetBoxModelSerializer):
             "display",
             "name",
             "type",
+            "family",
             "default_action",
             "comments",
             "tags",
@@ -71,16 +72,27 @@ class AccessListSerializer(NetBoxModelSerializer):
     def validate(self, data):
         """
         Validates api inputs before processing:
-          - Check that the GFK object is valid.
-          - Check if Access List has no existing rules before change the Access List's type.
+          - Check if Access List has no existing rules before changing the Access List's family.
+          - Check if Access List has no existing rules before changing the Access List's type.
         """
         error_message = {}
 
-        # Check if Access List has no existing rules before change the Access List's type.
-        if self.instance and self.instance.type != data.get("type") and self.instance.rule_count > 0:
-            error_message["type"] = [
-                _("This ACL has ACL rules associated, CANNOT change ACL type."),
-            ]
+        if self.instance:
+            target_family = data.get("family", self.instance.family)
+            target_type = data.get("type", self.instance.type)
+            has_rules = getattr(self.instance, "rule_count", 0) > 0
+
+            # Check if Access List has no existing rules before change the Access List's family.
+            if self.instance.family != target_family and has_rules:
+                error_message["family"] = [
+                    _("This ACL has ACL rules associated, CANNOT change ACL family."),
+                ]
+
+            # Check if Access List has no existing rules before change the Access List's type.
+            if self.instance.type != target_type and has_rules:
+                error_message["type"] = [
+                    _("This ACL has ACL rules associated, CANNOT change ACL type."),
+                ]
 
         if error_message:
             raise serializers.ValidationError(error_message)
@@ -102,9 +114,12 @@ class ACLAssignmentSerializer(NetBoxModelSerializer):
     )
     assigned_object = serializers.SerializerMethodField(read_only=True)
 
+    # Denormalized fields
+    family = serializers.CharField(read_only=True)
+
     class Meta:
         """
-        Associates the django model ACLAssignment & fields to the serializer.
+        Associates the django model ACLAssignment & fields with the serializer.
         """
 
         model = ACLAssignment
@@ -113,6 +128,7 @@ class ACLAssignmentSerializer(NetBoxModelSerializer):
             "url",
             "display",
             "access_list",
+            "family",
             "direction",
             "assigned_object_type",
             "assigned_object_id",
@@ -158,7 +174,7 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
 
     class Meta:
         """
-        Associates the django model ACLStandardRule & fields to the serializer.
+        Associates the django model ACLStandardRule & fields with the serializer.
         """
 
         model = ACLStandardRule

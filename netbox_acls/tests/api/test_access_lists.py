@@ -217,3 +217,6 @@ class ACLAssignmentAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 "direction": ACLAssignmentDirectionChoices.DIRECTION_EGRESS,
             },
         ]
+        cls.bulk_update_data = {
+            "comments": "Rule bulk update",
+        }

@@ -3,6 +3,7 @@ from utilities.testing import APIViewTestCases
 
 from netbox_acls.choices import (
     ACLActionChoices,
+    ACLFamilyChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
     ACLTypeChoices,
@@ -31,11 +32,13 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         access_list_device = AccessList.objects.create(
             name="testacl1",
             type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV4,
             default_action=ACLActionChoices.ACTION_DENY,
         )
         access_list_vm = AccessList.objects.create(
             name="testacl2",
             type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV4,
             default_action=ACLActionChoices.ACTION_PERMIT,
         )
 
@@ -125,11 +128,13 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         access_list_device = AccessList.objects.create(
             name="testacl1",
             type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
             default_action=ACLActionChoices.ACTION_DENY,
         )
         access_list_vm = AccessList.objects.create(
             name="testacl2",
             type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
             default_action=ACLActionChoices.ACTION_PERMIT,
         )
 

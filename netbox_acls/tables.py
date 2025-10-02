@@ -6,7 +6,7 @@ import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 from netbox.tables import NetBoxTable, columns
 
-from .models import AccessList, ACLExtendedRule, ACLAssignment, ACLStandardRule
+from .models import AccessList, ACLAssignment, ACLExtendedRule, ACLStandardRule
 
 __all__ = (
     "AccessListTable",
@@ -199,6 +199,10 @@ class ACLExtendedRuleTable(NetBoxTable):
         orderable=False,
         linkify=True,
     )
+    source_port_ranges_list = columns.ArrayColumn(
+        verbose_name=_("Source Ports"),
+        orderable=False,
+    )
 
     # Destination
     destination_type = columns.ContentTypeColumn(
@@ -208,6 +212,10 @@ class ACLExtendedRuleTable(NetBoxTable):
         verbose_name=_("Destination"),
         orderable=False,
         linkify=True,
+    )
+    destination_port_ranges_list = columns.ArrayColumn(
+        verbose_name=_("Destination Ports"),
+        orderable=False,
     )
 
     class Meta(NetBoxTable.Meta):
@@ -222,9 +230,9 @@ class ACLExtendedRuleTable(NetBoxTable):
             "tags",
             "description",
             "source",
-            "source_ports",
+            "source_port_ranges_list",
             "destination",
-            "destination_ports",
+            "destination_port_ranges_list",
             "protocol",
         )
         default_columns = (
@@ -234,8 +242,8 @@ class ACLExtendedRuleTable(NetBoxTable):
             "remark",
             "protocol",
             "source",
-            "source_ports",
+            "source_port_ranges_list",
             "destination",
-            "destination_ports",
+            "destination_port_ranges_list",
             "tags",
         )

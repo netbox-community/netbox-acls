@@ -49,16 +49,16 @@
             <td>{{ object.source|linkify|placeholder }}</td>
           </tr>
           <tr>
-            <th scope="row">Source Ports</th>
-            <td>{{ object.source_ports|join:", "|placeholder }}</td>
+            <th scope="row">Source Port Ranges</th>
+            <td>{{ object.source_port_ranges_list|join:", "|placeholder }}</td>
           </tr>
           <tr>
             <th scope="row">Destination</th>
             <td>{{ object.destination|linkify|placeholder }}</td>
           </tr>
           <tr>
-            <th scope="row">Destination Ports</th>
-            <td>{{ object.destination_ports|join:", "|placeholder }}</td>
+            <th scope="row">Destination Port Ranges</th>
+            <td>{{ object.destination_port_ranges_list|join:", "|placeholder }}</td>
           </tr>
         </table>
       </div>

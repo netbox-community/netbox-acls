@@ -14,7 +14,12 @@ from utilities.forms import (
     get_field_value,
     add_blank_choice,
 )
-from utilities.forms.fields import CommentField, DynamicModelChoiceField, ContentTypeChoiceField
+from utilities.forms.fields import (
+    CommentField,
+    ContentTypeChoiceField,
+    DynamicModelChoiceField,
+    NumericRangeArrayField,
+)
 from utilities.forms.rendering import FieldSet
 from utilities.forms.widgets import HTMXSelect
 from utilities.templatetags.builtins.filters import bettertitle
@@ -54,6 +59,8 @@ help_text_acl_action = _("Action the rule will take (remark, deny, or allow).")
 help_text_acl_rule_index = _("Determines the order of the rule in the ACL processing. AKA Sequence Number.")
 # Standard help_text value to be used by the various classes for acl remark
 help_text_acl_remark = _("Remark the rule will take.")
+# Sets a standard help_text value to be used by the fields for acl port ranges
+help_text_acl_rule_port_ranges = _("Comma/hyphen (inclusive). Example: 22,80-81,1024-65535")
 
 
 class AccessListForm(NetBoxModelForm):
@@ -366,6 +373,11 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         help_text=help_text_acl_rule_logic,
         disabled=True,
     )
+    source_port_ranges = NumericRangeArrayField(
+        required=False,
+        label=_("Source Port Ranges"),
+        help_text=(help_text_acl_rule_port_logic + " " + help_text_acl_rule_port_ranges),
+    )
 
     # Destination
     destination_type = ContentTypeChoiceField(
@@ -382,6 +394,11 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         label=_("Destination"),
         help_text=help_text_acl_rule_logic,
         disabled=True,
+    )
+    destination_port_ranges = NumericRangeArrayField(
+        required=False,
+        label=_("Destination Port Ranges"),
+        help_text=(help_text_acl_rule_port_logic + " " + help_text_acl_rule_port_ranges),
     )
 
     fieldsets = (
@@ -407,13 +424,13 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         FieldSet(
             "source_type",
             "source",
-            "source_ports",
+            "source_port_ranges",
             name=_("Source Definition"),
         ),
         FieldSet(
             "destination_type",
             "destination",
-            "destination_ports",
+            "destination_port_ranges",
             name=_("Destination Definition"),
         ),
     )
@@ -426,9 +443,9 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             "action",
             "remark",
             "source_type",
-            "source_ports",
+            "source_port_ranges",
             "destination_type",
-            "destination_ports",
+            "destination_port_ranges",
             "protocol",
             "tags",
             "description",
@@ -436,11 +453,9 @@ class ACLExtendedRuleForm(NetBoxModelForm):
 
         help_texts = {
             "action": help_text_acl_action,
-            "destination_ports": help_text_acl_rule_port_logic,
             "index": help_text_acl_rule_index,
             "protocol": help_text_acl_rule_logic,
             "remark": help_text_acl_remark,
-            "source_ports": help_text_acl_rule_port_logic,
         }
 
     def __init__(self, *args, **kwargs) -> None:

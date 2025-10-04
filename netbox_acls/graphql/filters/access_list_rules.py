@@ -11,7 +11,7 @@ from strawberry_django import FilterLookup
 from ... import models
 
 if TYPE_CHECKING:
-    from netbox.graphql.filter_lookups import IntegerArrayLookup, IntegerLookup
+    from netbox.graphql.filter_lookups import IntegerRangeArrayLookup, IntegerLookup
 
     from ..enums import (
         ACLProtocolEnum,
@@ -70,18 +70,18 @@ class ACLExtendedRuleFilter(ACLRuleFilterMixin):
     """
 
     # Source
-    source_ports: Annotated["IntegerArrayLookup", strawberry.lazy("netbox.graphql.filter_lookups")] | None = (
-        strawberry_django.filter_field()
-    )
+    source_port_ranges: (
+        Annotated["IntegerRangeArrayLookup", strawberry.lazy("netbox.graphql.filter_lookups")] | None
+    ) = strawberry_django.filter_field()
 
     # Destination
     destination_type: Annotated["ContentTypeFilter", strawberry.lazy("core.graphql.filters")] | None = (
         strawberry_django.filter_field()
     )
     destination_id: ID | None = strawberry_django.filter_field()
-    destination_ports: Annotated["IntegerArrayLookup", strawberry.lazy("netbox.graphql.filter_lookups")] | None = (
-        strawberry_django.filter_field()
-    )
+    destination_port_ranges: (
+        Annotated["IntegerRangeArrayLookup", strawberry.lazy("netbox.graphql.filter_lookups")] | None
+    ) = strawberry_django.filter_field()
 
     # Protocol
     protocol: Annotated["ACLProtocolEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (

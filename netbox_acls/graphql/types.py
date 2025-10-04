@@ -166,7 +166,7 @@ class ACLExtendedRuleType(NetBoxObjectType):
         ]
         | None
     )
-    source_ports: List[int] | None
+    source_port_ranges: List[str] | None
     destination_type: Annotated["ContentTypeType", strawberry.lazy("netbox.graphql.types")] | None
     destination: (
         Annotated[
@@ -192,7 +192,7 @@ class ACLExtendedRuleType(NetBoxObjectType):
         ]
         | None
     )
-    destination_ports: List[int] | None
+    destination_port_ranges: List[str] | None
 
     # Cached related source objects
     _source_aggregate: Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")] | None

@@ -103,7 +103,7 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 index=10,
                 description="Rule 10",
                 action=ACLRuleActionChoices.ACTION_PERMIT,
-                source_prefix=prefix1,
+                source=prefix1,
             ),
             ACLStandardRule(
                 access_list=access_list_device,
@@ -117,7 +117,7 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 index=10,
                 description="Rule 10",
                 action=ACLRuleActionChoices.ACTION_DENY,
-                source_prefix=prefix2,
+                source=prefix2,
             ),
         )
         ACLStandardRule.objects.bulk_create(acl_standard_rules)
@@ -128,14 +128,16 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 "index": 30,
                 "description": "Rule 30",
                 "action": ACLRuleActionChoices.ACTION_DENY,
-                "source_prefix": prefix2.id,
+                "source_type": "ipam.prefix",
+                "source_id": prefix2.id,
             },
             {
                 "access_list": access_list_vm.id,
                 "index": 20,
                 "description": "Rule 30",
                 "action": ACLRuleActionChoices.ACTION_PERMIT,
-                "source_prefix": prefix1.id,
+                "source_type": "ipam.prefix",
+                "source_id": prefix1.id,
             },
             {
                 "access_list": access_list_vm.id,
@@ -242,9 +244,9 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 description="Rule 10",
                 action=ACLRuleActionChoices.ACTION_PERMIT,
                 protocol=ACLProtocolChoices.PROTOCOL_TCP,
-                source_prefix=prefix1,
+                source=prefix1,
                 source_ports=[22, 443],
-                destination_prefix=prefix1,
+                destination=prefix1,
                 destination_ports=[22, 443],
             ),
             ACLExtendedRule(
@@ -259,8 +261,8 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 index=10,
                 description="Rule 10",
                 action=ACLRuleActionChoices.ACTION_DENY,
-                source_prefix=prefix2,
-                destination_prefix=prefix1,
+                source=prefix2,
+                destination=prefix1,
             ),
         )
         ACLExtendedRule.objects.bulk_create(acl_extended_rules)
@@ -272,9 +274,11 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 "description": "Rule 30",
                 "action": ACLRuleActionChoices.ACTION_DENY,
                 "protocol": ACLProtocolChoices.PROTOCOL_UDP,
-                "source_prefix": prefix2.id,
+                "source_type": "ipam.prefix",
+                "source_id": prefix2.id,
                 "source_ports": [53],
-                "destination_prefix": prefix2.id,
+                "destination_type": "ipam.prefix",
+                "destination_id": prefix2.id,
                 "destination_ports": [53],
             },
             {
@@ -283,8 +287,10 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 "description": "Rule 30",
                 "action": ACLRuleActionChoices.ACTION_PERMIT,
                 "protocol": ACLProtocolChoices.PROTOCOL_ICMP,
-                "source_prefix": prefix1.id,
-                "destination_prefix": prefix2.id,
+                "source_type": "ipam.prefix",
+                "source_id": prefix1.id,
+                "destination_type": "ipam.prefix",
+                "destination_id": prefix2.id,
             },
             {
                 "access_list": access_list_vm.id,

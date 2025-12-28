@@ -141,6 +141,16 @@ class ACLStandardRuleTable(NetBoxTable):
         url_name="plugins:netbox_acls:aclstandardrule_list",
     )
 
+    # Source
+    source_type = columns.ContentTypeColumn(
+        verbose_name=_("Source Type"),
+    )
+    source = tables.Column(
+        verbose_name=_("Source"),
+        orderable=False,
+        linkify=True,
+    )
+
     class Meta(NetBoxTable.Meta):
         model = ACLStandardRule
         fields = (
@@ -152,14 +162,14 @@ class ACLStandardRuleTable(NetBoxTable):
             "remark",
             "tags",
             "description",
-            "source_prefix",
+            "source",
         )
         default_columns = (
             "access_list",
             "index",
             "action",
             "remark",
-            "source_prefix",
+            "source",
             "tags",
         )
 
@@ -181,6 +191,26 @@ class ACLExtendedRuleTable(NetBoxTable):
     )
     protocol = ChoiceFieldColumn()
 
+    # Source
+    source_type = columns.ContentTypeColumn(
+        verbose_name=_("Source Type"),
+    )
+    source = tables.Column(
+        verbose_name=_("Source"),
+        orderable=False,
+        linkify=True,
+    )
+
+    # Destination
+    destination_type = columns.ContentTypeColumn(
+        verbose_name=_("Destination Type"),
+    )
+    destination = tables.Column(
+        verbose_name=_("Destination"),
+        orderable=False,
+        linkify=True,
+    )
+
     class Meta(NetBoxTable.Meta):
         model = ACLExtendedRule
         fields = (
@@ -192,9 +222,9 @@ class ACLExtendedRuleTable(NetBoxTable):
             "remark",
             "tags",
             "description",
-            "source_prefix",
+            "source",
             "source_ports",
-            "destination_prefix",
+            "destination",
             "destination_ports",
             "protocol",
         )
@@ -203,10 +233,10 @@ class ACLExtendedRuleTable(NetBoxTable):
             "index",
             "action",
             "remark",
-            "tags",
-            "source_prefix",
-            "source_ports",
-            "destination_prefix",
-            "destination_ports",
             "protocol",
+            "source",
+            "source_ports",
+            "destination",
+            "destination_ports",
+            "tags",
         )

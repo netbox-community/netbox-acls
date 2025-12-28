@@ -25,7 +25,7 @@ __all__ = [
 
 class AccessListViewSet(NetBoxModelViewSet):
     """
-    Defines the view set for the django AccessList model & associates it to a view.
+    Defines the view set for the django AccessList model and associates it with a view.
     """
 
     queryset = (
@@ -41,7 +41,7 @@ class AccessListViewSet(NetBoxModelViewSet):
 
 class ACLInterfaceAssignmentViewSet(NetBoxModelViewSet):
     """
-    Defines the view set for the django ACLInterfaceAssignment model & associates it to a view.
+    Defines the view set for the django ACLInterfaceAssignment model and associates it with a view.
     """
 
     queryset = models.ACLInterfaceAssignment.objects.prefetch_related(
@@ -54,13 +54,13 @@ class ACLInterfaceAssignmentViewSet(NetBoxModelViewSet):
 
 class ACLStandardRuleViewSet(NetBoxModelViewSet):
     """
-    Defines the view set for the django ACLStandardRule model & associates it to a view.
+    Defines the view set for the django ACLStandardRule model and associates it with a view.
     """
 
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
+        "source",
         "tags",
-        "source_prefix",
     )
     serializer_class = ACLStandardRuleSerializer
     filterset_class = filtersets.ACLStandardRuleFilterSet
@@ -68,14 +68,14 @@ class ACLStandardRuleViewSet(NetBoxModelViewSet):
 
 class ACLExtendedRuleViewSet(NetBoxModelViewSet):
     """
-    Defines the view set for the django ACLExtendedRule model & associates it to a view.
+    Defines the view set for the django ACLExtendedRule model and associates it with a view.
     """
 
     queryset = models.ACLExtendedRule.objects.prefetch_related(
         "access_list",
+        "source",
+        "destination",
         "tags",
-        "source_prefix",
-        "destination_prefix",
     )
     serializer_class = ACLExtendedRuleSerializer
     filterset_class = filtersets.ACLExtendedRuleFilterSet

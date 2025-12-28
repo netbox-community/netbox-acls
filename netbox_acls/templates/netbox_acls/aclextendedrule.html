@@ -45,16 +45,16 @@
             <td>{{ object.get_protocol_display|placeholder }}</td>
           </tr>
           <tr>
-            <th scope="row">Source Prefix</th>
-            <td>{{ object.source_prefix|linkify|placeholder }}</td>
+            <th scope="row">Source</th>
+            <td>{{ object.source|linkify|placeholder }}</td>
           </tr>
           <tr>
             <th scope="row">Source Ports</th>
             <td>{{ object.source_ports|join:", "|placeholder }}</td>
           </tr>
           <tr>
-            <th scope="row">Destination Prefix</th>
-            <td>{{ object.destination_prefix|linkify|placeholder }}</td>
+            <th scope="row">Destination</th>
+            <td>{{ object.destination|linkify|placeholder }}</td>
           </tr>
           <tr>
             <th scope="row">Destination Ports</th>

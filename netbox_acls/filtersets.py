@@ -7,8 +7,9 @@ import django_filters
 from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
-from ipam.models import Prefix
+from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.filtersets import NetBoxModelFilterSet
+from utilities.filters import ContentTypeFilter, NumericArrayFilter
 from virtualization.models import VirtualMachine, VMInterface
 
 from .choices import ACLTypeChoices
@@ -203,14 +204,53 @@ class ACLStandardRuleFilterSet(NetBoxModelFilterSet):
     )
 
     # Source
+    source_type = ContentTypeFilter(
+        label=_("Source Type"),
+    )
+    source_aggregate = django_filters.ModelMultipleChoiceFilter(
+        field_name="_source_aggregate__prefix",
+        queryset=Aggregate.objects.all(),
+        to_field_name="prefix",
+        label=_("Source Aggregate (name)"),
+    )
+    source_aggregate_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="_source_aggregate",
+        queryset=Aggregate.objects.all(),
+        to_field_name="id",
+        label=_("Source Aggregate (ID)"),
+    )
+    source_ipaddress = django_filters.ModelMultipleChoiceFilter(
+        field_name="_source_ipaddress__address",
+        queryset=IPAddress.objects.all(),
+        to_field_name="address",
+        label=_("Source IP-Address (name)"),
+    )
+    source_ipaddress_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="_source_ipaddress",
+        queryset=IPAddress.objects.all(),
+        to_field_name="id",
+        label=_("Source IP-Address (ID)"),
+    )
+    source_iprange = django_filters.ModelMultipleChoiceFilter(
+        field_name="_source_iprange__start_address",
+        queryset=IPRange.objects.all(),
+        to_field_name="start_address",
+        label=_("Source IP-Range (name)"),
+    )
+    source_iprange_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="_source_iprange",
+        queryset=IPRange.objects.all(),
+        to_field_name="id",
+        label=_("Source IP-Range (ID)"),
+    )
     source_prefix = django_filters.ModelMultipleChoiceFilter(
-        field_name="source_prefix",
+        field_name="_source_prefix__prefix",
         queryset=Prefix.objects.all(),
-        to_field_name="name",
+        to_field_name="prefix",
         label=_("Source Prefix (name)"),
     )
     source_prefix_id = django_filters.ModelMultipleChoiceFilter(
-        field_name="source_prefix",
+        field_name="_source_prefix",
         queryset=Prefix.objects.all(),
         to_field_name="id",
         label=_("Source Prefix (ID)"),
@@ -222,17 +262,21 @@ class ACLStandardRuleFilterSet(NetBoxModelFilterSet):
         """
 
         model = ACLStandardRule
-        fields = ("id", "access_list", "index", "action")
+        fields = (
+            "id",
+            "access_list",
+            "index",
+            "action",
+            "remark",
+            "source_type",
+            "source_id",
+        )
 
     def search(self, queryset, name, value):
         """
         Override the default search behavior for the django model.
         """
-        query = (
-            Q(access_list__name__icontains=value)
-            | Q(index__icontains=value)
-            | Q(action__icontains=value)
-        )
+        query = Q(access_list__name__icontains=value) | Q(index__icontains=value) | Q(action__icontains=value)
         return queryset.filter(query)
 
 
@@ -254,31 +298,119 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
     )
 
     # Source
+    source_type = ContentTypeFilter(
+        label=_("Source Type"),
+    )
+    source_aggregate = django_filters.ModelMultipleChoiceFilter(
+        field_name="_source_aggregate__prefix",
+        queryset=Aggregate.objects.all(),
+        to_field_name="prefix",
+        label=_("Source Aggregate (name)"),
+    )
+    source_aggregate_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="_source_aggregate",
+        queryset=Aggregate.objects.all(),
+        to_field_name="id",
+        label=_("Source Aggregate (ID)"),
+    )
+    source_ipaddress = django_filters.ModelMultipleChoiceFilter(
+        field_name="_source_ipaddress__address",
+        queryset=IPAddress.objects.all(),
+        to_field_name="address",
+        label=_("Source IP-Address (name)"),
+    )
+    source_ipaddress_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="_source_ipaddress",
+        queryset=IPAddress.objects.all(),
+        to_field_name="id",
+        label=_("Source IP-Address (ID)"),
+    )
+    source_iprange = django_filters.ModelMultipleChoiceFilter(
+        field_name="_source_iprange__start_address",
+        queryset=IPRange.objects.all(),
+        to_field_name="start_address",
+        label=_("Source IP-Range (name)"),
+    )
+    source_iprange_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="_source_iprange",
+        queryset=IPRange.objects.all(),
+        to_field_name="id",
+        label=_("Source IP-Range (ID)"),
+    )
     source_prefix = django_filters.ModelMultipleChoiceFilter(
-        field_name="source_prefix",
+        field_name="_source_prefix__prefix",
         queryset=Prefix.objects.all(),
-        to_field_name="name",
+        to_field_name="prefix",
         label=_("Source Prefix (name)"),
     )
     source_prefix_id = django_filters.ModelMultipleChoiceFilter(
-        field_name="source_prefix",
+        field_name="_source_prefix",
         queryset=Prefix.objects.all(),
         to_field_name="id",
         label=_("Source Prefix (ID)"),
     )
+    source_port = NumericArrayFilter(
+        field_name="source_ports",
+        lookup_expr="contains",
+        label=_("Source Port"),
+    )
 
     # Destination
+    destination_type = ContentTypeFilter(
+        label=_("Destination Type"),
+    )
+    destination_aggregate = django_filters.ModelMultipleChoiceFilter(
+        field_name="_destination_aggregate__prefix",
+        queryset=Aggregate.objects.all(),
+        to_field_name="prefix",
+        label=_("Destination Aggregate (name)"),
+    )
+    destination_aggregate_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="_destination_aggregate",
+        queryset=Aggregate.objects.all(),
+        to_field_name="id",
+        label=_("Destination Aggregate (ID)"),
+    )
+    destination_ipaddress = django_filters.ModelMultipleChoiceFilter(
+        field_name="_destination_ipaddress__address",
+        queryset=IPAddress.objects.all(),
+        to_field_name="address",
+        label=_("Destination IP-Address (name)"),
+    )
+    destination_ipaddress_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="_destination_ipaddress",
+        queryset=IPAddress.objects.all(),
+        to_field_name="id",
+        label=_("Destination IP-Address (ID)"),
+    )
+    destination_iprange = django_filters.ModelMultipleChoiceFilter(
+        field_name="_destination_iprange__start_address",
+        queryset=IPRange.objects.all(),
+        to_field_name="start_address",
+        label=_("Destination IP-Range (name)"),
+    )
+    destination_iprange_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="_destination_iprange",
+        queryset=IPRange.objects.all(),
+        to_field_name="id",
+        label=_("Destination IP-Range (ID)"),
+    )
     destination_prefix = django_filters.ModelMultipleChoiceFilter(
-        field_name="destination_prefix",
+        field_name="_destination_prefix__prefix",
         queryset=Prefix.objects.all(),
-        to_field_name="name",
+        to_field_name="prefix",
         label=_("Destination Prefix (name)"),
     )
     destination_prefix_id = django_filters.ModelMultipleChoiceFilter(
-        field_name="destination_prefix",
+        field_name="_destination_prefix",
         queryset=Prefix.objects.all(),
         to_field_name="id",
         label=_("Destination Prefix (ID)"),
+    )
+    destination_port = NumericArrayFilter(
+        field_name="destination_ports",
+        lookup_expr="contains",
+        label=_("Destination Port"),
     )
 
     class Meta:
@@ -287,7 +419,20 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
         """
 
         model = ACLExtendedRule
-        fields = ("id", "access_list", "index", "action", "protocol")
+        fields = (
+            "id",
+            "access_list",
+            "index",
+            "action",
+            "remark",
+            "source_type",
+            "source_id",
+            "source_port",
+            "destination_type",
+            "destination_id",
+            "destination_port",
+            "protocol",
+        )
 
     def search(self, queryset, name, value):
         """

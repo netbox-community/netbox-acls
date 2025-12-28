@@ -7,7 +7,8 @@ from dcim.models import (
     VirtualChassis,
 )
 from django.test import TestCase
-from ipam.models import Prefix
+from ipam.models import RIR, Aggregate, IPAddress, IPRange, Prefix
+from netaddr import IPNetwork
 from virtualization.models import Cluster, ClusterType, VirtualMachine
 
 
@@ -20,11 +21,17 @@ class BaseTestCase(TestCase):
     def setUpTestData(cls):
         """
         Create base data to test using including
-          - 1 of each of the following: test site, manufacturer, device type
+          - 1 of each of the following: rir, site, manufacturer, device type,
             device role, cluster type, cluster, virtual chassis, and
             virtual machine
-          - 2 of each Device, prefix
+          - 2 of each device, aggregate, ip address, ip range, prefix, service
         """
+
+        # RIR
+        rir = RIR.objects.create(
+            name="RIR 1",
+            slug="rir-1",
+        )
 
         # Sites
         site = Site.objects.create(
@@ -108,10 +115,38 @@ class BaseTestCase(TestCase):
             cluster=cluster,
         )
 
+        # Aggregate
+        cls.aggregate1 = Aggregate.objects.create(
+            prefix=IPNetwork("10.0.0.0/8"),
+            rir=rir,
+        )
+        cls.aggregate2 = Aggregate.objects.create(
+            prefix=IPNetwork("172.16.0.0/12"),
+            rir=rir,
+        )
+
+        # IP Address
+        cls.ip_address1 = IPAddress.objects.create(
+            address=IPNetwork("10.0.0.1/24"),
+        )
+        cls.ip_address2 = IPAddress.objects.create(
+            address=IPNetwork("10.0.0.2/24"),
+        )
+
+        # IP Range
+        cls.ip_range1 = IPRange.objects.create(
+            start_address=IPNetwork("10.0.1.1/24"),
+            end_address=IPNetwork("10.0.1.254/24"),
+        )
+        cls.ip_range2 = IPRange.objects.create(
+            start_address=IPNetwork("10.0.2.1/24"),
+            end_address=IPNetwork("10.0.2.254/24"),
+        )
+
         # Prefix
         cls.prefix1 = Prefix.objects.create(
-            prefix="10.1.0.0/16",
+            prefix=IPNetwork("10.1.0.0/16"),
         )
         cls.prefix2 = Prefix.objects.create(
-            prefix="10.2.0.0/16",
+            prefix=IPNetwork("10.2.0.0/16"),
         )

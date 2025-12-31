@@ -58,7 +58,6 @@ class AccessListTable(NetBoxTable):
             "type",
             "rule_count",
             "default_action",
-            "tags",
         )
 
 
@@ -114,7 +113,6 @@ class ACLAssignmentTable(NetBoxTable):
             "type",
             "assigned_object",
             "direction",
-            "tags",
         )
 
 
@@ -160,7 +158,6 @@ class ACLRuleTable(NetBoxTable):
             "action",
             "remark",
             "source",
-            "tags",
         )
 
 
@@ -228,5 +225,4 @@ class ACLExtendedRuleTable(ACLRuleTable):
             "source_ports",
             "destination",
             "destination_ports",
-            "tags",
         )

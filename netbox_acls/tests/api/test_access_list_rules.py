@@ -1,10 +1,13 @@
-from dcim.models import Device, DeviceRole, DeviceType, Manufacturer, Site
 from ipam.models import Prefix
 from utilities.testing import APIViewTestCases
-from virtualization.models import Cluster, ClusterType, VirtualMachine
 
-from netbox_acls.choices import *
-from netbox_acls.models import *
+from netbox_acls.choices import (
+    ACLActionChoices,
+    ACLProtocolChoices,
+    ACLRuleActionChoices,
+    ACLTypeChoices,
+)
+from netbox_acls.models import AccessList, ACLExtendedRule, ACLStandardRule
 
 
 class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
@@ -16,70 +19,22 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
     view_namespace = "plugins-api:netbox_acls"
     brief_fields = ["access_list", "display", "id", "index", "url"]
     user_permissions = (
-        "dcim.view_site",
-        "dcim.view_manufacturer",
-        "dcim.view_devicetype",
-        "dcim.view_device",
         "ipam.view_prefix",
-        "virtualization.view_cluster",
-        "virtualization.view_clustergroup",
-        "virtualization.view_clustertype",
-        "virtualization.view_virtualmachine",
         "netbox_acls.view_accesslist",
     )
 
     @classmethod
     def setUpTestData(cls):
         """Set up ACL Standard Rule for API view testing."""
-        site = Site.objects.create(
-            name="Site 1",
-            slug="site-1",
-        )
-
-        # Device
-        manufacturer = Manufacturer.objects.create(
-            name="Manufacturer 1",
-            slug="manufacturer-1",
-        )
-        device_type = DeviceType.objects.create(
-            manufacturer=manufacturer,
-            model="Device Type 1",
-        )
-        device_role = DeviceRole.objects.create(
-            name="Device Role 1",
-            slug="device-role-1",
-        )
-        device = Device.objects.create(
-            name="Device 1",
-            site=site,
-            device_type=device_type,
-            role=device_role,
-        )
-
-        # Virtual Machine
-        cluster_type = ClusterType.objects.create(
-            name="Cluster Type 1",
-            slug="cluster-type-1",
-        )
-        cluster = Cluster.objects.create(
-            name="Cluster 1",
-            type=cluster_type,
-        )
-        virtual_machine = VirtualMachine.objects.create(
-            name="VM 1",
-            cluster=cluster,
-        )
 
         # AccessList
         access_list_device = AccessList.objects.create(
             name="testacl1",
-            assigned_object=device,
             type=ACLTypeChoices.TYPE_STANDARD,
             default_action=ACLActionChoices.ACTION_DENY,
         )
         access_list_vm = AccessList.objects.create(
             name="testacl2",
-            assigned_object=virtual_machine,
             type=ACLTypeChoices.TYPE_STANDARD,
             default_action=ACLActionChoices.ACTION_PERMIT,
         )
@@ -98,7 +53,7 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 index=10,
                 description="Rule 10",
                 action=ACLRuleActionChoices.ACTION_PERMIT,
-                source_prefix=prefix1,
+                source=prefix1,
             ),
             ACLStandardRule(
                 access_list=access_list_device,
@@ -112,7 +67,7 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 index=10,
                 description="Rule 10",
                 action=ACLRuleActionChoices.ACTION_DENY,
-                source_prefix=prefix2,
+                source=prefix2,
             ),
         )
         ACLStandardRule.objects.bulk_create(acl_standard_rules)
@@ -123,14 +78,16 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 "index": 30,
                 "description": "Rule 30",
                 "action": ACLRuleActionChoices.ACTION_DENY,
-                "source_prefix": prefix2.id,
+                "source_type": "ipam.prefix",
+                "source_id": prefix2.id,
             },
             {
                 "access_list": access_list_vm.id,
                 "index": 20,
                 "description": "Rule 30",
                 "action": ACLRuleActionChoices.ACTION_PERMIT,
-                "source_prefix": prefix1.id,
+                "source_type": "ipam.prefix",
+                "source_id": prefix1.id,
             },
             {
                 "access_list": access_list_vm.id,
@@ -154,70 +111,22 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
     view_namespace = "plugins-api:netbox_acls"
     brief_fields = ["access_list", "display", "id", "index", "url"]
     user_permissions = (
-        "dcim.view_site",
-        "dcim.view_manufacturer",
-        "dcim.view_devicetype",
-        "dcim.view_device",
         "ipam.view_prefix",
-        "virtualization.view_cluster",
-        "virtualization.view_clustergroup",
-        "virtualization.view_clustertype",
-        "virtualization.view_virtualmachine",
         "netbox_acls.view_accesslist",
     )
 
     @classmethod
     def setUpTestData(cls):
         """Set up ACL Extended Rule for API view testing."""
-        site = Site.objects.create(
-            name="Site 1",
-            slug="site-1",
-        )
-
-        # Device
-        manufacturer = Manufacturer.objects.create(
-            name="Manufacturer 1",
-            slug="manufacturer-1",
-        )
-        device_type = DeviceType.objects.create(
-            manufacturer=manufacturer,
-            model="Device Type 1",
-        )
-        device_role = DeviceRole.objects.create(
-            name="Device Role 1",
-            slug="device-role-1",
-        )
-        device = Device.objects.create(
-            name="Device 1",
-            site=site,
-            device_type=device_type,
-            role=device_role,
-        )
-
-        # Virtual Machine
-        cluster_type = ClusterType.objects.create(
-            name="Cluster Type 1",
-            slug="cluster-type-1",
-        )
-        cluster = Cluster.objects.create(
-            name="Cluster 1",
-            type=cluster_type,
-        )
-        virtual_machine = VirtualMachine.objects.create(
-            name="VM 1",
-            cluster=cluster,
-        )
 
         # AccessList
         access_list_device = AccessList.objects.create(
             name="testacl1",
-            assigned_object=device,
             type=ACLTypeChoices.TYPE_EXTENDED,
             default_action=ACLActionChoices.ACTION_DENY,
         )
         access_list_vm = AccessList.objects.create(
             name="testacl2",
-            assigned_object=virtual_machine,
             type=ACLTypeChoices.TYPE_EXTENDED,
             default_action=ACLActionChoices.ACTION_PERMIT,
         )
@@ -237,9 +146,9 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 description="Rule 10",
                 action=ACLRuleActionChoices.ACTION_PERMIT,
                 protocol=ACLProtocolChoices.PROTOCOL_TCP,
-                source_prefix=prefix1,
+                source=prefix1,
                 source_ports=[22, 443],
-                destination_prefix=prefix1,
+                destination=prefix1,
                 destination_ports=[22, 443],
             ),
             ACLExtendedRule(
@@ -254,8 +163,8 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 index=10,
                 description="Rule 10",
                 action=ACLRuleActionChoices.ACTION_DENY,
-                source_prefix=prefix2,
-                destination_prefix=prefix1,
+                source=prefix2,
+                destination=prefix1,
             ),
         )
         ACLExtendedRule.objects.bulk_create(acl_extended_rules)
@@ -267,9 +176,11 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 "description": "Rule 30",
                 "action": ACLRuleActionChoices.ACTION_DENY,
                 "protocol": ACLProtocolChoices.PROTOCOL_UDP,
-                "source_prefix": prefix2.id,
+                "source_type": "ipam.prefix",
+                "source_id": prefix2.id,
                 "source_ports": [53],
-                "destination_prefix": prefix2.id,
+                "destination_type": "ipam.prefix",
+                "destination_id": prefix2.id,
                 "destination_ports": [53],
             },
             {
@@ -278,8 +189,10 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 "description": "Rule 30",
                 "action": ACLRuleActionChoices.ACTION_PERMIT,
                 "protocol": ACLProtocolChoices.PROTOCOL_ICMP,
-                "source_prefix": prefix1.id,
-                "destination_prefix": prefix2.id,
+                "source_type": "ipam.prefix",
+                "source_id": prefix1.id,
+                "destination_type": "ipam.prefix",
+                "destination_id": prefix2.id,
             },
             {
                 "access_list": access_list_vm.id,

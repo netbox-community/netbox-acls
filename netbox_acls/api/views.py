@@ -11,21 +11,21 @@ from .. import filtersets, models
 from .serializers import (
     AccessListSerializer,
     ACLExtendedRuleSerializer,
-    ACLInterfaceAssignmentSerializer,
+    ACLAssignmentSerializer,
     ACLStandardRuleSerializer,
 )
 
 __all__ = [
     "AccessListViewSet",
     "ACLStandardRuleViewSet",
-    "ACLInterfaceAssignmentViewSet",
+    "ACLAssignmentViewSet",
     "ACLExtendedRuleViewSet",
 ]
 
 
 class AccessListViewSet(NetBoxModelViewSet):
     """
-    Defines the view set for the django AccessList model & associates it to a view.
+    Defines the view set for the django AccessList model and associates it with a view.
     """
 
     queryset = (
@@ -39,28 +39,28 @@ class AccessListViewSet(NetBoxModelViewSet):
     filterset_class = filtersets.AccessListFilterSet
 
 
-class ACLInterfaceAssignmentViewSet(NetBoxModelViewSet):
+class ACLAssignmentViewSet(NetBoxModelViewSet):
     """
-    Defines the view set for the django ACLInterfaceAssignment model & associates it to a view.
+    Defines the view set for the django ACLInterfaceAssignment model and associates it with a view.
     """
 
-    queryset = models.ACLInterfaceAssignment.objects.prefetch_related(
+    queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
         "tags",
     )
-    serializer_class = ACLInterfaceAssignmentSerializer
-    filterset_class = filtersets.ACLInterfaceAssignmentFilterSet
+    serializer_class = ACLAssignmentSerializer
+    filterset_class = filtersets.ACLAssignmentFilterSet
 
 
 class ACLStandardRuleViewSet(NetBoxModelViewSet):
     """
-    Defines the view set for the django ACLStandardRule model & associates it to a view.
+    Defines the view set for the django ACLStandardRule model and associates it with a view.
     """
 
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
+        "source",
         "tags",
-        "source_prefix",
     )
     serializer_class = ACLStandardRuleSerializer
     filterset_class = filtersets.ACLStandardRuleFilterSet
@@ -68,14 +68,14 @@ class ACLStandardRuleViewSet(NetBoxModelViewSet):
 
 class ACLExtendedRuleViewSet(NetBoxModelViewSet):
     """
-    Defines the view set for the django ACLExtendedRule model & associates it to a view.
+    Defines the view set for the django ACLExtendedRule model and associates it with a view.
     """
 
     queryset = models.ACLExtendedRule.objects.prefetch_related(
         "access_list",
+        "source",
+        "destination",
         "tags",
-        "source_prefix",
-        "destination_prefix",
     )
     serializer_class = ACLExtendedRuleSerializer
     filterset_class = filtersets.ACLExtendedRuleFilterSet

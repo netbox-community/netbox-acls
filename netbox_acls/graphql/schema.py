@@ -6,7 +6,7 @@ import strawberry_django
 from .types import (
     AccessListType,
     ACLExtendedRuleType,
-    ACLInterfaceAssignmentType,
+    ACLAssignmentType,
     ACLStandardRuleType,
 )
 
@@ -26,5 +26,5 @@ class NetBoxACLSQuery:
     acl_standard_rule: ACLStandardRuleType = strawberry_django.field()
     acl_standard_rule_list: List[ACLStandardRuleType] = strawberry_django.field()
 
-    acl_interface_assignment: ACLInterfaceAssignmentType = strawberry_django.field()
-    acl_interface_assignment_list: List[ACLInterfaceAssignmentType] = strawberry_django.field()
+    acl_assignment: ACLAssignmentType = strawberry_django.field()
+    acl_assignment_list: List[ACLAssignmentType] = strawberry_django.field()

@@ -3,32 +3,29 @@
 
 {% block breadcrumbs %}
   {{ block.super }}
-  <li class="breadcrumb-item"><a href="{% url 'plugins:netbox_acls:aclinterfaceassignment_list' %}?access_list_id={{ object.access_list.pk }}">{{ object.access_list }}</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'plugins:netbox_acls:aclassignment_list' %}?access_list_id={{ object.access_list.pk }}">{{ object.access_list }}</a></li>
 {% endblock breadcrumbs %}
 
 {% block content %}
   <div class="row mb-3">
     <div class="col col-md-6">
       <div class="card">
-        <h2 class="card-header">ACL Interface Assignment</h2>
+        <h2 class="card-header">ACL Assignment</h2>
         <table class="table table-hover attr-table">
-          <tr>
-            <th scope="row">Host</th>
-            <td>
-              {% if object.assigned_object.device %}
-                {{ object.assigned_object.device|linkify|placeholder }}
-              {% else %}
-                {{ object.assigned_object.virtual_machine|linkify|placeholder }}
-              {% endif %}
-            </td>
-          </tr>
-          <tr>
-            <th scope="row">Interface</th>
-            <td>{{ object.assigned_object|linkify|placeholder }}</td>
-          </tr>
           <tr>
             <th scope="row">Access List</th>
             <td>{{ object.access_list|linkify }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Assigned Object</th>
+            <td>
+              {% if object.assigned_object.device %}
+                {{ object.assigned_object.device|linkify }} /
+              {% elif object.assigned_object.virtual_machine %}
+                {{ object.assigned_object.virtual_machine|linkify }} /
+              {% endif %}
+              {{ object.assigned_object|linkify|placeholder }}
+            </td>
           </tr>
           <tr>
             <th scope="row">Direction</th>

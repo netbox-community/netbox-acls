@@ -8,7 +8,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("netbox_acls", "0004_netbox_acls"),
+        ("netbox_acls", "0006_acl_assignments"),
     ]
 
     operations = [

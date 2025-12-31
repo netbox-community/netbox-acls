@@ -3,6 +3,8 @@ Defines the business logic for the plugin.
 Specifically, all the various interactions with a client.
 """
 
+from django.contrib.contenttypes.models import ContentType
+from django.utils.translation import gettext_lazy as _
 from dcim.models import Device, Interface, VirtualChassis
 from django.db.models import Count
 from netbox.views import generic
@@ -17,11 +19,11 @@ __all__ = (
     "AccessListEditView",
     "AccessListDeleteView",
     "AccessListBulkDeleteView",
-    "ACLInterfaceAssignmentView",
-    "ACLInterfaceAssignmentListView",
-    "ACLInterfaceAssignmentEditView",
-    "ACLInterfaceAssignmentDeleteView",
-    "ACLInterfaceAssignmentBulkDeleteView",
+    "ACLAssignmentView",
+    "ACLAssignmentListView",
+    "ACLAssignmentEditView",
+    "ACLAssignmentDeleteView",
+    "ACLAssignmentBulkDeleteView",
     "ACLStandardRuleView",
     "ACLStandardRuleListView",
     "ACLStandardRuleEditView",
@@ -33,6 +35,46 @@ __all__ = (
     "ACLExtendedRuleDeleteView",
     "ACLExtendedRuleBulkDeleteView",
 )
+
+#
+# Base children views
+#
+
+
+class ACLAssignmentChildrenView(generic.ObjectChildrenView):
+    """Base children view for attaching a tab of ACL Assignments."""
+
+    child_model = models.ACLAssignment
+    filterset = filtersets.ACLAssignmentFilterSet
+    tab = ViewTab(
+        label=_("Access Lists"),
+        badge=lambda obj: obj.aclassignments.count(),
+        permission="netbox_acls.view_aclassignment",
+        weight=1100,
+    )
+    table = tables.ACLAssignmentTable
+
+    def get_children(self, request, parent):
+        """
+        Return all objects of ACLAssignment.
+        """
+        return models.ACLAssignment.objects.restrict(request.user, "view").prefetch_related(
+            "access_list",
+            "assigned_object_type",
+            "assigned_object",
+            "tags",
+        )
+
+    def get_extra_context(self, request, instance) -> dict:
+        """
+        Return ContentType as extra context.
+        """
+        assigned_object_type = ContentType.objects.get_for_model(self.queryset.model)
+
+        return super().get_extra_context(request, instance) | {
+            "add_url": "plugins:netbox_acls:aclassignment_add",
+            "content_type_id": assigned_object_type.id,
+        }
 
 
 #
@@ -112,118 +154,50 @@ class AccessListBulkDeleteView(generic.BulkDeleteView):
     table = tables.AccessListTable
 
 
-class AccessListChildView(generic.ObjectChildrenView):
-    """
-    Defines the child view for the AccessLists model.
-    """
-
-    child_model = models.AccessList
-    table = tables.AccessListTable
-    filterset = filtersets.AccessListFilterSet
-    template_name = "inc/view_tab.html"
-
-    def get_extra_context(self, request, instance):
-        return {
-            "table_config": self.table.__name__,
-            "model_type": self.queryset.model._meta.verbose_name.replace(" ", "_"),
-            "add_url": "plugins:netbox_acls:accesslist_add",
-        }
-
-    def prep_table_data(self, request, queryset, parent):
-        return queryset.annotate(
-            rule_count=Count("aclextendedrules") + Count("aclstandardrules"),
-        )
-
-
-@register_model_view(Device, "access_lists")
-class DeviceAccessListView(AccessListChildView):
-    queryset = Device.objects.prefetch_related("tags")
-    tab = ViewTab(
-        label="Access Lists",
-        badge=lambda obj: models.AccessList.objects.filter(device=obj).count(),
-        permission="netbox_acls.view_accesslist",
-    )
-
-    def get_children(self, request, parent):
-        return self.child_model.objects.restrict(request.user, "view").filter(
-            device=parent,
-        )
-
-
-@register_model_view(VirtualChassis, "access_lists")
-class VirtualChassisAccessListView(AccessListChildView):
-    queryset = VirtualChassis.objects.prefetch_related("tags")
-    tab = ViewTab(
-        label="Access Lists",
-        badge=lambda obj: models.AccessList.objects.filter(virtual_chassis=obj).count(),
-        permission="netbox_acls.view_accesslist",
-    )
-
-    def get_children(self, request, parent):
-        return self.child_model.objects.restrict(request.user, "view").filter(
-            virtual_chassis=parent,
-        )
-
-
-@register_model_view(VirtualMachine, "access_lists")
-class VirtualMachineAccessListView(AccessListChildView):
-    queryset = VirtualMachine.objects.prefetch_related("tags")
-    tab = ViewTab(
-        label="Access Lists",
-        badge=lambda obj: models.AccessList.objects.filter(virtual_machine=obj).count(),
-        permission="netbox_acls.view_accesslist",
-    )
-
-    def get_children(self, request, parent):
-        return self.child_model.objects.restrict(request.user, "view").filter(
-            virtual_machine=parent,
-        )
-
-
 #
-# ACLInterfaceAssignment views
+# ACLAssignment views
 #
 
 
-@register_model_view(models.ACLInterfaceAssignment)
-class ACLInterfaceAssignmentView(generic.ObjectView):
+@register_model_view(models.ACLAssignment)
+class ACLAssignmentView(generic.ObjectView):
     """
-    Defines the view for the ACLInterfaceAssignments django model.
+    Defines the view for the ACLAssignments django model.
     """
 
-    queryset = models.ACLInterfaceAssignment.objects.prefetch_related(
+    queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
         "tags",
     )
 
 
-@register_model_view(models.ACLInterfaceAssignment, "list", path="", detail=False)
-class ACLInterfaceAssignmentListView(generic.ObjectListView):
+@register_model_view(models.ACLAssignment, "list", path="", detail=False)
+class ACLAssignmentListView(generic.ObjectListView):
     """
-    Defines the list view for the ACLInterfaceAssignments django model.
+    Defines the list view for the ACLAssignments django model.
     """
 
-    queryset = models.ACLInterfaceAssignment.objects.prefetch_related(
+    queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
         "tags",
     )
-    table = tables.ACLInterfaceAssignmentTable
-    filterset = filtersets.ACLInterfaceAssignmentFilterSet
-    filterset_form = forms.ACLInterfaceAssignmentFilterForm
+    table = tables.ACLAssignmentTable
+    filterset = filtersets.ACLAssignmentFilterSet
+    filterset_form = forms.ACLAssignmentFilterForm
 
 
-@register_model_view(models.ACLInterfaceAssignment, "add", detail=False)
-@register_model_view(models.ACLInterfaceAssignment, "edit")
-class ACLInterfaceAssignmentEditView(generic.ObjectEditView):
+@register_model_view(models.ACLAssignment, "add", detail=False)
+@register_model_view(models.ACLAssignment, "edit")
+class ACLAssignmentEditView(generic.ObjectEditView):
     """
-    Defines the edit view for the ACLInterfaceAssignments django model.
+    Defines the edit view for the ACLAssignments django model.
     """
 
-    queryset = models.ACLInterfaceAssignment.objects.prefetch_related(
+    queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
         "tags",
     )
-    form = forms.ACLInterfaceAssignmentForm
+    form = forms.ACLAssignmentForm
 
     def get_extra_addanother_params(self, request):
         """
@@ -236,78 +210,157 @@ class ACLInterfaceAssignmentEditView(generic.ObjectEditView):
         }
 
 
-@register_model_view(models.ACLInterfaceAssignment, "delete")
-class ACLInterfaceAssignmentDeleteView(generic.ObjectDeleteView):
+@register_model_view(models.ACLAssignment, "delete")
+class ACLAssignmentDeleteView(generic.ObjectDeleteView):
     """
-    Defines delete view for the ACLInterfaceAssignments django model.
+    Defines delete view for the ACLAssignments django model.
     """
 
-    queryset = models.ACLInterfaceAssignment.objects.prefetch_related(
+    queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
         "tags",
     )
 
 
-@register_model_view(models.ACLInterfaceAssignment, "bulk_delete", path="delete", detail=False)
-class ACLInterfaceAssignmentBulkDeleteView(generic.BulkDeleteView):
-    queryset = models.ACLInterfaceAssignment.objects.prefetch_related(
+@register_model_view(models.ACLAssignment, "bulk_delete", path="delete", detail=False)
+class ACLAssignmentBulkDeleteView(generic.BulkDeleteView):
+    queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
         "tags",
     )
-    filterset = filtersets.ACLInterfaceAssignmentFilterSet
-    table = tables.ACLInterfaceAssignmentTable
+    filterset = filtersets.ACLAssignmentFilterSet
+    table = tables.ACLAssignmentTable
 
 
-class ACLInterfaceAssignmentChildView(generic.ObjectChildrenView):
+@register_model_view(Device, "aclassignments", path="access-lists")
+class DeviceACLAssignmentView(ACLAssignmentChildrenView):
     """
-    Defines the child view for the ACLInterfaceAssignments model.
+    Children view of ACL Assignment of Devices.
     """
 
-    child_model = models.ACLInterfaceAssignment
-    table = tables.ACLInterfaceAssignmentTable
-    filterset = filtersets.ACLInterfaceAssignmentFilterSet
+    queryset = Device.objects.all()
     template_name = "inc/view_tab.html"
 
-    def get_extra_context(self, request, instance):
-        return {
-            "table_config": self.table.__name__,
-            "model_type": self.queryset.model._meta.verbose_name.replace(" ", "_"),
-            "add_url": "plugins:netbox_acls:aclinterfaceassignment_add",
-        }
+    def get_children(self, request, parent):
+        """Return all children objects to the current parent object."""
+        return super().get_children(request, parent).filter(device=parent.pk)
+
+    def get_table(self, *args, **kwargs):
+        """Return the table with the assigned object colum hidden."""
+        table = super().get_table(*args, **kwargs)
+
+        # Hide the assigned object type column
+        table.columns.hide("assigned_object_type")
+        # Hide the assigned object column
+        table.columns.hide("assigned_object")
+        # Hide the direction column
+        table.columns.hide("direction")
+
+        return table
 
 
-@register_model_view(Interface, "acl_interface_assignments")
-class InterfaceACLInterfaceAssignmentView(ACLInterfaceAssignmentChildView):
-    queryset = Interface.objects.prefetch_related("device", "tags")
-    tab = ViewTab(
-        label="ACL Interface Assignments",
-        badge=lambda obj: models.ACLInterfaceAssignment.objects.filter(
-            interface=obj,
-        ).count(),
-        permission="netbox_acls.view_aclinterfaceassignment",
-    )
+@register_model_view(Interface, "aclassignments", path="access-lists")
+class InterfaceACLAssignmentView(ACLAssignmentChildrenView):
+    """
+    Children view of ACL Assignment of Interfaces.
+    """
+
+    queryset = Interface.objects.all()
+    template_name = "inc/view_tab.html"
 
     def get_children(self, request, parent):
-        return self.child_model.objects.restrict(request.user, "view").filter(
-            interface=parent,
-        )
+        """Return all children objects to the current parent object."""
+        return super().get_children(request, parent).filter(interface=parent.pk)
+
+    def get_table(self, *args, **kwargs):
+        """Return the table with the assigned object colum hidden."""
+        table = super().get_table(*args, **kwargs)
+
+        # Hide the assigned object type column
+        table.columns.hide("assigned_object_type")
+        # Hide the assigned object column
+        table.columns.hide("assigned_object")
+
+        return table
 
 
-@register_model_view(VMInterface, "acl_interface_assignments")
-class VirtualMachineInterfaceACLInterfaceAssignmentView(ACLInterfaceAssignmentChildView):
-    queryset = VMInterface.objects.prefetch_related("virtual_machine", "tags")
-    tab = ViewTab(
-        label="ACL Interface Assignments",
-        badge=lambda obj: models.ACLInterfaceAssignment.objects.filter(
-            vminterface=obj,
-        ).count(),
-        permission="netbox_acls.view_aclinterfaceassignment",
-    )
+@register_model_view(VirtualChassis, "aclassignments", path="access-lists")
+class VirtualChassisACLAssignmentView(ACLAssignmentChildrenView):
+    """
+    Children view of ACL Assignment of VirtualChassiss.
+    """
+
+    queryset = VirtualChassis.objects.all()
+    template_name = "inc/view_tab.html"
 
     def get_children(self, request, parent):
-        return self.child_model.objects.restrict(request.user, "view").filter(
-            vminterface=parent,
-        )
+        """Return all children objects to the current parent object."""
+        return super().get_children(request, parent).filter(virtual_chassis=parent.pk)
+
+    def get_table(self, *args, **kwargs):
+        """Return the table with the assigned object colum hidden."""
+        table = super().get_table(*args, **kwargs)
+
+        # Hide the assigned object type column
+        table.columns.hide("assigned_object_type")
+        # Hide the assigned object column
+        table.columns.hide("assigned_object")
+        # Hide the direction column
+        table.columns.hide("direction")
+
+        return table
+
+
+@register_model_view(VirtualMachine, "aclassignments", path="access-lists")
+class VirtualMachineACLAssignmentView(ACLAssignmentChildrenView):
+    """
+    Children view of ACL Assignment of VirtualMachines.
+    """
+
+    queryset = VirtualMachine.objects.all()
+    template_name = "inc/view_tab.html"
+
+    def get_children(self, request, parent):
+        """Return all children objects to the current parent object."""
+        return super().get_children(request, parent).filter(virtual_machine=parent.pk)
+
+    def get_table(self, *args, **kwargs):
+        """Return the table with the assigned object colum hidden."""
+        table = super().get_table(*args, **kwargs)
+
+        # Hide the assigned object type column
+        table.columns.hide("assigned_object_type")
+        # Hide the assigned object column
+        table.columns.hide("assigned_object")
+        # Hide the direction column
+        table.columns.hide("direction")
+
+        return table
+
+
+@register_model_view(VMInterface, "aclassignments", path="access-lists")
+class VMInterfaceACLAssignmentView(ACLAssignmentChildrenView):
+    """
+    Children view of ACL Assignment of VMInterfaces.
+    """
+
+    queryset = VMInterface.objects.all()
+    template_name = "inc/view_tab.html"
+
+    def get_children(self, request, parent):
+        """Return all children objects to the current parent object."""
+        return super().get_children(request, parent).filter(vminterface=parent.pk)
+
+    def get_table(self, *args, **kwargs):
+        """Return the table with the assigned object colum hidden."""
+        table = super().get_table(*args, **kwargs)
+
+        # Hide the assigned object type column
+        table.columns.hide("assigned_object_type")
+        # Hide the assigned object column
+        table.columns.hide("assigned_object")
+
+        return table
 
 
 #
@@ -323,8 +376,8 @@ class ACLStandardRuleView(generic.ObjectView):
 
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
+        "source",
         "tags",
-        "source_prefix",
     )
 
 
@@ -336,8 +389,8 @@ class ACLStandardRuleListView(generic.ObjectListView):
 
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
+        "source",
         "tags",
-        "source_prefix",
     )
     table = tables.ACLStandardRuleTable
     filterset = filtersets.ACLStandardRuleFilterSet
@@ -353,8 +406,8 @@ class ACLStandardRuleEditView(generic.ObjectEditView):
 
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
+        "source",
         "tags",
-        "source_prefix",
     )
     form = forms.ACLStandardRuleForm
 
@@ -376,8 +429,8 @@ class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
 
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
+        "source",
         "tags",
-        "source_prefix",
     )
 
 
@@ -385,8 +438,8 @@ class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
 class ACLStandardRuleBulkDeleteView(generic.BulkDeleteView):
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
+        "source",
         "tags",
-        "source_prefix",
     )
     filterset = filtersets.ACLStandardRuleFilterSet
     table = tables.ACLStandardRuleTable
@@ -405,9 +458,9 @@ class ACLExtendedRuleView(generic.ObjectView):
 
     queryset = models.ACLExtendedRule.objects.prefetch_related(
         "access_list",
+        "source",
+        "destination",
         "tags",
-        "source_prefix",
-        "destination_prefix",
     )
 
 
@@ -419,9 +472,9 @@ class ACLExtendedRuleListView(generic.ObjectListView):
 
     queryset = models.ACLExtendedRule.objects.prefetch_related(
         "access_list",
+        "source",
+        "destination",
         "tags",
-        "source_prefix",
-        "destination_prefix",
     )
     table = tables.ACLExtendedRuleTable
     filterset = filtersets.ACLExtendedRuleFilterSet
@@ -437,9 +490,9 @@ class ACLExtendedRuleEditView(generic.ObjectEditView):
 
     queryset = models.ACLExtendedRule.objects.prefetch_related(
         "access_list",
+        "source",
+        "destination",
         "tags",
-        "source_prefix",
-        "destination_prefix",
     )
     form = forms.ACLExtendedRuleForm
 
@@ -461,9 +514,9 @@ class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
 
     queryset = models.ACLExtendedRule.objects.prefetch_related(
         "access_list",
+        "source",
+        "destination",
         "tags",
-        "source_prefix",
-        "destination_prefix",
     )
 
 
@@ -471,9 +524,9 @@ class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
 class ACLExtendedRuleBulkDeleteView(generic.BulkDeleteView):
     queryset = models.ACLExtendedRule.objects.prefetch_related(
         "access_list",
+        "source",
+        "destination",
         "tags",
-        "source_prefix",
-        "destination_prefix",
     )
     filterset = filtersets.ACLExtendedRuleFilterSet
     table = tables.ACLExtendedRuleTable

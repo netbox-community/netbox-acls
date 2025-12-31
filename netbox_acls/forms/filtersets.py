@@ -5,7 +5,7 @@ Defines each django model's GUI filter/search options.
 from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from ipam.models import Prefix
+from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.forms import NetBoxModelFilterSetForm
 from utilities.forms.fields import (
     DynamicModelChoiceField,
@@ -26,13 +26,13 @@ from ..choices import (
 from ..models import (
     AccessList,
     ACLExtendedRule,
-    ACLInterfaceAssignment,
+    ACLAssignment,
     ACLStandardRule,
 )
 
 __all__ = (
     "AccessListFilterForm",
-    "ACLInterfaceAssignmentFilterForm",
+    "ACLAssignmentFilterForm",
     "ACLStandardRuleFilterForm",
     "ACLExtendedRuleFilterForm",
 )
@@ -45,17 +45,23 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
 
     model = AccessList
     fieldsets = (
-        FieldSet("q", "tag", name=None),
-        FieldSet("type", "default_action", name=_("ACL Details")),
-        FieldSet("region_id", "site_group_id", "site_id", "device_id", name=_("Device Details")),
-        FieldSet("virtual_chassis_id", name=_("Virtual Chassis Details")),
-        FieldSet("virtual_machine_id", name=_("Virtual Machine Details")),
+        FieldSet(
+            "q",
+            "tag",
+            name=None,
+        ),
+        FieldSet(
+            "type",
+            "default_action",
+            name=_("ACL Details"),
+        ),
     )
 
-    # ACL
+    # ACL selector
     type = forms.ChoiceField(
         choices=add_blank_choice(ACLTypeChoices),
         required=False,
+        label=_("Type"),
     )
     default_action = forms.ChoiceField(
         choices=add_blank_choice(ACLActionChoices),
@@ -63,66 +69,44 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
         label=_("Default Action"),
     )
 
-    # Device selector
-    region_id = DynamicModelChoiceField(
-        queryset=Region.objects.all(),
-        required=False,
-        label=_("Region"),
-    )
-    site_group_id = DynamicModelChoiceField(
-        queryset=SiteGroup.objects.all(),
-        required=False,
-        label=_("Site Group"),
-    )
-    site_id = DynamicModelChoiceField(
-        queryset=Site.objects.all(),
-        required=False,
-        query_params={
-            "region_id": "$region_id",
-            "group_id": "$site_group_id",
-        },
-        label=_("Site"),
-    )
-    device_id = DynamicModelChoiceField(
-        queryset=Device.objects.all(),
-        query_params={
-            "region_id": "$region_id",
-            "group_id": "$site_group_id",
-            "site_id": "$site_id",
-        },
-        required=False,
-        label=_("Device"),
-    )
-
-    # Virtual Chassis selector
-    virtual_chassis_id = DynamicModelChoiceField(
-        queryset=VirtualChassis.objects.all(),
-        required=False,
-        label=_("Virtual Chassis"),
-    )
-
-    # Virtual Machine selector
-    virtual_machine_id = DynamicModelChoiceField(
-        queryset=VirtualMachine.objects.all(),
-        required=False,
-        label=_("Virtual Machine"),
-    )
-
     # Tag selector
     tag = TagFilterField(model)
 
 
-class ACLInterfaceAssignmentFilterForm(NetBoxModelFilterSetForm):
+class ACLAssignmentFilterForm(NetBoxModelFilterSetForm):
     """
-    GUI filter form to search the django AccessList model.
+    GUI filter form to search the django ACLAssignment model.
     """
 
-    model = ACLInterfaceAssignment
+    model = ACLAssignment
     fieldsets = (
-        FieldSet("q", "tag", name=None),
-        FieldSet("access_list_id", "direction", name=_("ACL Details")),
-        FieldSet("region_id", "site_group_id", "site_id", "device_id", "interface_id", name=_("Device Details")),
-        FieldSet("virtual_machine_id", "vminterface_id", name=_("Virtual Machine Details")),
+        FieldSet(
+            "q",
+            "tag",
+            name=None,
+        ),
+        FieldSet(
+            "access_list_id",
+            "direction",
+            name=_("ACL Details"),
+        ),
+        FieldSet(
+            "region_id",
+            "site_group_id",
+            "site_id",
+            "device_id",
+            "interface_id",
+            name=_("Device Details"),
+        ),
+        FieldSet(
+            "virtual_chassis_id",
+            name=_("Virtual Chassis Details"),
+        ),
+        FieldSet(
+            "virtual_machine_id",
+            "vminterface_id",
+            name=_("Virtual Machine Details"),
+        ),
     )
 
     # ACL selector
@@ -137,7 +121,7 @@ class ACLInterfaceAssignmentFilterForm(NetBoxModelFilterSetForm):
         label=_("Direction"),
     )
 
-    # Device Interface selector
+    # Device and Interface selectors
     region_id = DynamicModelChoiceField(
         queryset=Region.objects.all(),
         required=False,
@@ -176,7 +160,14 @@ class ACLInterfaceAssignmentFilterForm(NetBoxModelFilterSetForm):
         label=_("Device Interface"),
     )
 
-    # Virtual Machine Interface selector
+    # Virtual Chassis selector
+    virtual_chassis_id = DynamicModelChoiceField(
+        queryset=VirtualChassis.objects.all(),
+        required=False,
+        label=_("Virtual Chassis"),
+    )
+
+    # Virtual Machine and VM Interface selectors
     virtual_machine_id = DynamicModelChoiceField(
         queryset=VirtualMachine.objects.all(),
         required=False,
@@ -202,9 +193,25 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
 
     model = ACLStandardRule
     fieldsets = (
-        FieldSet("q", "tag", name=None),
-        FieldSet("access_list_id", "index", "action", name=_("ACL Details")),
-        FieldSet("source_prefix_id", name=_("Source Details")),
+        FieldSet(
+            "q",
+            "tag",
+            name=None,
+        ),
+        FieldSet(
+            "access_list_id",
+            "index",
+            "action",
+            "remark",
+            name=_("ACL Details"),
+        ),
+        FieldSet(
+            "source_aggregate_id",
+            "source_ipaddress_id",
+            "source_iprange_id",
+            "source_prefix_id",
+            name=_("Source Details"),
+        ),
     )
 
     access_list_id = DynamicModelMultipleChoiceField(
@@ -224,8 +231,27 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_("Action"),
     )
+    remark = forms.CharField(
+        required=False,
+        label=_("Remark"),
+    )
 
     # Source selectors
+    source_aggregate_id = DynamicModelMultipleChoiceField(
+        queryset=Aggregate.objects.all(),
+        required=False,
+        label=_("Source Aggregate"),
+    )
+    source_ipaddress_id = DynamicModelMultipleChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        label=_("Source IP-Address"),
+    )
+    source_iprange_id = DynamicModelMultipleChoiceField(
+        queryset=IPRange.objects.all(),
+        required=False,
+        label=_("Source IP-Range"),
+    )
     source_prefix_id = DynamicModelMultipleChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
@@ -243,10 +269,35 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
 
     model = ACLExtendedRule
     fieldsets = (
-        FieldSet("q", "tag", name=None),
-        FieldSet("access_list_id", "index", "action", "protocol", name=_("ACL Details")),
-        FieldSet("source_prefix_id", name=_("Source Details")),
-        FieldSet("destination_prefix_id", name=_("Destination Details")),
+        FieldSet(
+            "q",
+            "tag",
+            name=None,
+        ),
+        FieldSet(
+            "access_list_id",
+            "index",
+            "action",
+            "remark",
+            "protocol",
+            name=_("ACL Details"),
+        ),
+        FieldSet(
+            "source_aggregate_id",
+            "source_ipaddress_id",
+            "source_iprange_id",
+            "source_prefix_id",
+            "source_port",
+            name=_("Source Details"),
+        ),
+        FieldSet(
+            "destination_aggregate_id",
+            "destination_ipaddress_id",
+            "destination_iprange_id",
+            "destination_prefix_id",
+            "destination_port",
+            name=_("Destination Details"),
+        ),
     )
 
     access_list_id = DynamicModelMultipleChoiceField(
@@ -266,6 +317,10 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_("Action"),
     )
+    remark = forms.CharField(
+        required=False,
+        label=_("Remark"),
+    )
     protocol = forms.ChoiceField(
         choices=add_blank_choice(ACLProtocolChoices),
         required=False,
@@ -273,17 +328,55 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
     )
 
     # Source selectors
+    source_aggregate_id = DynamicModelMultipleChoiceField(
+        queryset=Aggregate.objects.all(),
+        required=False,
+        label=_("Source Aggregate"),
+    )
+    source_ipaddress_id = DynamicModelMultipleChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        label=_("Source IP-Address"),
+    )
+    source_iprange_id = DynamicModelMultipleChoiceField(
+        queryset=IPRange.objects.all(),
+        required=False,
+        label=_("Source IP-Range"),
+    )
     source_prefix_id = DynamicModelMultipleChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
         label=_("Source Prefix"),
     )
+    source_port = forms.IntegerField(
+        label=_("Source Port"),
+        required=False,
+    )
 
     # Destination selectors
+    destination_aggregate_id = DynamicModelMultipleChoiceField(
+        queryset=Aggregate.objects.all(),
+        required=False,
+        label=_("Destination Aggregate"),
+    )
+    destination_ipaddress_id = DynamicModelMultipleChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        label=_("Destination IP-Address"),
+    )
+    destination_iprange_id = DynamicModelMultipleChoiceField(
+        queryset=IPRange.objects.all(),
+        required=False,
+        label=_("Destination IP-Range"),
+    )
     destination_prefix_id = DynamicModelMultipleChoiceField(
         queryset=Prefix.objects.all(),
         required=False,
         label=_("Destination Prefix"),
+    )
+    destination_port = forms.IntegerField(
+        label=_("Destination Port"),
+        required=False,
     )
 
     # Tag selector

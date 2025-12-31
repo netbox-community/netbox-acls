@@ -13,12 +13,12 @@ from utilities.filters import ContentTypeFilter, NumericArrayFilter
 from virtualization.models import VirtualMachine, VMInterface
 
 from .choices import ACLTypeChoices
-from .models import AccessList, ACLExtendedRule, ACLInterfaceAssignment, ACLStandardRule
+from .models import AccessList, ACLExtendedRule, ACLAssignment, ACLStandardRule
 
 __all__ = (
     "AccessListFilterSet",
     "ACLStandardRuleFilterSet",
-    "ACLInterfaceAssignmentFilterSet",
+    "ACLAssignmentFilterSet",
     "ACLExtendedRuleFilterSet",
 )
 
@@ -28,6 +28,51 @@ class AccessListFilterSet(NetBoxModelFilterSet):
     Define the filter set for the django model AccessList.
     """
 
+    class Meta:
+        """
+        Associates the django model AccessList & fields to the filter set.
+        """
+
+        model = AccessList
+        fields = (
+            "id",
+            "name",
+            "type",
+            "default_action",
+            "comments",
+        )
+
+    def search(self, queryset, name, value):
+        """
+        Override the default search behavior for the django model.
+        """
+        query = (
+            Q(name__icontains=value)
+            | Q(type__icontains=value)
+            | Q(default_action__icontains=value)
+            | Q(comments__icontains=value)
+        )
+        return queryset.filter(query)
+
+
+class ACLAssignmentFilterSet(NetBoxModelFilterSet):
+    """
+    Define the filter set for the django model ACLAssignment.
+    """
+
+    # Access List
+    access_list = django_filters.ModelMultipleChoiceFilter(
+        queryset=AccessList.objects.all(),
+        to_field_name="name",
+        label=_("Access List (name)"),
+    )
+    access_list_id = django_filters.ModelMultipleChoiceFilter(
+        queryset=AccessList.objects.all(),
+        to_field_name="id",
+        label=_("Access List (ID)"),
+    )
+
+    # Organization
     region = django_filters.ModelMultipleChoiceFilter(
         field_name="device__site__region",
         queryset=Region.objects.all(),
@@ -46,6 +91,8 @@ class AccessListFilterSet(NetBoxModelFilterSet):
         to_field_name="id",
         label="Site",
     )
+
+    # Device
     device = django_filters.ModelMultipleChoiceFilter(
         field_name="device__name",
         queryset=Device.objects.all(),
@@ -57,6 +104,21 @@ class AccessListFilterSet(NetBoxModelFilterSet):
         queryset=Device.objects.all(),
         label="Device (ID)",
     )
+
+    # Interface
+    interface = django_filters.ModelMultipleChoiceFilter(
+        field_name="interface__name",
+        queryset=Interface.objects.all(),
+        to_field_name="name",
+        label="Interface (name)",
+    )
+    interface_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="interface",
+        queryset=Interface.objects.all(),
+        label="Interface (ID)",
+    )
+
+    # Virtual Chassis
     virtual_chassis = django_filters.ModelMultipleChoiceFilter(
         field_name="virtual_chassis__name",
         queryset=VirtualChassis.objects.all(),
@@ -68,6 +130,8 @@ class AccessListFilterSet(NetBoxModelFilterSet):
         queryset=VirtualChassis.objects.all(),
         label="Virtual Chassis (ID)",
     )
+
+    # Virtual Machine
     virtual_machine = django_filters.ModelMultipleChoiceFilter(
         field_name="virtual_machine__name",
         queryset=VirtualMachine.objects.all(),
@@ -80,71 +144,7 @@ class AccessListFilterSet(NetBoxModelFilterSet):
         label="Virtual machine (ID)",
     )
 
-    class Meta:
-        """
-        Associates the django model AccessList & fields to the filter set.
-        """
-
-        model = AccessList
-        fields = (
-            "id",
-            "name",
-            "device",
-            "device_id",
-            "virtual_chassis",
-            "virtual_chassis_id",
-            "virtual_machine",
-            "virtual_machine_id",
-            "type",
-            "default_action",
-            "comments",
-            "site",
-            "site_group",
-            "region",
-        )
-
-    def search(self, queryset, name, value):
-        """
-        Override the default search behavior for the django model.
-        """
-        query = (
-            Q(name__icontains=value)
-            | Q(device__name__icontains=value)
-            | Q(virtual_chassis__name__icontains=value)
-            | Q(virtual_machine__name__icontains=value)
-            | Q(type__icontains=value)
-            | Q(default_action__icontains=value)
-            | Q(comments__icontains=value)
-        )
-        return queryset.filter(query)
-
-
-class ACLInterfaceAssignmentFilterSet(NetBoxModelFilterSet):
-    """
-    Define the filter set for the django model ACLInterfaceAssignment.
-    """
-
-    access_list = django_filters.ModelMultipleChoiceFilter(
-        queryset=AccessList.objects.all(),
-        to_field_name="name",
-        label=_("Access List (name)"),
-    )
-    access_list_id = django_filters.ModelMultipleChoiceFilter(
-        queryset=AccessList.objects.all(),
-        to_field_name="id",
-        label=_("Access List (ID)"),
-    )
-    interface = django_filters.ModelMultipleChoiceFilter(
-        field_name="interface__name",
-        queryset=Interface.objects.all(),
-        to_field_name="name",
-        label="Interface (name)",
-    )
-    interface_id = django_filters.ModelMultipleChoiceFilter(
-        field_name="interface",
-        queryset=Interface.objects.all(),
-        label="Interface (ID)",
-    )
+    # Virtual Machine Interface
     vminterface = django_filters.ModelMultipleChoiceFilter(
         field_name="vminterface__name",
         queryset=VMInterface.objects.all(),
@@ -162,10 +162,19 @@ class ACLInterfaceAssignmentFilterSet(NetBoxModelFilterSet):
         Associates the django model ACLInterfaceAssignment & fields to the filter set.
         """
 
-        model = ACLInterfaceAssignment
+        model = ACLAssignment
         fields = (
             "id",
             "access_list",
+            "site",
+            "site_group",
+            "region",
+            "device",
+            "device_id",
+            "virtual_chassis",
+            "virtual_chassis_id",
+            "virtual_machine",
+            "virtual_machine_id",
             "direction",
             "interface",
             "interface_id",
@@ -182,6 +191,9 @@ class ACLInterfaceAssignmentFilterSet(NetBoxModelFilterSet):
             | Q(direction__icontains=value)
             | Q(interface__name__icontains=value)
             | Q(vminterface__name__icontains=value)
+            | Q(device__name__icontains=value)
+            | Q(virtual_chassis__name__icontains=value)
+            | Q(virtual_machine__name__icontains=value)
         )
         return queryset.filter(query)
 

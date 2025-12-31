@@ -25,14 +25,12 @@ class TestACLExtendedRule(BaseTestCase):
         # AccessLists
         cls.extended_acl1 = AccessList.objects.create(
             name="EXTENDED_ACL",
-            assigned_object=cls.device1,
             type=cls.acl_type,
             default_action=cls.default_action,
             comments="EXTENDED_ACL",
         )
         cls.extended_acl2 = AccessList.objects.create(
             name="EXTENDED_ACL",
-            assigned_object=cls.virtual_machine1,
             type=cls.acl_type,
             default_action=cls.default_action,
             comments="EXTENDED_ACL",
@@ -484,7 +482,6 @@ class TestACLExtendedRule(BaseTestCase):
         """
         standard_acl1 = AccessList.objects.create(
             name="STANDARD_ACL",
-            assigned_object=self.device1,
             type=ACLTypeChoices.TYPE_STANDARD,
             default_action=self.default_action,
             comments="STANDARD_ACL",

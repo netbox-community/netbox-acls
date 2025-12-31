@@ -5,21 +5,25 @@ Constants for filters
 from django.db.models import Q
 
 #
-# AccessList
+# AccessList Assignments
 #
 
-ACL_HOST_ASSIGNMENT_MODELS = Q(
-    Q(app_label="dcim", model="device")
-    | Q(app_label="dcim", model="virtualchassis")
-    | Q(app_label="virtualization", model="virtualmachine"),
-)
-
-#
-# ACLInterfaceAssignment
-#
-
-ACL_INTERFACE_ASSIGNMENT_MODELS = Q(
-    Q(app_label="dcim", model="interface") | Q(app_label="virtualization", model="vminterface"),
+ACL_ASSIGNMENT_MODELS = Q(
+    Q(
+        app_label="dcim",
+        model__in=(
+            "device",
+            "interface",
+            "virtualchassis",
+        ),
+    )
+    | Q(
+        app_label="virtualization",
+        model__in=(
+            "virtualmachine",
+            "vminterface",
+        ),
+    )
 )
 
 #

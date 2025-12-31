@@ -11,14 +11,14 @@ from .. import filtersets, models
 from .serializers import (
     AccessListSerializer,
     ACLExtendedRuleSerializer,
-    ACLInterfaceAssignmentSerializer,
+    ACLAssignmentSerializer,
     ACLStandardRuleSerializer,
 )
 
 __all__ = [
     "AccessListViewSet",
     "ACLStandardRuleViewSet",
-    "ACLInterfaceAssignmentViewSet",
+    "ACLAssignmentViewSet",
     "ACLExtendedRuleViewSet",
 ]
 
@@ -39,17 +39,17 @@ class AccessListViewSet(NetBoxModelViewSet):
     filterset_class = filtersets.AccessListFilterSet
 
 
-class ACLInterfaceAssignmentViewSet(NetBoxModelViewSet):
+class ACLAssignmentViewSet(NetBoxModelViewSet):
     """
     Defines the view set for the django ACLInterfaceAssignment model and associates it with a view.
     """
 
-    queryset = models.ACLInterfaceAssignment.objects.prefetch_related(
+    queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
         "tags",
     )
-    serializer_class = ACLInterfaceAssignmentSerializer
-    filterset_class = filtersets.ACLInterfaceAssignmentFilterSet
+    serializer_class = ACLAssignmentSerializer
+    filterset_class = filtersets.ACLAssignmentFilterSet
 
 
 class ACLStandardRuleViewSet(NetBoxModelViewSet):

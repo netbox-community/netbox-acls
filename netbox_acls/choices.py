@@ -7,6 +7,7 @@ from utilities.choices import ChoiceSet
 __all__ = (
     "ACLActionChoices",
     "ACLAssignmentDirectionChoices",
+    "ACLAssignmentDirectionUIChoices",
     "ACLProtocolChoices",
     "ACLRuleActionChoices",
     "ACLTypeChoices",
@@ -46,9 +47,9 @@ class ACLRuleActionChoices(ChoiceSet):
     ]
 
 
-class ACLAssignmentDirectionChoices(ChoiceSet):
+class ACLAssignmentDirectionUIChoices(ChoiceSet):
     """
-    Defines the direction of the application of the ACL on an associated interface.
+    Defines the application direction of the ACL on an associated interface (UI version).
     """
 
     DIRECTION_INGRESS = "ingress"
@@ -57,6 +58,22 @@ class ACLAssignmentDirectionChoices(ChoiceSet):
     CHOICES = [
         (DIRECTION_INGRESS, "Ingress", "blue"),
         (DIRECTION_EGRESS, "Egress", "purple"),
+    ]
+
+
+class ACLAssignmentDirectionChoices(ChoiceSet):
+    """
+    Defines the application direction of the ACL on an associated interface.
+    """
+
+    DIRECTION_INGRESS = "ingress"
+    DIRECTION_EGRESS = "egress"
+    DIRECTION_NONE = "none"
+
+    CHOICES = [
+        (DIRECTION_INGRESS, "Ingress", "blue"),
+        (DIRECTION_EGRESS, "Egress", "purple"),
+        (DIRECTION_NONE, "N/A", "darkgray"),
     ]
 
 

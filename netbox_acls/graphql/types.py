@@ -12,7 +12,7 @@ from .. import models
 from . import filters
 
 if TYPE_CHECKING:
-    from dcim.graphql.types import DeviceType, InterfaceType
+    from dcim.graphql.types import DeviceType, InterfaceType, VirtualChassisType
     from ipam.graphql.types import AggregateType, IPAddressType, IPRangeType, PrefixType
     from virtualization.graphql.types import VirtualMachineType, VMInterfaceType
 
@@ -20,23 +20,12 @@ if TYPE_CHECKING:
 @strawberry_django.type(
     models.AccessList,
     fields="__all__",
-    exclude=["assigned_object_type", "assigned_object_id"],
     filters=filters.AccessListFilter,
 )
 class AccessListType(NetBoxObjectType):
     """
     Defines the object type for the django model AccessList.
     """
-
-    # Model fields
-    assigned_object_type: Annotated["ContentTypeType", strawberry.lazy("netbox.graphql.types")]
-    assigned_object: Annotated[
-        Union[
-            Annotated["DeviceType", strawberry.lazy("dcim.graphql.types")],
-            Annotated["VirtualMachineType", strawberry.lazy("virtualization.graphql.types")],
-        ],
-        strawberry.union("ACLAssignmentType"),
-    ]
 
     # Related models
     aclstandardrules: List[
@@ -51,15 +40,21 @@ class AccessListType(NetBoxObjectType):
             strawberry.lazy("netbox_acls.graphql.types"),
         ]
     ]
+    aclassignments: List[
+        Annotated[
+            "ACLAssignmentType",
+            strawberry.lazy("netbox_acls.graphql.types"),
+        ]
+    ]
 
 
 @strawberry_django.type(
-    models.ACLInterfaceAssignment,
+    models.ACLAssignment,
     fields="__all__",
     exclude=["assigned_object_type", "assigned_object_id"],
-    filters=filters.ACLInterfaceAssignmentFilter,
+    filters=filters.ACLAssignmentFilter,
 )
-class ACLInterfaceAssignmentType(NetBoxObjectType):
+class ACLAssignmentType(NetBoxObjectType):
     """
     Defines the object type for the django model ACLInterfaceAssignment.
     """
@@ -69,10 +64,13 @@ class ACLInterfaceAssignmentType(NetBoxObjectType):
     assigned_object_type: Annotated["ContentTypeType", strawberry.lazy("netbox.graphql.types")]
     assigned_object: Annotated[
         Union[
+            Annotated["DeviceType", strawberry.lazy("dcim.graphql.types")],
             Annotated["InterfaceType", strawberry.lazy("dcim.graphql.types")],
+            Annotated["VirtualChassisType", strawberry.lazy("dcim.graphql.types")],
+            Annotated["VirtualMachineType", strawberry.lazy("virtualization.graphql.types")],
             Annotated["VMInterfaceType", strawberry.lazy("virtualization.graphql.types")],
         ],
-        strawberry.union("ACLInterfaceAssignedObjectType"),
+        strawberry.union("ACLAssignedObjectType"),
     ]
 
 

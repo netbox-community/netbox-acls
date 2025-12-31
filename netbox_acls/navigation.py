@@ -56,17 +56,17 @@ aclextendedrule_item = PluginMenuItem(
     ),
 )
 
-# ACL Interface Assignment
-aclinterfaceassignment_item = PluginMenuItem(
-    link="plugins:netbox_acls:aclinterfaceassignment_list",
-    link_text="Interface Assignments",
-    permissions=["netbox_acls.view_aclinterfaceassignment"],
+# ACL Assignment
+aclassignment_item = PluginMenuItem(
+    link="plugins:netbox_acls:aclassignment_list",
+    link_text="Assignments",
+    permissions=["netbox_acls.view_aclassignment"],
     buttons=(
         PluginMenuButton(
-            link="plugins:netbox_acls:aclinterfaceassignment_add",
+            link="plugins:netbox_acls:aclassignment_add",
             title="Add",
             icon_class="mdi mdi-plus-thick",
-            permissions=["netbox_acls.add_aclinterfaceassignment"],
+            permissions=["netbox_acls.add_aclassignment"],
         ),
     ),
 )
@@ -78,7 +78,10 @@ if plugin_settings.get("top_level_menu"):
         groups=(
             (
                 "Access Lists",
-                (accesslist_item,),
+                (
+                    accesslist_item,
+                    aclassignment_item,
+                ),
             ),
             (
                 "Rules",
@@ -87,17 +90,13 @@ if plugin_settings.get("top_level_menu"):
                     aclextendedrule_item,
                 ),
             ),
-            (
-                "Assignments",
-                (aclinterfaceassignment_item,),
-            ),
         ),
         icon_class="mdi mdi-lock",
     )
 else:
     menu_items = (
         accesslist_item,
+        aclassignment_item,
         aclstandardrule_item,
         aclextendedrule_item,
-        aclinterfaceassignment_item,
     )

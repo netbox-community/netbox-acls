@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 __all__ = (
     "AccessListFilter",
-    "ACLInterfaceAssignmentFilter",
+    "ACLAssignmentFilter",
 )
 
 
@@ -30,10 +30,6 @@ class AccessListFilter(NetBoxModelFilterMixin):
     """
 
     name: FilterLookup[str] | None = strawberry_django.filter_field()
-    assigned_object_type: Annotated["ContentTypeFilter", strawberry.lazy("core.graphql.filters")] | None = (
-        strawberry_django.filter_field()
-    )
-    assigned_object_id: ID | None = strawberry_django.filter_field()
     type: Annotated["ACLTypeEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (
         strawberry_django.filter_field()
     )
@@ -42,20 +38,20 @@ class AccessListFilter(NetBoxModelFilterMixin):
     )
 
 
-@strawberry_django.filter(models.ACLInterfaceAssignment, lookups=True)
-class ACLInterfaceAssignmentFilter(NetBoxModelFilterMixin):
+@strawberry_django.filter(models.ACLAssignment, lookups=True)
+class ACLAssignmentFilter(NetBoxModelFilterMixin):
     """
-    GraphQL filter definition for the ACLInterfaceAssignment model.
+    GraphQL filter definition for the ACLAssignment model.
     """
 
     access_list: Annotated["AccessListFilter", strawberry.lazy("netbox_acls.graphql.filters")] | None = (
         strawberry_django.filter_field()
     )
     access_list_id: ID | None = strawberry_django.filter_field()
-    direction: Annotated["ACLAssignmentDirectionEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (
-        strawberry_django.filter_field()
-    )
     assigned_object_type: Annotated["ContentTypeFilter", strawberry.lazy("core.graphql.filters")] | None = (
         strawberry_django.filter_field()
     )
     assigned_object_id: ID | None = strawberry_django.filter_field()
+    direction: Annotated["ACLAssignmentDirectionEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (
+        strawberry_django.filter_field()
+    )

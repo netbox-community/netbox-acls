@@ -19,12 +19,12 @@ urlpatterns = (
     ),
     # Access List Interface Assignments
     path(
-        "interface-assignments/",
-        include(get_model_urls("netbox_acls", "aclinterfaceassignment", detail=False)),
+        "assignments/",
+        include(get_model_urls("netbox_acls", "aclassignment", detail=False)),
     ),
     path(
-        "interface-assignments/<int:pk>/",
-        include(get_model_urls("netbox_acls", "aclinterfaceassignment")),
+        "assignments/<int:pk>/",
+        include(get_model_urls("netbox_acls", "aclassignment")),
     ),
     # Standard Access List Rules
     path(

@@ -17,8 +17,8 @@ class NetBoxACLsConfig(PluginConfig):
     version = importlib.metadata.version("netbox-acls")
     description = "Manage simple ACLs in NetBox"
     base_url = "access-lists"
-    min_version = "4.3.0"
-    max_version = "4.4.99"
+    min_version = "4.5.0"
+    max_version = "4.5.99"
 
 
 config = NetBoxACLsConfig

@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Annotated
 import strawberry
 import strawberry_django
 from core.graphql.filters import ContentTypeFilter
-from netbox.graphql.filter_mixins import NetBoxModelFilterMixin
+from netbox.graphql.filters import NetBoxModelFilter
 from strawberry.scalars import ID
 from strawberry_django import FilterLookup
 
@@ -25,7 +25,7 @@ __all__ = (
 
 
 @strawberry_django.filter(models.AccessList, lookups=True)
-class AccessListFilter(NetBoxModelFilterMixin):
+class AccessListFilter(NetBoxModelFilter):
     """
     GraphQL filter definition for the AccessList model.
     """
@@ -43,7 +43,7 @@ class AccessListFilter(NetBoxModelFilterMixin):
 
 
 @strawberry_django.filter(models.ACLAssignment, lookups=True)
-class ACLAssignmentFilter(NetBoxModelFilterMixin):
+class ACLAssignmentFilter(NetBoxModelFilter):
     """
     GraphQL filter definition for the ACLAssignment model.
     """

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Annotated
 import strawberry
 import strawberry_django
 from core.graphql.filters import ContentTypeFilter
-from netbox.graphql.filter_mixins import NetBoxModelFilterMixin
+from netbox.graphql.filters import NetBoxModelFilter
 from strawberry.scalars import ID
 from strawberry_django import FilterLookup
 
@@ -27,7 +27,7 @@ __all__ = (
 
 
 @dataclass
-class ACLRuleFilterMixin(NetBoxModelFilterMixin):
+class ACLRuleFilterMixin(NetBoxModelFilter):
     """
     Base GraphQL filter mixin for ACL Rule models.
     """

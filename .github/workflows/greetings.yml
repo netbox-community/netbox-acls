@@ -1,17 +1,30 @@
 ---
 name: Greetings
 
-on: [pull_request_target, issues]
+on:
+  pull_request_target:
+    types:
+      - opened
+  issues:
+    types:
+      - opened
+
+permissions:
+  issues: write
+  pull-requests: write
 
 jobs:
   greeting:
+    name: Greet First-Time Contributors
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      pull-requests: write
+
     steps:
       - uses: actions/first-interaction@v3
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-message: "Thanks for opening this Issue! We really appreciate the feedback & testing from users like you!"
-          pr-message: "🎉 Thanks for opening this pull request! We really appreciate contributors like you! 🙌"
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_message: |
+            Thanks for opening this Issue!
+            We really appreciate the feedback & testing from users like you!
+          pr_message: |
+            🎉 Thanks for opening this pull request!
+            We really appreciate contributors like you! 🙌

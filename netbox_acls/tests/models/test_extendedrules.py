@@ -68,7 +68,7 @@ class TestACLExtendedRule(BaseTestCase):
         self.assertEqual(created_rule.protocol, None)
         self.assertEqual(
             created_rule.description,
-            ("Created rule with any source, any source port, any destination, any destination port, and any protocol."),
+            "Created rule with any source, any source port, any destination, any destination port, and any protocol.",
         )
         self.assertEqual(isinstance(created_rule.access_list, AccessList), True)
         self.assertEqual(created_rule.access_list.type, self.acl_type)
@@ -383,6 +383,37 @@ class TestACLExtendedRule(BaseTestCase):
         self.assertEqual(isinstance(created_rule.access_list, AccessList), True)
         self.assertEqual(created_rule.access_list.type, self.acl_type)
 
+    def test_acl_extended_rule_ip_protocol_creation_success(self):
+        """
+        Test that ACLExtendedRule with IP protocol creation passes validation.
+        """
+        created_rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            index=140,
+            action="permit",
+            remark="",
+            source=self.prefix1,
+            source_ports=None,
+            destination=self.prefix2,
+            destination_ports=None,
+            protocol=ACLProtocolChoices.PROTOCOL_IP,
+            description="Created rule with IP protocol",
+        )
+        created_rule.full_clean()
+
+        self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
+        self.assertEqual(created_rule.index, 140)
+        self.assertEqual(created_rule.action, "permit")
+        self.assertEqual(created_rule.remark, "")
+        self.assertEqual(created_rule.source, self.prefix1)
+        self.assertEqual(created_rule.source_ports, None)
+        self.assertEqual(created_rule.destination, self.prefix2)
+        self.assertEqual(created_rule.destination_ports, None)
+        self.assertEqual(created_rule.protocol, ACLProtocolChoices.PROTOCOL_IP)
+        self.assertEqual(created_rule.description, "Created rule with IP protocol")
+        self.assertEqual(isinstance(created_rule.access_list, AccessList), True)
+        self.assertEqual(created_rule.access_list.type, self.acl_type)
+
     def test_acl_extended_rule_icmp_protocol_creation_success(self):
         """
         Test that ACLExtendedRule with ICMP protocol creation passes validation.
@@ -650,6 +681,44 @@ class TestACLExtendedRule(BaseTestCase):
         with self.assertRaises(ValidationError):
             invalid_rule.full_clean()
 
+    def test_acl_extended_rule_protocol_ip_with_source_ports_fail(self):
+        """
+        Test that ACLExtendedRule with protocol 'ip' and source ports fails validation.
+        """
+        invalid_rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            index=10,
+            action="permit",
+            remark="",
+            source=None,
+            source_ports=[4000, 5000],
+            destination=None,
+            destination_ports=None,
+            protocol=ACLProtocolChoices.PROTOCOL_IP,
+            description="Invalid rule with protocol 'ip' and source ports set",
+        )
+        with self.assertRaises(ValidationError):
+            invalid_rule.full_clean()
+
+    def test_acl_extended_rule_protocol_icmp_with_destination_ports_fail(self):
+        """
+        Test that ACLExtendedRule with protocol 'icmp' and destination ports fails validation.
+        """
+        invalid_rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            index=10,
+            action="permit",
+            remark="",
+            source=None,
+            source_ports=None,
+            destination=None,
+            destination_ports=[22, 443],
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+            description="Invalid rule with protocol 'icmp' and destination ports set",
+        )
+        with self.assertRaises(ValidationError):
+            invalid_rule.full_clean()
+
     def test_invalid_aci_extended_rule_source_object(self):
         """
         Test ACLExtendedRule source object validation.
@@ -724,7 +793,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         Test ACLExtendedRule protocol choices using VALID choices.
         """
-        valid_acl_rule_protocol_choices = ["icmp", "tcp", "udp"]
+        valid_acl_rule_protocol_choices = ["icmp", "ip", "tcp", "udp"]
 
         for protocol_choice in valid_acl_rule_protocol_choices:
             valid_acl_rule_protocol = ACLExtendedRule(

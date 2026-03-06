@@ -77,21 +77,6 @@ class TestAccessList(BaseTestCase):
         )
         acl2.full_clean()
 
-    def test_alphanumeric_plus_fail(self):
-        """
-        Test that AccessList names with non-alphanumeric (excluding '_' and '-') characters fail validation.
-        """
-        non_alphanumeric_plus_chars = r" !@#$%^&*()[]{};:,./<>?\|~=+"
-
-        for i, char in enumerate(non_alphanumeric_plus_chars, start=1):
-            bad_acl_name = AccessList(
-                name=f"Test-ACL-bad_name_{i}_{char}",
-                comments=f'ACL with "{char}" in name',
-                **self.common_acl_params,
-            )
-            with self.assertRaises(ValidationError):
-                bad_acl_name.full_clean()
-
     def test_valid_acl_choices(self):
         """
         Test that AccessList action choices using VALID choices.

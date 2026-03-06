@@ -6,7 +6,7 @@ from dcim.models import Device, Interface, VirtualChassis
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
+from django.core.validators import validate_slug
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from netbox.models import NetBoxModel
@@ -21,12 +21,6 @@ __all__ = (
 )
 
 
-alphanumeric_plus = RegexValidator(
-    r"^[a-zA-Z0-9-_]+$",
-    _("Only alphanumeric, hyphens, and underscores characters are allowed."),
-)
-
-
 class AccessList(NetBoxModel):
     """
     Model definition for Access Lists.
@@ -35,7 +29,7 @@ class AccessList(NetBoxModel):
     name = models.CharField(
         verbose_name=_("Name"),
         max_length=500,
-        validators=[alphanumeric_plus],
+        validators=[validate_slug],
     )
     type = models.CharField(
         verbose_name=_("Type"),

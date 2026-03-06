@@ -8,7 +8,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from netbox.models import NetBoxModel
 from virtualization.models import VirtualMachine, VMInterface
@@ -77,13 +76,6 @@ class AccessList(NetBoxModel):
 
         # Save a copy of the ACL name for validation in clean()
         self._original_name = self.__dict__.get("name")
-
-    def get_absolute_url(self):
-        """
-        The method is a Django convention; although not strictly required,
-        it conveniently returns the absolute URL for any particular object.
-        """
-        return reverse("plugins:netbox_acls:accesslist", args=[self.pk])
 
     def clean(self):
         """
@@ -198,16 +190,6 @@ class ACLAssignment(NetBoxModel):
         Returns the string representation of the object.
         """
         return f"{self.access_list}: Object {self.assigned_object}"
-
-    def get_absolute_url(self):
-        """
-        The method is a Django convention; although not strictly required,
-        it conveniently returns the absolute URL for any particular object.
-        """
-        return reverse(
-            "plugins:netbox_acls:aclassignment",
-            args=[self.pk],
-        )
 
     def clean(self) -> None:
         """

@@ -53,7 +53,6 @@ class ACLAssignmentChildrenView(generic.ObjectChildrenView):
         weight=1100,
     )
     table = tables.ACLAssignmentTable
-    template_name = "inc/view_tab.html"
 
     def get_children(self, request, parent):
         """
@@ -168,6 +167,7 @@ class AccessListACLAssignmentView(ACLAssignmentChildrenView):
         permission="netbox_acls.view_aclassignment",
         weight=1100,
     )
+    template_name = "inc/view_acl_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -272,7 +272,7 @@ class DeviceACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = Device.objects.all()
-    template_name = "inc/view_tab.html"
+    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -299,6 +299,7 @@ class InterfaceACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = Interface.objects.all()
+    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -323,6 +324,7 @@ class VirtualChassisACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = VirtualChassis.objects.all()
+    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -349,6 +351,7 @@ class VirtualMachineACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = VirtualMachine.objects.all()
+    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -375,6 +378,7 @@ class VMInterfaceACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = VMInterface.objects.all()
+    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""

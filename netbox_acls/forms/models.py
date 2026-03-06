@@ -44,6 +44,10 @@ __all__ = (
 help_text_acl_rule_logic = mark_safe(
     "<b>*Note:</b> CANNOT be set if action is set to remark.",
 )
+# Sets a standard mark_safe help_text value to be used by the various classes
+help_text_acl_rule_port_logic = mark_safe(
+    "<b>*Note:</b> CANNOT be set if action is set to remark. Only valid when protocol is TCP or UDP."
+)
 # Sets a standard help_text value to be used by the various classes for acl action
 help_text_acl_action = "Action the rule will take (remark, deny, or allow)."
 # Sets a standard help_text value to be used by the various classes for acl index
@@ -448,13 +452,13 @@ class ACLExtendedRuleForm(NetBoxModelForm):
 
         help_texts = {
             "action": help_text_acl_action,
-            "destination_ports": help_text_acl_rule_logic,
+            "destination_ports": help_text_acl_rule_port_logic,
             "index": help_text_acl_rule_index,
             "protocol": help_text_acl_rule_logic,
             "remark": mark_safe(
                 "<b>*Note:</b> CANNOT be set if action is not set to remark.",
             ),
-            "source_ports": help_text_acl_rule_logic,
+            "source_ports": help_text_acl_rule_port_logic,
         }
 
     def __init__(self, *args, **kwargs) -> None:

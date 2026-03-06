@@ -42,6 +42,16 @@ ERROR_MESSAGE_ACTION_REMARK_PROTOCOL_SET = _("When the action is 'remark', Proto
 # Error message when a remark is provided, but the action is not set to 'remark'.
 ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK = _("A remark cannot be set unless the action is 'remark'.")
 
+# Error message when the protocol is not 'TCP' or 'UDP', but the source ports are set.
+ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_SOURCE_PORTS_SET = _(
+    "Source Ports can only be set when the protocol is TCP or UDP."
+)
+
+# Error message when the protocol is not 'TCP' or 'UDP', but the destination ports are set.
+ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_DESTINATION_PORTS_SET = _(
+    "Destination Ports can only be set when the protocol is TCP or UDP."
+)
+
 
 class ACLRule(NetBoxModel):
     """
@@ -417,6 +427,12 @@ class ACLExtendedRule(ACLRule):
         # Validate that the action is "remark", when the remark field is provided
         elif self.remark:
             errors["remark"] = ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK
+        # Validate that the source or destination ports are only set when the protocol is TCP or UDP
+        elif self.protocol not in [ACLProtocolChoices.PROTOCOL_TCP, ACLProtocolChoices.PROTOCOL_UDP]:
+            if self.source_ports:
+                errors["source_ports"] = ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_SOURCE_PORTS_SET
+            if self.destination_ports:
+                errors["destination_ports"] = ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_DESTINATION_PORTS_SET
 
         if errors:
             raise ValidationError(errors)

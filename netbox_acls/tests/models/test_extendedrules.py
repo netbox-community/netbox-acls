@@ -507,6 +507,73 @@ class TestACLExtendedRule(BaseTestCase):
         self.assertEqual(isinstance(created_rule.access_list, AccessList), True)
         self.assertEqual(created_rule.access_list.type, self.acl_type)
 
+    def test_acl_extended_rule_action_permit_with_remark_success(self):
+        """
+        Test that ACLExtendedRule with action 'permit' and remark passes validation.
+        """
+        created_rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            index=120,
+            action="permit",
+            remark="Inline remark",
+            source=None,
+            source_ports=None,
+            destination=None,
+            destination_ports=None,
+            protocol=None,
+            description="Created permit rule with remark",
+        )
+        created_rule.full_clean()
+
+        self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
+        self.assertEqual(created_rule.index, 120)
+        self.assertEqual(created_rule.action, "permit")
+        self.assertEqual(created_rule.remark, "Inline remark")
+        self.assertEqual(created_rule.description, "Created permit rule with remark")
+        self.assertEqual(isinstance(created_rule.access_list, AccessList), True)
+        self.assertEqual(created_rule.access_list.type, self.acl_type)
+
+    def test_acl_extended_rule_action_permit_with_shared_index_action_remark_success(self):
+        """
+        Test that ACLExtendedRule with action 'permit' and action 'remark' shared index passes validation.
+        """
+        created_permit_rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            index=130,
+            action="permit",
+            remark="",
+            source=None,
+            source_ports=None,
+            destination=None,
+            destination_ports=None,
+            protocol=self.protocol,
+            description="Created permit rule with same index as remark",
+        )
+        created_permit_rule.full_clean()
+        created_permit_rule.save()
+
+        created_remark_rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            index=130,
+            action="remark",
+            remark="Standalone remark",
+            source=None,
+            source_ports=None,
+            destination=None,
+            destination_ports=None,
+            protocol=None,
+            description="Created remark rule with same index as permit rule",
+        )
+        created_remark_rule.full_clean()
+
+        self.assertTrue(isinstance(created_remark_rule, ACLExtendedRule), True)
+        self.assertEqual(created_remark_rule.index, 130)
+        self.assertEqual(created_remark_rule.action, "remark")
+        self.assertEqual(created_remark_rule.remark, "Standalone remark")
+        self.assertEqual(created_remark_rule.description, "Created remark rule with same index as permit rule")
+        self.assertEqual(isinstance(created_remark_rule.access_list, AccessList), True)
+        self.assertEqual(created_remark_rule.access_list.type, self.acl_type)
+
     def test_access_list_standard_to_acl_extended_rule_assignment_fail(self):
         """
         Test that Standard Access List cannot be assigned to ACLExtendedRule.
@@ -547,25 +614,6 @@ class TestACLExtendedRule(BaseTestCase):
         rule_2 = ACLExtendedRule(**params)
         with self.assertRaises(ValidationError):
             rule_2.full_clean()
-
-    def test_acl_extended_rule_action_permit_with_remark_fail(self):
-        """
-        Test that ACLExtendedRule with action 'permit' and remark fails validation.
-        """
-        invalid_rule = ACLExtendedRule(
-            access_list=self.extended_acl1,
-            index=10,
-            action="permit",
-            remark="Remark",
-            source=None,
-            source_ports=None,
-            destination=None,
-            destination_ports=None,
-            protocol=None,
-            description="Invalid rule with action 'permit' and remark",
-        )
-        with self.assertRaises(ValidationError):
-            invalid_rule.full_clean()
 
     def test_acl_extended_rule_action_remark_with_no_remark_fail(self):
         """

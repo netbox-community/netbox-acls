@@ -39,9 +39,6 @@ ERROR_MESSAGE_ACTION_REMARK_DESTINATION_PORTS_SET = _("When the action is 'remar
 # Error message when the action is 'remark', but the protocol is set.
 ERROR_MESSAGE_ACTION_REMARK_PROTOCOL_SET = _("When the action is 'remark', Protocol must not be set.")
 
-# Error message when a remark is provided, but the action is not set to 'remark'.
-ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK = _("A remark cannot be set unless the action is 'remark'.")
-
 # Error message when the protocol is not 'TCP' or 'UDP', but the source ports are set.
 ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_SOURCE_PORTS_SET = _(
     "Source Ports can only be set when the protocol is TCP or UDP."
@@ -152,16 +149,30 @@ class ACLRule(NetBoxModel):
         """
         Define the common model properties:
           - as an abstract model
+          - constraints (unique together)
+          - index
           - ordering
-          - unique together
         """
 
         abstract = True
+        constraints = [
+            models.UniqueConstraint(
+                fields=("access_list", "index"),
+                condition=models.Q(action__in=("permit", "deny")),
+                name="%(app_label)s_%(class)s_unique_aclrule_index_for_real_rules",
+                violation_error_message=_("Unique ACL rule index already exists."),
+            ),
+        ]
         indexes = (models.Index(fields=("source_type", "source_id")),)
-        ordering = ["access_list", "index"]
-        unique_together = ["access_list", "index"]
+        ordering = ("access_list", "index", "-action")
 
     def __str__(self):
+        """
+        Returns a string representation of the object.
+
+        This method generates a human-readable representation for the object
+        by including its access list and rule index.
+        """
         return f"{self.access_list}: Rule {self.index}"
 
     def clean(self):
@@ -208,6 +219,9 @@ class ACLRule(NetBoxModel):
     cache_related_source_object.alters_data = True
 
     def get_action_color(self):
+        """
+        Returns the color associated with the action of an ACL rule.
+        """
         return ACLRuleActionChoices.colors.get(self.action)
 
     def to_objectchange(self, action):
@@ -258,9 +272,6 @@ class ACLStandardRule(ACLRule):
                 errors["remark"] = ERROR_MESSAGE_NO_REMARK
             if self.source:
                 errors["source"] = ERROR_MESSAGE_ACTION_REMARK_SOURCE_SET
-        # Validate that the action is "remark", when the remark field is provided
-        elif self.remark:
-            errors["remark"] = ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK
 
         if errors:
             raise ValidationError(errors)
@@ -424,9 +435,6 @@ class ACLExtendedRule(ACLRule):
                 errors["destination_ports"] = ERROR_MESSAGE_ACTION_REMARK_DESTINATION_PORTS_SET
             if self.protocol:
                 errors["protocol"] = ERROR_MESSAGE_ACTION_REMARK_PROTOCOL_SET
-        # Validate that the action is "remark", when the remark field is provided
-        elif self.remark:
-            errors["remark"] = ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK
         # Validate that the source or destination ports are only set when the protocol is TCP or UDP
         elif self.protocol not in [ACLProtocolChoices.PROTOCOL_TCP, ACLProtocolChoices.PROTOCOL_UDP]:
             if self.source_ports:
@@ -467,6 +475,9 @@ class ACLExtendedRule(ACLRule):
     cache_related_destination_objects.alters_data = True
 
     def get_protocol_color(self):
+        """
+        Returns the color associated with the protocol of an ACL rule.
+        """
         return ACLProtocolChoices.colors.get(self.protocol)
 
 

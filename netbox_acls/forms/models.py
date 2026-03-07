@@ -42,16 +42,18 @@ __all__ = (
 
 # Sets a standard mark_safe help_text value to be used by the various classes
 help_text_acl_rule_logic = mark_safe(
-    "<b>*Note:</b> CANNOT be set if action is set to remark.",
+    _("<b>*Note:</b> CANNOT be set if action is set to remark."),
 )
 # Sets a standard mark_safe help_text value to be used by the various classes
 help_text_acl_rule_port_logic = mark_safe(
-    "<b>*Note:</b> CANNOT be set if action is set to remark. Only valid when protocol is TCP or UDP."
+    _("<b>*Note:</b> CANNOT be set if action is set to remark. Only valid when protocol is TCP or UDP.")
 )
 # Sets a standard help_text value to be used by the various classes for acl action
-help_text_acl_action = "Action the rule will take (remark, deny, or allow)."
+help_text_acl_action = _("Action the rule will take (remark, deny, or allow).")
 # Sets a standard help_text value to be used by the various classes for acl index
-help_text_acl_rule_index = "Determines the order of the rule in the ACL processing. AKA Sequence Number."
+help_text_acl_rule_index = _("Determines the order of the rule in the ACL processing. AKA Sequence Number.")
+# Standard help_text value to be used by the various classes for acl remark
+help_text_acl_remark = _("Remark the rule will take.")
 
 
 class AccessListForm(NetBoxModelForm):
@@ -143,7 +145,7 @@ class ACLAssignmentForm(NetBoxModelForm):
             "Device Interface or Virtual Machine Interface objects. "
             "For other types (such as Device, Virtual Chassis, or Virtual Machine), "
             "this field is disabled. "
-            "<b>*Note:</b> CANNOT assign 2 ACLs to the same interface & direction."
+            "<b>*Note:</b> CANNOT assign 2 ACLs to the same interface & direction.",
         ),
         disabled=True,
     )
@@ -238,7 +240,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
             "type": ACLTypeChoices.TYPE_STANDARD,
         },
         help_text=mark_safe(
-            "<b>*Note:</b> This field will only display Standard ACLs.",
+            _("<b>*Note:</b> This field will only display Standard ACLs."),
         ),
         label="Access List",
     )
@@ -298,9 +300,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
         help_texts = {
             "index": help_text_acl_rule_index,
             "action": help_text_acl_action,
-            "remark": mark_safe(
-                "<b>*Note:</b> CANNOT be set if source OR action is set.",
-            ),
+            "remark": help_text_acl_remark,
         }
 
     def __init__(self, *args, **kwargs) -> None:
@@ -361,7 +361,7 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             "type": ACLTypeChoices.TYPE_EXTENDED,
         },
         help_text=mark_safe(
-            "<b>*Note:</b> This field will only display Extended ACLs.",
+            _("<b>*Note:</b> This field will only display Extended ACLs."),
         ),
         label="Access List",
     )
@@ -455,9 +455,7 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             "destination_ports": help_text_acl_rule_port_logic,
             "index": help_text_acl_rule_index,
             "protocol": help_text_acl_rule_logic,
-            "remark": mark_safe(
-                "<b>*Note:</b> CANNOT be set if action is not set to remark.",
-            ),
+            "remark": help_text_acl_remark,
             "source_ports": help_text_acl_rule_port_logic,
         }
 

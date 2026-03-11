@@ -6,7 +6,7 @@ while Django itself handles the database abstraction.
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 from drf_spectacular.utils import extend_schema_field
-from netbox.api.fields import ContentTypeField
+from netbox.api.fields import ContentTypeField, IntegerRangeSerializer
 from netbox.api.serializers import NetBoxModelSerializer
 from rest_framework import serializers
 from utilities.api import get_serializer_for_model
@@ -258,6 +258,8 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
         allow_null=True,
     )
     source = serializers.SerializerMethodField(read_only=True)
+    source_port_ranges = IntegerRangeSerializer(many=True, required=False)
+    source_port_terms = serializers.SerializerMethodField(read_only=True)
     destination_type = ContentTypeField(
         queryset=ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS),
         required=False,
@@ -270,6 +272,8 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
         allow_null=True,
     )
     destination = serializers.SerializerMethodField(read_only=True)
+    destination_port_ranges = IntegerRangeSerializer(many=True, required=False)
+    destination_port_terms = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         """
@@ -289,11 +293,13 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
             "source_type",
             "source_id",
             "source",
-            "source_ports",
+            "source_port_ranges",
+            "source_port_terms",
             "destination_type",
             "destination_id",
             "destination",
-            "destination_ports",
+            "destination_port_ranges",
+            "destination_port_terms",
             "description",
             "tags",
             "created",
@@ -324,14 +330,26 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
         context = {"request": self.context["request"]}
         return serializer(obj.destination, nested=True, context=context).data
 
+    def get_destination_port_terms(self, obj):
+        """
+        Fetches the destination port terms for the given object.
+        """
+        return obj.destination_port_ranges_list
+
+    def get_source_port_terms(self, obj):
+        """
+        Fetches the source port terms for the given object.
+        """
+        return obj.source_port_ranges_list
+
     def validate(self, data):
         """
         Validate the ACLExtendedRule django model's inputs before allowing it to update the instance:
           - Check if action set to remark, but no remark set.
           - Check if action set to remark, but source set.
-          - Check if action set to remark, but source_ports set.
+          - Check if action set to remark, but source_port_ranges set.
           - Check if action set to remark, but destination set.
-          - Check if action set to remark, but destination_ports set.
+          - Check if action set to remark, but destination_port_ranges set.
           - Check if action set to remark, but protocol set.
         """
         error_message = {}
@@ -347,9 +365,9 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
                 error_message["source"] = [
                     error_message_action_remark_source_set,
                 ]
-            # Check if action set to remark, but source_ports set.
-            if data.get("source_ports"):
-                error_message["source_ports"] = [
+            # Check if action set to remark, but source_port_ranges set.
+            if data.get("source_port_ranges"):
+                error_message["source_port_ranges"] = [
                     _("Action is set to remark, Source Ports CANNOT be set."),
                 ]
             # Check if action set to remark, but destination set.
@@ -357,9 +375,9 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
                 error_message["destination"] = [
                     _("Action is set to remark, Destination Prefix CANNOT be set."),
                 ]
-            # Check if action set to remark, but destination_ports set.
-            if data.get("destination_ports"):
-                error_message["destination_ports"] = [
+            # Check if action set to remark, but destination_port_ranges set.
+            if data.get("destination_port_ranges"):
+                error_message["destination_port_ranges"] = [
                     _("Action is set to remark, Destination Ports CANNOT be set."),
                 ]
             # Check if action set to remark, but protocol set.

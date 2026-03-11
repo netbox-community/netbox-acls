@@ -9,7 +9,7 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.filtersets import NetBoxModelFilterSet
-from utilities.filters import ContentTypeFilter, NumericArrayFilter
+from utilities.filters import ContentTypeFilter
 from virtualization.models import VirtualMachine, VMInterface
 
 from .choices import ACLTypeChoices
@@ -363,9 +363,9 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
         to_field_name="id",
         label=_("Source Prefix (ID)"),
     )
-    source_port = NumericArrayFilter(
-        field_name="source_ports",
-        lookup_expr="contains",
+    source_port = django_filters.NumberFilter(
+        field_name="source_port_ranges",
+        lookup_expr="range_contains",
         label=_("Source Port"),
     )
 
@@ -421,9 +421,9 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
         to_field_name="id",
         label=_("Destination Prefix (ID)"),
     )
-    destination_port = NumericArrayFilter(
-        field_name="destination_ports",
-        lookup_expr="contains",
+    destination_port = django_filters.NumberFilter(
+        field_name="destination_port_ranges",
+        lookup_expr="range_contains",
         label=_("Destination Port"),
     )
 

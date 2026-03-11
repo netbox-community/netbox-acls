@@ -4,6 +4,7 @@ while Django itself handles the database abstraction.
 """
 
 from django.contrib.contenttypes.models import ContentType
+from django.utils.translation import gettext_lazy as _
 from drf_spectacular.utils import extend_schema_field
 from netbox.api.fields import ContentTypeField
 from netbox.api.serializers import NetBoxModelSerializer
@@ -13,8 +14,8 @@ from utilities.api import get_serializer_for_model
 from ..constants import ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
 from ..models import (
     AccessList,
-    ACLExtendedRule,
     ACLAssignment,
+    ACLExtendedRule,
     ACLStandardRule,
 )
 
@@ -26,13 +27,13 @@ __all__ = [
 ]
 
 # Sets a standard error message for ACL rules with an action of remark, but no remark set.
-error_message_no_remark = "Action is set to remark, you MUST add a remark."
+error_message_no_remark = _("Action is set to remark, you MUST add a remark.")
 # Sets a standard error message for ACL rules with an action of remark, but no source is set.
-error_message_action_remark_source_set = "Action is set to remark, Source CANNOT be set."
+error_message_action_remark_source_set = _("Action is set to remark, Source CANNOT be set.")
 # Sets a standard error message for ACL rules with an action not set to remark, but no remark is set.
-error_message_remark_without_action_remark = "CANNOT set remark unless action is set to remark."
+error_message_remark_without_action_remark = _("CANNOT set remark unless action is set to remark.")
 # Sets a standard error message for ACL rules no associated with an ACL of the same type.
-error_message_acl_type = "Provided parent Access List is not of right type."
+error_message_acl_type = _("Provided parent Access List is not of right type.")
 
 
 class AccessListSerializer(NetBoxModelSerializer):
@@ -47,7 +48,7 @@ class AccessListSerializer(NetBoxModelSerializer):
 
     class Meta:
         """
-        Associates the django model AccessList & fields to the serializer.
+        Associates the django model AccessList & fields with the serializer.
         """
 
         model = AccessList
@@ -57,6 +58,7 @@ class AccessListSerializer(NetBoxModelSerializer):
             "display",
             "name",
             "type",
+            "family",
             "default_action",
             "comments",
             "tags",
@@ -70,16 +72,27 @@ class AccessListSerializer(NetBoxModelSerializer):
     def validate(self, data):
         """
         Validates api inputs before processing:
-          - Check that the GFK object is valid.
-          - Check if Access List has no existing rules before change the Access List's type.
+          - Check if Access List has no existing rules before changing the Access List's family.
+          - Check if Access List has no existing rules before changing the Access List's type.
         """
         error_message = {}
 
-        # Check if Access List has no existing rules before change the Access List's type.
-        if self.instance and self.instance.type != data.get("type") and self.instance.rule_count > 0:
-            error_message["type"] = [
-                "This ACL has ACL rules associated, CANNOT change ACL type.",
-            ]
+        if self.instance:
+            target_family = data.get("family", self.instance.family)
+            target_type = data.get("type", self.instance.type)
+            has_rules = getattr(self.instance, "rule_count", 0) > 0
+
+            # Check if Access List has no existing rules before change the Access List's family.
+            if self.instance.family != target_family and has_rules:
+                error_message["family"] = [
+                    _("This ACL has ACL rules associated, CANNOT change ACL family."),
+                ]
+
+            # Check if Access List has no existing rules before change the Access List's type.
+            if self.instance.type != target_type and has_rules:
+                error_message["type"] = [
+                    _("This ACL has ACL rules associated, CANNOT change ACL type."),
+                ]
 
         if error_message:
             raise serializers.ValidationError(error_message)
@@ -101,9 +114,12 @@ class ACLAssignmentSerializer(NetBoxModelSerializer):
     )
     assigned_object = serializers.SerializerMethodField(read_only=True)
 
+    # Denormalized fields
+    family = serializers.CharField(read_only=True)
+
     class Meta:
         """
-        Associates the django model ACLAssignment & fields to the serializer.
+        Associates the django model ACLAssignment & fields with the serializer.
         """
 
         model = ACLAssignment
@@ -112,6 +128,7 @@ class ACLAssignmentSerializer(NetBoxModelSerializer):
             "url",
             "display",
             "access_list",
+            "family",
             "direction",
             "assigned_object_type",
             "assigned_object_id",
@@ -157,7 +174,7 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
 
     class Meta:
         """
-        Associates the django model ACLStandardRule & fields to the serializer.
+        Associates the django model ACLStandardRule & fields with the serializer.
         """
 
         model = ACLStandardRule
@@ -316,7 +333,6 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
           - Check if action set to remark, but destination set.
           - Check if action set to remark, but destination_ports set.
           - Check if action set to remark, but protocol set.
-          - Check if action set to remark, but protocol set.
         """
         error_message = {}
 
@@ -334,22 +350,22 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
             # Check if action set to remark, but source_ports set.
             if data.get("source_ports"):
                 error_message["source_ports"] = [
-                    "Action is set to remark, Source Ports CANNOT be set.",
+                    _("Action is set to remark, Source Ports CANNOT be set."),
                 ]
             # Check if action set to remark, but destination set.
             if data.get("destination"):
                 error_message["destination"] = [
-                    "Action is set to remark, Destination Prefix CANNOT be set.",
+                    _("Action is set to remark, Destination Prefix CANNOT be set."),
                 ]
             # Check if action set to remark, but destination_ports set.
             if data.get("destination_ports"):
                 error_message["destination_ports"] = [
-                    "Action is set to remark, Destination Ports CANNOT be set.",
+                    _("Action is set to remark, Destination Ports CANNOT be set."),
                 ]
             # Check if action set to remark, but protocol set.
             if data.get("protocol"):
                 error_message["protocol"] = [
-                    "Action is set to remark, Protocol CANNOT be set.",
+                    _("Action is set to remark, Protocol CANNOT be set."),
                 ]
 
         if error_message:

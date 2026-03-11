@@ -150,3 +150,6 @@ class BaseTestCase(TestCase):
         cls.prefix2 = Prefix.objects.create(
             prefix=IPNetwork("10.2.0.0/16"),
         )
+        cls.prefix1_v6 = Prefix.objects.create(
+            prefix=IPNetwork("2001:db8::/64"),
+        )

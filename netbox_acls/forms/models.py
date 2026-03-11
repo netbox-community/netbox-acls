@@ -5,7 +5,7 @@ Defines each django model's GUI form to add or edit objects for each django mode
 from django import forms
 from dcim.models import Device, Interface
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from ipam.models import Prefix
@@ -68,6 +68,7 @@ class AccessListForm(NetBoxModelForm):
         FieldSet(
             "name",
             "type",
+            "family",
             "default_action",
             "tags",
             name=_("Access List Details"),
@@ -79,6 +80,7 @@ class AccessListForm(NetBoxModelForm):
         fields = (
             "name",
             "type",
+            "family",
             "default_action",
             "comments",
             "tags",
@@ -86,30 +88,12 @@ class AccessListForm(NetBoxModelForm):
 
         help_texts = {
             "default_action": _("The default behavior of the ACL."),
+            "family": _("Determines whether this ACL contains IPv4, IPv6, or dual-stack rules. Cannot be changed if rules are associated."),
             "name": _("The name uniqueness per device is case insensitive."),
             "type": mark_safe(
                 _("<b>*Note:</b> CANNOT be changed if ACL Rules are associated to this Access List."),
             ),
         }
-
-    def clean(self):
-        """
-        Validates and cleans the input data for the current object.
-
-        Ensures that the type of the Access Control List (ACL) cannot be
-        altered if there are existing rules associated with the current ACL.
-        """
-        super().clean()
-
-        acl_type = self.cleaned_data.get("type")
-
-        # Check if Access List has no existing rules before change the
-        # Access List's type.
-        if self.instance.pk and (
-            (acl_type == ACLTypeChoices.TYPE_EXTENDED and self.instance.aclstandardrules.exists())
-            or (acl_type == ACLTypeChoices.TYPE_STANDARD and self.instance.aclextendedrules.exists())
-        ):
-            raise ValidationError({"type": _("This ACL has ACL rules associated, CANNOT change ACL type.")})
 
 
 class ACLAssignmentForm(NetBoxModelForm):

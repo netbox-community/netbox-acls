@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 
-from netbox_acls.choices import ACLTypeChoices
+from netbox_acls.choices import ACLActionChoices, ACLFamilyChoices, ACLTypeChoices
 from netbox_acls.models import AccessList, ACLStandardRule
 
 from .base import BaseTestCase
@@ -19,20 +19,37 @@ class TestACLStandardRule(BaseTestCase):
         super().setUpTestData()
 
         cls.acl_type = ACLTypeChoices.TYPE_STANDARD
+        cls.family = ACLFamilyChoices.FAMILY_IPV4
         cls.default_action = "deny"
 
         # AccessLists
         cls.standard_acl1 = AccessList.objects.create(
             name="STANDARD_ACL",
             type=cls.acl_type,
+            family=cls.family,
             default_action=cls.default_action,
             comments="STANDARD_ACL",
         )
         cls.standard_acl2 = AccessList.objects.create(
             name="STANDARD_ACL",
             type=cls.acl_type,
+            family=cls.family,
             default_action=cls.default_action,
             comments="STANDARD_ACL",
+        )
+        cls.standard_acl_v6 = AccessList.objects.create(
+            name="STANDARD_ACL_V6",
+            type=cls.acl_type,
+            family=ACLFamilyChoices.FAMILY_IPV6,
+            default_action=cls.default_action,
+            comments="STANDARD_ACL_V6",
+        )
+        cls.standard_acl_dual = AccessList.objects.create(
+            name="STANDARD_ACL_DUAL",
+            type=cls.acl_type,
+            family=ACLFamilyChoices.FAMILY_DUAL,
+            default_action=cls.default_action,
+            comments="STANDARD_ACL_DUAL",
         )
 
     def test_acl_standard_rule_creation_success(self):
@@ -341,3 +358,41 @@ class TestACLStandardRule(BaseTestCase):
 
         with self.assertRaises(ValidationError):
             invalid_acl_rule_action.full_clean()
+
+    def test_acl_standard_rule_family_v4_acl_rejects_v6_objects(self):
+        """
+        Test that IPv4 ACL must not accept rules carrying IPv6 objects.
+        """
+        acl_v4 = AccessList.objects.create(
+            name="RF4",
+            type=self.acl_type,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=self.default_action,
+        )
+        invalid_rule = ACLStandardRule(
+            access_list=acl_v4,
+            index=10,
+            action=ACLActionChoices.ACTION_PERMIT,
+            source=self.prefix1_v6,
+        )
+        with self.assertRaises(ValidationError):
+            invalid_rule.full_clean()
+
+    def test_acl_standard_rule_family_v6_acl_rejects_v4_objects(self):
+        """
+        Test that IPv6 ACL must not accept rules carrying IPv4 objects.
+        """
+        acl = AccessList.objects.create(
+            name="RF6",
+            type=self.acl_type,
+            family=ACLFamilyChoices.FAMILY_IPV6,
+            default_action=self.default_action,
+        )
+        invalid_rule = ACLStandardRule(
+            access_list=acl,
+            index=10,
+            action=ACLActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+        )
+        with self.assertRaises(ValidationError):
+            invalid_rule.full_clean()

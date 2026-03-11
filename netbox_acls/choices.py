@@ -8,6 +8,7 @@ __all__ = (
     "ACLActionChoices",
     "ACLAssignmentDirectionChoices",
     "ACLAssignmentDirectionUIChoices",
+    "ACLFamilyChoices",
     "ACLProtocolChoices",
     "ACLRuleActionChoices",
     "ACLTypeChoices",
@@ -28,6 +29,24 @@ class ACLActionChoices(ChoiceSet):
         (ACTION_DENY, "Deny", "red"),
         (ACTION_PERMIT, "Permit", "green"),
         (ACTION_REJECT, "Reject (Reset)", "orange"),
+    ]
+
+
+class ACLFamilyChoices(ChoiceSet):
+    """
+    Defines the IP protocol families available for the Access Lists.
+    """
+
+    key = "netbox_acls.AccessList.family"
+
+    FAMILY_DUAL = "dual"
+    FAMILY_IPV4 = "ipv4"
+    FAMILY_IPV6 = "ipv6"
+
+    CHOICES = [
+        (FAMILY_IPV4, "IPv4", "blue"),
+        (FAMILY_IPV6, "IPv6", "purple"),
+        (FAMILY_DUAL, "Dual", "cyan"),
     ]
 
 

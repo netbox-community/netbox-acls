@@ -1,8 +1,13 @@
+from dcim.models import Device, Interface, VirtualChassis
 from django.core.exceptions import ValidationError
-from virtualization.models import VirtualMachine
-from dcim.models import Device, VirtualChassis, Interface
-from virtualization.models import VMInterface
+from virtualization.models import VirtualMachine, VMInterface
 
+from netbox_acls.choices import (
+    ACLActionChoices,
+    ACLAssignmentDirectionChoices,
+    ACLFamilyChoices,
+    ACLTypeChoices,
+)
 from netbox_acls.models import AccessList, ACLAssignment
 
 from .base import BaseTestCase
@@ -56,6 +61,20 @@ class TestACLAssignment(BaseTestCase):
             type="standard",
             default_action="permit",
             comments="STANDARD_ACL",
+        )
+        cls.acl_standard_v6 = AccessList.objects.create(
+            name="STANDARD_ACL_V6",
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV6,
+            default_action=ACLActionChoices.ACTION_PERMIT,
+            comments="STANDARD_ACL_V6",
+        )
+        cls.acl_standard_dual = AccessList.objects.create(
+            name="STANDARD_ACL_DUAL",
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_DUAL,
+            default_action=ACLActionChoices.ACTION_PERMIT,
+            comments="STANDARD_ACL_DUAL",
         )
 
         # Extended ACLs
@@ -242,3 +261,147 @@ class TestACLAssignment(BaseTestCase):
         )
         with self.assertRaises(ValidationError):
             invalid_acl_assignment_direction.full_clean()
+
+    def test_acl_assignment_denormalized_family_mirrors_acl_on_creation(self):
+        """
+        Test that ACLAssignment denormalized family mirrors ACL on creation.
+        """
+        acl_assignment = ACLAssignment(
+            access_list=self.acl_standard1,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+        acl_assignment.full_clean()
+        acl_assignment.save()
+        self.assertEqual(acl_assignment.family, ACLFamilyChoices.FAMILY_IPV4)
+
+    def test_acl_assignment_interface_uniqueness_by_family_and_dual_conflicts(self):
+        """
+        Test that ACLAssignment interface uniqueness by family and dual conflicts.
+        """
+        # Put IPv4 on ingress
+        ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        # Second IPv4 on the same interface+direction-> rejected
+        with self.assertRaises(ValidationError):
+            ACLAssignment(
+                access_list=self.acl_standard2,
+                assigned_object=self.device_interface1,
+                direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+            ).full_clean()
+
+        # IPv6 on same interface+direction -> allowed
+        ACLAssignment.objects.create(
+            access_list=self.acl_standard_v6,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        # Dual on the same interface+direction-> rejected
+        # (conflicts with v4/v6 present)
+        with self.assertRaises(ValidationError):
+            ACLAssignment(
+                access_list=self.acl_standard_dual,
+                assigned_object=self.device_interface1,
+                direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+            ).full_clean()
+
+    def test_acl_assignment_multiple_same_name_acls_but_unique_within_family(self):
+        """
+        Test that ACLAssignment multiple names acl but the same family is unique.
+        """
+
+        # Same name in different families -> allowed
+        acl_v4 = AccessList.objects.create(
+            name="ACL1",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        acl_v6 = AccessList.objects.create(
+            name="ACL1",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV6,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        acl_v4_same_name = AccessList.objects.create(
+            name="ACL1",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+
+        ACLAssignment.objects.create(
+            access_list=acl_v4,
+            assigned_object=self.device1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+        ACLAssignment.objects.create(
+            access_list=acl_v6,
+            assigned_object=self.device1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+
+        # Same name, same family on the same host-> rejected
+        with self.assertRaises(ValidationError):
+            ACLAssignment(
+                access_list=acl_v4_same_name,
+                assigned_object=self.device1,
+                direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+            ).full_clean()
+
+    def test_denormalized_family_syncs_after_acl_family_change(self):
+        """
+        Test denormalized family sync after ACL family change.
+        """
+        acl = AccessList.objects.create(
+            name="AccessList-Family-Sync",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        assignment = ACLAssignment.objects.create(
+            access_list=acl,
+            assigned_object=self.device1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+        self.assertEqual(assignment.family, ACLFamilyChoices.FAMILY_IPV4)
+
+        # Flip to IPv6 — allowed for host-only; should mirror on assignment after save()
+        acl.family = ACLFamilyChoices.FAMILY_IPV6
+        acl.full_clean()
+        acl.save()
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.family, ACLFamilyChoices.FAMILY_IPV6)
+
+    def test_acl_assignment_ipv4_and_ipv6_allowed_on_same_interface(self):
+        """
+        Test that ACLAssignment IPv4 and IPv6 are allowed on the same interface.
+        """
+        # Create IPv4 ACL assignment
+        ipv4_assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,  # IPv4
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        # Create IPv6 ACL assignment on the same interface+direction - should succeed
+        ipv6_assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard_v6,  # IPv6
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        self.assertEqual(ipv4_assignment.family, ACLFamilyChoices.FAMILY_IPV4)
+        self.assertEqual(ipv6_assignment.family, ACLFamilyChoices.FAMILY_IPV6)
+
+        # Verify both exist
+        assignments = ACLAssignment.objects.filter(
+            assigned_object_id=self.device_interface1.pk,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+        self.assertEqual(assignments.count(), 2)

@@ -32,6 +32,7 @@ class AccessListTable(NetBoxTable):
         linkify=True,
     )
     type = columns.ChoiceFieldColumn()
+    family = columns.ChoiceFieldColumn()
     default_action = columns.ChoiceFieldColumn()
     rule_count = tables.Column(
         verbose_name=_("Rule Count"),
@@ -47,6 +48,7 @@ class AccessListTable(NetBoxTable):
             "id",
             "name",
             "type",
+            "family",
             "rule_count",
             "default_action",
             "comments",
@@ -56,6 +58,7 @@ class AccessListTable(NetBoxTable):
         default_columns = (
             "name",
             "type",
+            "family",
             "rule_count",
             "default_action",
             "tags",
@@ -74,6 +77,7 @@ class ACLAssignmentTable(NetBoxTable):
     access_list = tables.Column(
         linkify=True,
     )
+    family = columns.ChoiceFieldColumn()
     assigned_object_type = columns.ContentTypeColumn(
         linkify=True,
     )
@@ -103,6 +107,7 @@ class ACLAssignmentTable(NetBoxTable):
             "pk",
             "id",
             "access_list",
+            "family",
             "assigned_object_type",
             "assigned_object",
             "direction",
@@ -112,6 +117,7 @@ class ACLAssignmentTable(NetBoxTable):
             "id",
             "access_list",
             "type",
+            "family",
             "assigned_object",
             "direction",
             "tags",

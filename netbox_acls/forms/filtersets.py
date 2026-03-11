@@ -19,6 +19,7 @@ from virtualization.models import VirtualMachine, VMInterface
 from ..choices import (
     ACLActionChoices,
     ACLAssignmentDirectionChoices,
+    ACLFamilyChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
     ACLTypeChoices,
@@ -52,6 +53,7 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
         ),
         FieldSet(
             "type",
+            "family",
             "default_action",
             name=_("ACL Details"),
         ),
@@ -62,6 +64,11 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
         choices=add_blank_choice(ACLTypeChoices),
         required=False,
         label=_("Type"),
+    )
+    family = forms.ChoiceField(
+        choices=add_blank_choice(ACLFamilyChoices),
+        required=False,
+        label=_("Family"),
     )
     default_action = forms.ChoiceField(
         choices=add_blank_choice(ACLActionChoices),
@@ -87,6 +94,7 @@ class ACLAssignmentFilterForm(NetBoxModelFilterSetForm):
         ),
         FieldSet(
             "access_list_id",
+            "family",
             "direction",
             name=_("ACL Details"),
         ),
@@ -114,6 +122,11 @@ class ACLAssignmentFilterForm(NetBoxModelFilterSetForm):
         queryset=AccessList.objects.all(),
         required=False,
         label=_("Access List"),
+    )
+    family = forms.ChoiceField(
+        choices=add_blank_choice(ACLFamilyChoices),
+        required=False,
+        label=_("Family"),
     )
     direction = forms.ChoiceField(
         choices=add_blank_choice(ACLAssignmentDirectionChoices),

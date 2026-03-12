@@ -132,7 +132,7 @@ def backfill_assignment_family(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("netbox_acls", "0008_acl_rule_sequence_conditional_unique"),
+        ("netbox_acls", "0009_acl_rule_sequence_unique"),
     ]
 
     operations = [

@@ -166,8 +166,7 @@ class ACLRule(NetBoxModel):
         constraints = [
             models.UniqueConstraint(
                 fields=("access_list", "index"),
-                condition=models.Q(action__in=("permit", "deny")),
-                name="%(app_label)s_%(class)s_unique_aclrule_index_for_real_rules",
+                name="%(app_label)s_%(class)s_unique_aclrule_index",
                 violation_error_message=_("Unique ACL rule index already exists."),
             ),
         ]

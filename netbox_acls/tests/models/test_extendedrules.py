@@ -557,9 +557,9 @@ class TestACLExtendedRule(BaseTestCase):
         self.assertEqual(isinstance(created_rule.access_list, AccessList), True)
         self.assertEqual(created_rule.access_list.type, self.acl_type)
 
-    def test_acl_extended_rule_action_permit_with_shared_index_action_remark_success(self):
+    def test_acl_extended_rule_action_permit_with_shared_index_action_remark_fail(self):
         """
-        Test that ACLExtendedRule with action 'permit' and action 'remark' shared index passes validation.
+        Test that ACLExtendedRule rejects a standalone remark sharing the same index as a permit rule.
         """
         created_permit_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
@@ -588,15 +588,8 @@ class TestACLExtendedRule(BaseTestCase):
             protocol=None,
             description="Created remark rule with same index as permit rule",
         )
-        created_remark_rule.full_clean()
-
-        self.assertTrue(isinstance(created_remark_rule, ACLExtendedRule), True)
-        self.assertEqual(created_remark_rule.index, 130)
-        self.assertEqual(created_remark_rule.action, "remark")
-        self.assertEqual(created_remark_rule.remark, "Standalone remark")
-        self.assertEqual(created_remark_rule.description, "Created remark rule with same index as permit rule")
-        self.assertEqual(isinstance(created_remark_rule.access_list, AccessList), True)
-        self.assertEqual(created_remark_rule.access_list.type, self.acl_type)
+        with self.assertRaises(ValidationError):
+            created_remark_rule.full_clean()
 
     def test_access_list_standard_to_acl_extended_rule_assignment_fail(self):
         """

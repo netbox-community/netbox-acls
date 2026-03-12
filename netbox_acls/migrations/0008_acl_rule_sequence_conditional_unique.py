@@ -26,18 +26,16 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="aclextendedrule",
             constraint=models.UniqueConstraint(
-                condition=models.Q(("action__in", ("permit", "deny"))),
                 fields=("access_list", "index"),
-                name="netbox_acls_aclextendedrule_unique_aclrule_index_for_real_rules",
+                name="netbox_acls_aclextendedrule_unique_aclrule_index",
                 violation_error_message="Unique ACL rule index already exists.",
             ),
         ),
         migrations.AddConstraint(
             model_name="aclstandardrule",
             constraint=models.UniqueConstraint(
-                condition=models.Q(("action__in", ("permit", "deny"))),
                 fields=("access_list", "index"),
-                name="netbox_acls_aclstandardrule_unique_aclrule_index_for_real_rules",
+                name="netbox_acls_aclstandardrule_unique_aclrule_index",
                 violation_error_message="Unique ACL rule index already exists.",
             ),
         ),

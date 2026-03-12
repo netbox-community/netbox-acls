@@ -22,7 +22,7 @@ def copy_host_assignments(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("netbox_acls", "0005_acl_rule_source_and_destination_objects"),
+        ("netbox_acls", "0006_aci_rule_copy_prefix_assignments"),
     ]
 
     operations = [

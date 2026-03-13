@@ -67,7 +67,7 @@ def migrate_ports_to_port_ranges(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("netbox_acls", "0010_accesslist_ip_family"),
+        ("netbox_acls", "0011_acl_rule_copy_prefix_assignments"),
     ]
 
     operations = [

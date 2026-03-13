@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("netbox_acls", "0007_acl_assignments"),
+        ("netbox_acls", "0005_preflight_validate_upgrade"),
     ]
 
     operations = [

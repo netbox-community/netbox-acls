@@ -3,7 +3,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("netbox_acls", "0008_alter_accesslist_name"),
+        ("netbox_acls", "0006_alter_accesslist_name"),
     ]
 
     operations = [

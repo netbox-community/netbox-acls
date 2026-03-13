@@ -19,8 +19,8 @@ def infer_family(apps, schema_editor):
     std_rules_by_acl = {}
     for rule in (
         ACLStandardRule.objects.using(db_alias)
-        .select_related("_source_prefix")
-        .only("id", "access_list_id", "_source_prefix__prefix")
+        .select_related("source_prefix")
+        .only("id", "access_list_id", "source_prefix__prefix")
         .iterator()
     ):
         std_rules_by_acl.setdefault(rule.access_list_id, []).append(rule)
@@ -28,8 +28,8 @@ def infer_family(apps, schema_editor):
     ext_rules_by_acl = {}
     for rule in (
         ACLExtendedRule.objects.using(db_alias)
-        .select_related("_source_prefix", "_destination_prefix")
-        .only("id", "access_list_id", "_source_prefix__prefix", "_destination_prefix__prefix")
+        .select_related("source_prefix", "destination_prefix")
+        .only("id", "access_list_id", "source_prefix__prefix", "destination_prefix__prefix")
         .iterator()
     ):
         ext_rules_by_acl.setdefault(rule.access_list_id, []).append(rule)
@@ -43,7 +43,7 @@ def infer_family(apps, schema_editor):
 
         if acl.type == "standard":
             for rule in std_rules_by_acl.get(acl.pk, []):
-                version = _get_version(rule._source_prefix)
+                version = _get_version(rule.source_prefix)
                 if version == 4:
                     has_v4 = True
                 elif version == 6:
@@ -52,7 +52,7 @@ def infer_family(apps, schema_editor):
                     break
         else:
             for rule in ext_rules_by_acl.get(acl.pk, []):
-                for prefix_obj in (rule._source_prefix, rule._destination_prefix):
+                for prefix_obj in (rule.source_prefix, rule.destination_prefix):
                     version = _get_version(prefix_obj)
                     if version == 4:
                         has_v4 = True
@@ -88,7 +88,7 @@ def backfill_assignment_family(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("netbox_acls", "0009_acl_rule_sequence_unique"),
+        ("netbox_acls", "0008_acl_assignments"),
     ]
 
     operations = [

@@ -66,7 +66,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         created_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=10,
+            sequence=10,
             action="permit",
             remark="",
             source=None,
@@ -82,7 +82,7 @@ class TestACLExtendedRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
-        self.assertEqual(created_rule.index, 10)
+        self.assertEqual(created_rule.sequence, 10)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, None)
@@ -103,7 +103,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         created_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=20,
+            sequence=20,
             action="permit",
             remark="",
             source=self.aggregate1,
@@ -116,7 +116,7 @@ class TestACLExtendedRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
-        self.assertEqual(created_rule.index, 20)
+        self.assertEqual(created_rule.sequence, 20)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, self.aggregate1)
@@ -134,7 +134,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         created_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=30,
+            sequence=30,
             action="permit",
             remark="",
             source=self.ip_address1,
@@ -147,7 +147,7 @@ class TestACLExtendedRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
-        self.assertEqual(created_rule.index, 30)
+        self.assertEqual(created_rule.sequence, 30)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, self.ip_address1)
@@ -165,7 +165,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         created_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=40,
+            sequence=40,
             action="permit",
             remark="",
             source=self.ip_range1,
@@ -178,7 +178,7 @@ class TestACLExtendedRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
-        self.assertEqual(created_rule.index, 40)
+        self.assertEqual(created_rule.sequence, 40)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, self.ip_range1)
@@ -196,7 +196,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         created_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=50,
+            sequence=50,
             action="permit",
             remark="",
             source=self.prefix1,
@@ -209,7 +209,7 @@ class TestACLExtendedRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
-        self.assertEqual(created_rule.index, 50)
+        self.assertEqual(created_rule.sequence, 50)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, self.prefix1)
@@ -227,7 +227,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         created_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=70,
+            sequence=70,
             action="permit",
             remark="",
             source=self.prefix1,
@@ -240,7 +240,7 @@ class TestACLExtendedRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
-        self.assertEqual(created_rule.index, 70)
+        self.assertEqual(created_rule.sequence, 70)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, self.prefix1)
@@ -258,7 +258,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         created_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=80,
+            sequence=80,
             action="permit",
             remark="",
             source=None,
@@ -271,7 +271,7 @@ class TestACLExtendedRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
-        self.assertEqual(created_rule.index, 80)
+        self.assertEqual(created_rule.sequence, 80)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, None)
@@ -289,7 +289,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         created_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=90,
+            sequence=90,
             action="permit",
             remark="",
             source=None,
@@ -302,7 +302,7 @@ class TestACLExtendedRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
-        self.assertEqual(created_rule.index, 90)
+        self.assertEqual(created_rule.sequence, 90)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, None)
@@ -320,7 +320,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         created_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=100,
+            sequence=100,
             action="permit",
             remark="",
             source=None,
@@ -333,7 +333,7 @@ class TestACLExtendedRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
-        self.assertEqual(created_rule.index, 100)
+        self.assertEqual(created_rule.sequence, 100)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, None)
@@ -351,7 +351,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         created_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=110,
+            sequence=110,
             action="permit",
             remark="",
             source=None,
@@ -364,7 +364,7 @@ class TestACLExtendedRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
-        self.assertEqual(created_rule.index, 110)
+        self.assertEqual(created_rule.sequence, 110)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, None)
@@ -382,7 +382,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         created_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=130,
+            sequence=130,
             action="permit",
             remark="",
             source=None,
@@ -395,7 +395,7 @@ class TestACLExtendedRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
-        self.assertEqual(created_rule.index, 130)
+        self.assertEqual(created_rule.sequence, 130)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, None)
@@ -413,7 +413,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         created_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=140,
+            sequence=140,
             action="permit",
             remark="",
             source=self.prefix1,
@@ -426,7 +426,7 @@ class TestACLExtendedRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
-        self.assertEqual(created_rule.index, 140)
+        self.assertEqual(created_rule.sequence, 140)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, self.prefix1)
@@ -444,7 +444,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         created_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=140,
+            sequence=140,
             action="permit",
             remark="",
             source=self.prefix1,
@@ -457,7 +457,7 @@ class TestACLExtendedRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
-        self.assertEqual(created_rule.index, 140)
+        self.assertEqual(created_rule.sequence, 140)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, self.prefix1)
@@ -475,7 +475,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         created_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=150,
+            sequence=150,
             action="permit",
             remark="",
             source=self.prefix1,
@@ -488,7 +488,7 @@ class TestACLExtendedRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
-        self.assertEqual(created_rule.index, 150)
+        self.assertEqual(created_rule.sequence, 150)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, self.prefix1)
@@ -506,7 +506,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         created_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=160,
+            sequence=160,
             action="remark",
             remark="Test remark",
             source=None,
@@ -519,7 +519,7 @@ class TestACLExtendedRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
-        self.assertEqual(created_rule.index, 160)
+        self.assertEqual(created_rule.sequence, 160)
         self.assertEqual(created_rule.action, "remark")
         self.assertEqual(created_rule.remark, "Test remark")
         self.assertEqual(created_rule.source, None)
@@ -537,7 +537,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         created_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=120,
+            sequence=120,
             action="permit",
             remark="Inline remark",
             source=None,
@@ -550,20 +550,20 @@ class TestACLExtendedRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLExtendedRule), True)
-        self.assertEqual(created_rule.index, 120)
+        self.assertEqual(created_rule.sequence, 120)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "Inline remark")
         self.assertEqual(created_rule.description, "Created permit rule with remark")
         self.assertEqual(isinstance(created_rule.access_list, AccessList), True)
         self.assertEqual(created_rule.access_list.type, self.acl_type)
 
-    def test_acl_extended_rule_action_permit_with_shared_index_action_remark_fail(self):
+    def test_acl_extended_rule_action_permit_with_shared_sequence_action_remark_fail(self):
         """
-        Test that ACLExtendedRule rejects a standalone remark sharing the same index as a permit rule.
+        Test that ACLExtendedRule rejects a standalone remark sharing the same sequence as a permit rule.
         """
         created_permit_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=130,
+            sequence=130,
             action="permit",
             remark="",
             source=None,
@@ -571,14 +571,14 @@ class TestACLExtendedRule(BaseTestCase):
             destination=None,
             destination_port_ranges=None,
             protocol=self.protocol,
-            description="Created permit rule with same index as remark",
+            description="Created permit rule with same sequence as remark",
         )
         created_permit_rule.full_clean()
         created_permit_rule.save()
 
         created_remark_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=130,
+            sequence=130,
             action="remark",
             remark="Standalone remark",
             source=None,
@@ -586,7 +586,7 @@ class TestACLExtendedRule(BaseTestCase):
             destination=None,
             destination_port_ranges=None,
             protocol=None,
-            description="Created remark rule with same index as permit rule",
+            description="Created remark rule with same sequence as permit rule",
         )
         with self.assertRaises(ValidationError):
             created_remark_rule.full_clean()
@@ -603,7 +603,7 @@ class TestACLExtendedRule(BaseTestCase):
         )
         extended_rule = ACLExtendedRule(
             access_list=standard_acl1,
-            index=170,
+            sequence=170,
             action="remark",
             remark="Test remark",
             source=None,
@@ -616,13 +616,13 @@ class TestACLExtendedRule(BaseTestCase):
         with self.assertRaises(ValidationError):
             extended_rule.full_clean()
 
-    def test_duplicate_index_per_acl_fail(self):
+    def test_duplicate_sequence_per_acl_fail(self):
         """
-        Test that the rule index must be unique per AccessList.
+        Test that the rule sequence must be unique per AccessList.
         """
         params = {
             "access_list": self.extended_acl1,
-            "index": 10,
+            "sequence": 10,
             "action": "permit",
         }
         rule_1 = ACLExtendedRule(**params)
@@ -638,7 +638,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         invalid_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=10,
+            sequence=10,
             action="remark",
             remark="",
             source=None,
@@ -657,7 +657,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         invalid_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=10,
+            sequence=10,
             action="remark",
             remark="",
             source=self.prefix1,
@@ -676,7 +676,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         invalid_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=10,
+            sequence=10,
             action="remark",
             remark="",
             source=self.prefix1,
@@ -695,7 +695,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         invalid_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=10,
+            sequence=10,
             action="remark",
             remark="",
             source=None,
@@ -714,7 +714,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         invalid_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=10,
+            sequence=10,
             action="remark",
             remark="",
             source=None,
@@ -733,7 +733,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         invalid_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=10,
+            sequence=10,
             action="remark",
             remark="",
             source=None,
@@ -752,7 +752,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         invalid_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=10,
+            sequence=10,
             action="permit",
             remark="",
             source=None,
@@ -771,7 +771,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         invalid_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=10,
+            sequence=10,
             action="permit",
             remark="",
             source=None,
@@ -790,7 +790,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         invalid_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=10,
+            sequence=10,
             action="permit",
             remark="",
             source=None,
@@ -809,7 +809,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         invalid_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=10,
+            sequence=10,
             action="permit",
             remark="",
             source=None,
@@ -828,7 +828,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         invalid_acl_rule_source_object = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=10,
+            sequence=10,
             action="permit",
             remark="",
             source=self.device1,
@@ -847,7 +847,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         invalid_acl_rule_destination_object = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=10,
+            sequence=10,
             action="permit",
             remark="",
             source=None,
@@ -869,7 +869,7 @@ class TestACLExtendedRule(BaseTestCase):
         for action_choice in valid_acl_rule_action_choices:
             valid_acl_rule_action = ACLExtendedRule(
                 access_list=self.extended_acl1,
-                index=10,
+                sequence=10,
                 action=action_choice,
                 remark="Remark" if action_choice == "remark" else None,
                 description=f"VALID ACL RULE ACTION CHOICES USED: action={action_choice}",
@@ -884,7 +884,7 @@ class TestACLExtendedRule(BaseTestCase):
 
         invalid_acl_rule_action = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=10,
+            sequence=10,
             action=invalid_acl_rule_action_choice,
             description=f"INVALID ACL RULE ACTION CHOICES USED: action={invalid_acl_rule_action_choice}",
         )
@@ -901,7 +901,7 @@ class TestACLExtendedRule(BaseTestCase):
         for protocol_choice in valid_acl_rule_protocol_choices:
             valid_acl_rule_protocol = ACLExtendedRule(
                 access_list=self.extended_acl1,
-                index=10,
+                sequence=10,
                 action=self.default_action,
                 protocol=protocol_choice,
                 description=f"VALID ACL RULE PROTOCOL CHOICES USED: protocol={protocol_choice}",
@@ -916,7 +916,7 @@ class TestACLExtendedRule(BaseTestCase):
 
         invalid_acl_rule_protocol = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=10,
+            sequence=10,
             protocol=invalid_acl_rule_protocol_choice,
             description=f"INVALID ACL RULE PROTOCOL CHOICES USED: protocol={invalid_acl_rule_protocol_choice}",
         )
@@ -936,7 +936,7 @@ class TestACLExtendedRule(BaseTestCase):
         )
         invalid_rule = ACLExtendedRule(
             access_list=acl_v4,
-            index=10,
+            sequence=10,
             action=ACLActionChoices.ACTION_PERMIT,
             source=self.prefix1_v6,
             destination=self.prefix1_v6,
@@ -956,7 +956,7 @@ class TestACLExtendedRule(BaseTestCase):
         )
         invalid_rule = ACLExtendedRule(
             access_list=acl,
-            index=10,
+            sequence=10,
             action=ACLActionChoices.ACTION_PERMIT,
             source=self.prefix1,
             destination=self.prefix1_v6,
@@ -976,7 +976,7 @@ class TestACLExtendedRule(BaseTestCase):
         )
         mixed = ACLExtendedRule(
             access_list=acl,
-            index=10,
+            sequence=10,
             action=ACLActionChoices.ACTION_PERMIT,
             source=self.prefix1,
             destination=self.prefix1_v6,
@@ -990,7 +990,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=10,
+            sequence=10,
             action=ACLActionChoices.ACTION_PERMIT,
             source=self.prefix1,
             source_port_ranges=string_to_ranges("1024-65535"),
@@ -1010,7 +1010,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         created_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=155,
+            sequence=155,
             action="permit",
             remark="",
             source=self.prefix1,
@@ -1045,7 +1045,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         invalid_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=156,
+            sequence=156,
             action="permit",
             remark="",
             source=self.prefix1,
@@ -1068,7 +1068,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         invalid_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=157,
+            sequence=157,
             action="permit",
             remark="",
             source=self.prefix1,
@@ -1088,7 +1088,7 @@ class TestACLExtendedRule(BaseTestCase):
         """
         invalid_rule = ACLExtendedRule(
             access_list=self.extended_acl1,
-            index=158,
+            sequence=158,
             action="permit",
             remark="",
             source=self.prefix1,

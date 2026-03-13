@@ -58,7 +58,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         created_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=10,
+            sequence=10,
             action="permit",
             remark="",
             source=None,
@@ -67,7 +67,7 @@ class TestACLStandardRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLStandardRule), True)
-        self.assertEqual(created_rule.index, 10)
+        self.assertEqual(created_rule.sequence, 10)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, None)
@@ -81,7 +81,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         created_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=20,
+            sequence=20,
             action="permit",
             remark="",
             source=self.prefix1,
@@ -90,7 +90,7 @@ class TestACLStandardRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLStandardRule), True)
-        self.assertEqual(created_rule.index, 20)
+        self.assertEqual(created_rule.sequence, 20)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, self.prefix1)
@@ -104,7 +104,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         created_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=30,
+            sequence=30,
             action="remark",
             remark="Test remark",
             source=None,
@@ -113,7 +113,7 @@ class TestACLStandardRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLStandardRule), True)
-        self.assertEqual(created_rule.index, 30)
+        self.assertEqual(created_rule.sequence, 30)
         self.assertEqual(created_rule.action, "remark")
         self.assertEqual(created_rule.remark, "Test remark")
         self.assertEqual(created_rule.source, None)
@@ -127,7 +127,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         created_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=40,
+            sequence=40,
             action="permit",
             remark="",
             source=self.aggregate1,
@@ -136,7 +136,7 @@ class TestACLStandardRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLStandardRule), True)
-        self.assertEqual(created_rule.index, 40)
+        self.assertEqual(created_rule.sequence, 40)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, self.aggregate1)
@@ -150,7 +150,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         created_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=50,
+            sequence=50,
             action="permit",
             remark="",
             source=self.ip_address1,
@@ -159,7 +159,7 @@ class TestACLStandardRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLStandardRule), True)
-        self.assertEqual(created_rule.index, 50)
+        self.assertEqual(created_rule.sequence, 50)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, self.ip_address1)
@@ -173,7 +173,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         created_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=60,
+            sequence=60,
             action="permit",
             remark="",
             source=self.ip_range1,
@@ -182,7 +182,7 @@ class TestACLStandardRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLStandardRule), True)
-        self.assertEqual(created_rule.index, 60)
+        self.assertEqual(created_rule.sequence, 60)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, self.ip_range1)
@@ -196,7 +196,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         created_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=70,
+            sequence=70,
             action="permit",
             remark="Inline remark",
             source=None,
@@ -205,7 +205,7 @@ class TestACLStandardRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLStandardRule), True)
-        self.assertEqual(created_rule.index, 70)
+        self.assertEqual(created_rule.sequence, 70)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "Inline remark")
         self.assertEqual(created_rule.description, "Created permit rule with remark")
@@ -214,26 +214,26 @@ class TestACLStandardRule(BaseTestCase):
 
     def test_acl_standard_rule_action_permit_with_shared_index_action_remark_fail(self):
         """
-        Test that ACLStandardRule rejects a standalone remark sharing the same index as a permit rule.
+        Test that ACLStandardRule rejects a standalone remark sharing the same sequence as a permit rule.
         """
         created_permit_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=80,
+            sequence=80,
             action="permit",
             remark="",
             source=None,
-            description="Created permit rule with same index as remark",
+            description="Created permit rule with same sequence as remark",
         )
         created_permit_rule.full_clean()
         created_permit_rule.save()
 
         created_remark_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=80,
+            sequence=80,
             action="remark",
             remark="Standalone remark",
             source=None,
-            description="Created remark rule with same index as permit rule",
+            description="Created remark rule with same sequence as permit rule",
         )
         with self.assertRaises(ValidationError):
             created_remark_rule.full_clean()
@@ -250,7 +250,7 @@ class TestACLStandardRule(BaseTestCase):
         )
         standard_rule = ACLStandardRule(
             access_list=extended_acl1,
-            index=30,
+            sequence=30,
             action="remark",
             remark="Test remark",
             source=None,
@@ -261,11 +261,11 @@ class TestACLStandardRule(BaseTestCase):
 
     def test_duplicate_index_per_acl_fail(self):
         """
-        Test that the rule index must be unique per AccessList.
+        Test that the rule sequence must be unique per AccessList.
         """
         params = {
             "access_list": self.standard_acl1,
-            "index": 10,
+            "sequence": 10,
             "action": "permit",
         }
         rule_1 = ACLStandardRule(**params)
@@ -281,7 +281,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         invalid_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=10,
+            sequence=10,
             action="remark",
             remark="",
             source=None,
@@ -296,7 +296,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         invalid_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=10,
+            sequence=10,
             action="remark",
             remark="",
             source=self.prefix1,
@@ -311,7 +311,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         invalid_acl_rule_source_object = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=10,
+            sequence=10,
             action="permit",
             remark="",
             source=self.device1,
@@ -329,7 +329,7 @@ class TestACLStandardRule(BaseTestCase):
         for action_choice in valid_acl_rule_action_choices:
             valid_acl_rule_action = ACLStandardRule(
                 access_list=self.standard_acl1,
-                index=10,
+                sequence=10,
                 action=action_choice,
                 remark="Remark" if action_choice == "remark" else None,
                 description=f"VALID ACL RULE ACTION CHOICES USED: action={action_choice}",
@@ -344,7 +344,7 @@ class TestACLStandardRule(BaseTestCase):
 
         invalid_acl_rule_action = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=10,
+            sequence=10,
             action=invalid_acl_rule_action_choice,
             description=f"INVALID ACL RULE ACTION CHOICES USED: action={invalid_acl_rule_action_choice}",
         )
@@ -364,7 +364,7 @@ class TestACLStandardRule(BaseTestCase):
         )
         invalid_rule = ACLStandardRule(
             access_list=acl_v4,
-            index=10,
+            sequence=10,
             action=ACLActionChoices.ACTION_PERMIT,
             source=self.prefix1_v6,
         )
@@ -383,7 +383,7 @@ class TestACLStandardRule(BaseTestCase):
         )
         invalid_rule = ACLStandardRule(
             access_list=acl,
-            index=10,
+            sequence=10,
             action=ACLActionChoices.ACTION_PERMIT,
             source=self.prefix1,
         )

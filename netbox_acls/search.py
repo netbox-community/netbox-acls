@@ -44,7 +44,7 @@ class ACLStandardRuleIndex(SearchIndex):
     )
     display_attrs: tuple = (
         "access_list",
-        "index",
+        "sequence",
         "description",
         "action",
         "remark",
@@ -67,7 +67,7 @@ class ACLExtendedRuleIndex(SearchIndex):
     )
     display_attrs: tuple = (
         "access_list",
-        "index",
+        "sequence",
         "action",
         "remark",
         "protocol",

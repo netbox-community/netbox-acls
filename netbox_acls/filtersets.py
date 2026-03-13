@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.filtersets import NetBoxModelFilterSet
 from utilities.filters import ContentTypeFilter
+from utilities.filtersets import register_filterset
 from virtualization.models import VirtualMachine, VMInterface
 
 from .choices import ACLTypeChoices
@@ -23,6 +24,7 @@ __all__ = (
 )
 
 
+@register_filterset
 class AccessListFilterSet(NetBoxModelFilterSet):
     """
     Define the filter set for the django model AccessList.
@@ -56,6 +58,7 @@ class AccessListFilterSet(NetBoxModelFilterSet):
         return queryset.filter(query)
 
 
+@register_filterset
 class ACLAssignmentFilterSet(NetBoxModelFilterSet):
     """
     Define the filter set for the django model ACLAssignment.
@@ -200,6 +203,7 @@ class ACLAssignmentFilterSet(NetBoxModelFilterSet):
         return queryset.filter(query)
 
 
+@register_filterset
 class ACLStandardRuleFilterSet(NetBoxModelFilterSet):
     """
     Define the filter set for the django model ACLStandardRule.
@@ -294,6 +298,7 @@ class ACLStandardRuleFilterSet(NetBoxModelFilterSet):
         return queryset.filter(query)
 
 
+@register_filterset
 class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
     """
     Define the filter set for the django model ACLExtendedRule.

@@ -7,6 +7,7 @@ from dcim.models import Device, Interface, VirtualChassis
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Count
 from django.utils.translation import gettext_lazy as _
+from netbox.object_actions import AddObject, BulkDelete, BulkExport
 from netbox.views import generic
 from utilities.views import ViewTab, register_model_view
 from virtualization.models import VirtualMachine, VMInterface
@@ -53,6 +54,7 @@ class ACLAssignmentChildrenView(generic.ObjectChildrenView):
         weight=1100,
     )
     table = tables.ACLAssignmentTable
+    actions = (BulkExport, BulkDelete)
 
     def get_children(self, request, parent):
         """
@@ -125,6 +127,7 @@ class AccessListListView(generic.ObjectListView):
     table = tables.AccessListTable
     filterset = filtersets.AccessListFilterSet
     filterset_form = forms.AccessListFilterForm
+    actions = (AddObject, BulkExport, BulkDelete)
 
 
 @register_model_view(models.AccessList, "add", detail=False)
@@ -217,6 +220,7 @@ class ACLAssignmentListView(generic.ObjectListView):
     table = tables.ACLAssignmentTable
     filterset = filtersets.ACLAssignmentFilterSet
     filterset_form = forms.ACLAssignmentFilterForm
+    actions = (AddObject, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLAssignment, "add", detail=False)
@@ -428,6 +432,7 @@ class ACLStandardRuleListView(generic.ObjectListView):
     table = tables.ACLStandardRuleTable
     filterset = filtersets.ACLStandardRuleFilterSet
     filterset_form = forms.ACLStandardRuleFilterForm
+    actions = (AddObject, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLStandardRule, "add", detail=False)
@@ -512,6 +517,7 @@ class ACLExtendedRuleListView(generic.ObjectListView):
     table = tables.ACLExtendedRuleTable
     filterset = filtersets.ACLExtendedRuleFilterSet
     filterset_form = forms.ACLExtendedRuleFilterForm
+    actions = (AddObject, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLExtendedRule, "add", detail=False)

@@ -6,7 +6,7 @@ import strawberry_django
 from core.graphql.filters import ContentTypeFilter
 from netbox.graphql.filters import NetBoxModelFilter
 from strawberry.scalars import ID
-from strawberry_django import FilterLookup
+from strawberry_django import BaseFilterLookup, FilterLookup
 
 from ... import models
 
@@ -40,7 +40,7 @@ class ACLRuleFilterMixin(NetBoxModelFilter):
         strawberry_django.filter_field()
     )
     description: FilterLookup[str] | None = strawberry_django.filter_field()
-    action: Annotated["ACLRuleActionEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (
+    action: BaseFilterLookup[Annotated["ACLRuleActionEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None = (
         strawberry_django.filter_field()
     )
 
@@ -84,6 +84,6 @@ class ACLExtendedRuleFilter(ACLRuleFilterMixin):
     ) = strawberry_django.filter_field()
 
     # Protocol
-    protocol: Annotated["ACLProtocolEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (
+    protocol: BaseFilterLookup[Annotated["ACLProtocolEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None = (
         strawberry_django.filter_field()
     )

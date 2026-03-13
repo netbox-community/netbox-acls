@@ -5,7 +5,7 @@ import strawberry_django
 from core.graphql.filters import ContentTypeFilter
 from netbox.graphql.filters import NetBoxModelFilter
 from strawberry.scalars import ID
-from strawberry_django import FilterLookup
+from strawberry_django import BaseFilterLookup, FilterLookup
 
 from ... import models
 
@@ -31,15 +31,15 @@ class AccessListFilter(NetBoxModelFilter):
     """
 
     name: FilterLookup[str] | None = strawberry_django.filter_field()
-    type: Annotated["ACLTypeEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (
+    type: BaseFilterLookup[Annotated["ACLTypeEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None = (
         strawberry_django.filter_field()
     )
-    family: Annotated["ACLFamilyEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (
+    family: BaseFilterLookup[Annotated["ACLFamilyEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None = (
         strawberry_django.filter_field()
     )
-    default_action: Annotated["ACLActionEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (
-        strawberry_django.filter_field()
-    )
+    default_action: (
+        BaseFilterLookup[Annotated["ACLActionEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None
+    ) = strawberry_django.filter_field()
 
 
 @strawberry_django.filter(models.ACLAssignment, lookups=True)
@@ -56,9 +56,9 @@ class ACLAssignmentFilter(NetBoxModelFilter):
         strawberry_django.filter_field()
     )
     assigned_object_id: ID | None = strawberry_django.filter_field()
-    direction: Annotated["ACLAssignmentDirectionEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (
-        strawberry_django.filter_field()
-    )
-    family: Annotated["ACLFamilyEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (
+    direction: (
+        BaseFilterLookup[Annotated["ACLAssignmentDirectionEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None
+    ) = strawberry_django.filter_field()
+    family: BaseFilterLookup[Annotated["ACLFamilyEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None = (
         strawberry_django.filter_field()
     )

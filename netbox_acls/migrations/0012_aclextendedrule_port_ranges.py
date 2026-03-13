@@ -54,15 +54,22 @@ def migrate_ports_to_port_ranges(apps, schema_editor):
 
     rules_to_update = []
     for r in Rule.objects.using(db_alias).filter(filters).iterator():
+        changed = False
         if has_src_ints and r.source_ports:
             r.source_port_ranges = collapse_ints_to_ranges(r.source_ports)
+            changed = True
         if has_dst_ints and r.destination_ports:
             r.destination_port_ranges = collapse_ints_to_ranges(r.destination_ports)
-        rules_to_update.append(r)
+            changed = True
+        if changed:
+            rules_to_update.append(r)
 
-    Rule.objects.using(db_alias).bulk_update(
-        rules_to_update, ["source_port_ranges", "destination_port_ranges"], batch_size=100
-    )
+    if rules_to_update:
+        Rule.objects.using(db_alias).bulk_update(
+            rules_to_update,
+            ["source_port_ranges", "destination_port_ranges"],
+            batch_size=100,
+        )
 
 
 class Migration(migrations.Migration):

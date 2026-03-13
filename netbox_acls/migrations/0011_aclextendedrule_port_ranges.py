@@ -1,6 +1,7 @@
 import django.contrib.postgres.fields
 import django.contrib.postgres.fields.ranges
 from django.db import migrations
+from django.db.models import Q
 from django.db.backends.postgresql.psycopg_any import NumericRange
 
 from netbox_acls.constants import ACL_RULE_PORT_MAX, ACL_RULE_PORT_MIN
@@ -25,21 +26,15 @@ def collapse_ints_to_ranges(ints):
         if n == prev + 1:
             prev = n
             continue
-        out.append(NumericRange(start, prev + 1))  # store as [start, prev+1) (inclusive human)
+        out.append(NumericRange(start, prev + 1))  # store as [start, prev+1) (inclusive)
         start = prev = n
-    out.append(NumericRange(start, prev + 1))  # store as [start, prev+1) (inclusive human)
+    out.append(NumericRange(start, prev + 1))  # store as [start, prev+1) (inclusive)
     return out
 
 
 def migrate_ports_to_port_ranges(apps, schema_editor):
     """
     Migrates source and destination port values to port range fields in the database.
-
-    This function updates the database by converting individual source and destination
-    ports into their respective port ranges for objects in the ACLExtendedRule model.
-    If relevant fields (`source_ports` and/or `destination_ports`) are present and contain
-    data, this function will compute the corresponding port ranges using the `collapse_ints_to_ranges`
-    utility and save the updated data.
     """
     db_alias = schema_editor.connection.alias
     Rule = apps.get_model("netbox_acls", "ACLExtendedRule")
@@ -47,16 +42,27 @@ def migrate_ports_to_port_ranges(apps, schema_editor):
     has_src_ints = "source_ports" in fields
     has_dst_ints = "destination_ports" in fields
 
-    for r in Rule.objects.using(db_alias).all().iterator():
-        changed = False
-        if has_src_ints and getattr(r, "source_ports", None) and not getattr(r, "source_port_ranges", None):
+    if not has_src_ints and not has_dst_ints:
+        return
+
+    # Only fetch rows where ports exist
+    filters = Q()
+    if has_src_ints:
+        filters |= Q(source_ports__isnull=False)
+    if has_dst_ints:
+        filters |= Q(destination_ports__isnull=False)
+
+    rules_to_update = []
+    for r in Rule.objects.using(db_alias).filter(filters).iterator():
+        if has_src_ints and r.source_ports:
             r.source_port_ranges = collapse_ints_to_ranges(r.source_ports)
-            changed = True
-        if has_dst_ints and getattr(r, "destination_ports", None) and not getattr(r, "destination_port_ranges", None):
+        if has_dst_ints and r.destination_ports:
             r.destination_port_ranges = collapse_ints_to_ranges(r.destination_ports)
-            changed = True
-        if changed:
-            r.save(update_fields=["source_port_ranges", "destination_port_ranges"])
+        rules_to_update.append(r)
+
+    Rule.objects.using(db_alias).bulk_update(
+        rules_to_update, ["source_port_ranges", "destination_port_ranges"], batch_size=100
+    )
 
 
 class Migration(migrations.Migration):

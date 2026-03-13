@@ -8,126 +8,82 @@ def infer_family(apps, schema_editor):
     ACLStandardRule = apps.get_model("netbox_acls", "ACLStandardRule")
     ACLExtendedRule = apps.get_model("netbox_acls", "ACLExtendedRule")
 
-    def _add_family_from_obj(fams, obj):
-        """Append 'ipv4' or 'ipv6' to fams based on common NetBox IPAM shapes."""
-        if obj is None:
-            return
+    def _get_version(prefix_obj):
+        """Extract IP version from a Prefix object."""
+        if prefix_obj is None:
+            return None
+        prefix = getattr(prefix_obj, "prefix", None)
+        return getattr(prefix, "version", None) if prefix else None
 
-        version = (
-            getattr(obj, "family", None)
-            or getattr(getattr(obj, "prefix", None), "version", None)
-            or getattr(getattr(obj, "address", None), "version", None)
-            or getattr(getattr(obj, "start_address", None), "version", None)
-        )
-        if version == 4:
-            fams.add("ipv4")
-            return
-        if version == 6:
-            fams.add("ipv6")
-            return
-        return
+    # Pre-fetch rules with only the prefix relations we need
+    std_rules_by_acl = {}
+    for rule in (
+        ACLStandardRule.objects.using(db_alias)
+        .select_related("_source_prefix")
+        .only("id", "access_list_id", "_source_prefix__prefix")
+        .iterator()
+    ):
+        std_rules_by_acl.setdefault(rule.access_list_id, []).append(rule)
 
-    # Pull all ACLs
-    for acl in AccessList.objects.using(db_alias).all().iterator():
-        fams = set()
+    ext_rules_by_acl = {}
+    for rule in (
+        ACLExtendedRule.objects.using(db_alias)
+        .select_related("_source_prefix", "_destination_prefix")
+        .only("id", "access_list_id", "_source_prefix__prefix", "_destination_prefix__prefix")
+        .iterator()
+    ):
+        ext_rules_by_acl.setdefault(rule.access_list_id, []).append(rule)
 
-        # Standard rules (cached FKs)
+    # Process all ACLs
+    acls_to_update = []
+
+    for acl in AccessList.objects.using(db_alias).only("id", "type").iterator():
+        has_v4 = False
+        has_v6 = False
+
         if acl.type == "standard":
-            std_qs = (
-                ACLStandardRule.objects.using(db_alias)
-                .filter(access_list_id=acl.pk)
-                .select_related(
-                    "_source_prefix",
-                    "_source_ipaddress",
-                    "_source_iprange",
-                    "_source_aggregate",
-                )
-                .only(  # keep it light
-                    "id",
-                    "_source_prefix__prefix",
-                    "_source_ipaddress__address",
-                    "_source_iprange__start_address",
-                    "_source_aggregate__prefix",
-                )
-            )
-            for r in std_qs.iterator():
-                # Source side (one of the cached FKs should be set)
-                for attr in ("_source_prefix", "_source_ipaddress", "_source_iprange", "_source_aggregate"):
-                    obj = getattr(r, attr, None)
-                    if obj:
-                        _add_family_from_obj(fams, obj)
-                        break  # only one will be set
-                if len(fams) == 2:
+            for rule in std_rules_by_acl.get(acl.pk, []):
+                version = _get_version(rule._source_prefix)
+                if version == 4:
+                    has_v4 = True
+                elif version == 6:
+                    has_v6 = True
+                if has_v4 and has_v6:
                     break
-
-        # Extended rules (cached FKs)
         else:
-            ext_qs = (
-                ACLExtendedRule.objects.using(db_alias)
-                .filter(access_list_id=acl.pk)
-                .select_related(
-                    "_source_prefix",
-                    "_source_ipaddress",
-                    "_source_iprange",
-                    "_source_aggregate",
-                    "_destination_prefix",
-                    "_destination_ipaddress",
-                    "_destination_iprange",
-                    "_destination_aggregate",
-                )
-                .only(
-                    "id",
-                    "_source_prefix__prefix",
-                    "_source_ipaddress__address",
-                    "_source_iprange__start_address",
-                    "_source_aggregate__prefix",
-                    "_destination_prefix__prefix",
-                    "_destination_ipaddress__address",
-                    "_destination_iprange__start_address",
-                    "_destination_aggregate__prefix",
-                )
-            )
-            for r in ext_qs.iterator():
-                # Source
-                for attr in ("_source_prefix", "_source_ipaddress", "_source_iprange", "_source_aggregate"):
-                    obj = getattr(r, attr, None)
-                    if obj:
-                        _add_family_from_obj(fams, obj)
-                        break
-                # Destination
-                for attr in (
-                    "_destination_prefix",
-                    "_destination_ipaddress",
-                    "_destination_iprange",
-                    "_destination_aggregate",
-                ):
-                    obj = getattr(r, attr, None)
-                    if obj:
-                        _add_family_from_obj(fams, obj)
-                        break
-                if len(fams) == 2:
+            for rule in ext_rules_by_acl.get(acl.pk, []):
+                for prefix_obj in (rule._source_prefix, rule._destination_prefix):
+                    version = _get_version(prefix_obj)
+                    if version == 4:
+                        has_v4 = True
+                    elif version == 6:
+                        has_v6 = True
+                if has_v4 and has_v6:
                     break
 
-        # Decide
-        if fams == {"ipv4"}:
+        if has_v4 and has_v6:
+            acl.family = "dual"
+        elif has_v4:
             acl.family = "ipv4"
-        elif fams == {"ipv6"}:
+        elif has_v6:
             acl.family = "ipv6"
-        elif fams == {"ipv4", "ipv6"}:
-            acl.family = "dual"
         else:
-            # No signal (no rules or 'any') — conservative default
-            acl.family = "dual"
+            acl.family = "dual"  # Conservative default
 
-        acl.save(update_fields=["family"])
+        acls_to_update.append(acl)
+
+    AccessList.objects.using(db_alias).bulk_update(acls_to_update, ["family"], batch_size=100)
 
 
 def backfill_assignment_family(apps, schema_editor):
     db_alias = schema_editor.connection.alias
     ACLAssignment = apps.get_model("netbox_acls", "ACLAssignment")
-    for a in ACLAssignment.objects.using(db_alias).select_related("access_list").all().iterator():
+
+    assignments = list(ACLAssignment.objects.using(db_alias).select_related("access_list"))
+    for a in assignments:
         a.family = a.access_list.family
-        a.save(update_fields=["family"])
+
+    ACLAssignment.objects.using(db_alias).bulk_update(assignments, ["family"], batch_size=100)
 
 
 class Migration(migrations.Migration):

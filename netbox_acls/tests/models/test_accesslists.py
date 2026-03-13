@@ -178,7 +178,7 @@ class TestAccessList(BaseTestCase):
         # Minimal valid standard rule (uses GFK "source")
         ACLStandardRule.objects.create(
             access_list=acl,
-            index=10,
+            sequence=10,
             action=ACLRuleActionChoices.ACTION_PERMIT,
             source=self.prefix1,
         )
@@ -199,7 +199,7 @@ class TestAccessList(BaseTestCase):
         )
         ACLExtendedRule.objects.create(
             access_list=acl,
-            index=10,
+            sequence=10,
             action=ACLRuleActionChoices.ACTION_PERMIT,
             source=None,
             destination=self.prefix1_v6,

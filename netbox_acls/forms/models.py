@@ -55,8 +55,8 @@ help_text_acl_rule_port_logic = mark_safe(
 )
 # Sets a standard help_text value to be used by the various classes for acl action
 help_text_acl_action = _("Action the rule will take (remark, deny, or allow).")
-# Sets a standard help_text value to be used by the various classes for acl index
-help_text_acl_rule_index = _("Determines the order of the rule in the ACL processing. AKA Sequence Number.")
+# Sets a standard help_text value to be used by the various classes for acl sequence
+help_text_acl_rule_sequence = _("Determines the order of the rule in the ACL processing.")
 # Standard help_text value to be used by the various classes for acl remark
 help_text_acl_remark = _("Remark the rule will take.")
 # Sets a standard help_text value to be used by the fields for acl port ranges
@@ -95,7 +95,9 @@ class AccessListForm(NetBoxModelForm):
 
         help_texts = {
             "default_action": _("The default behavior of the ACL."),
-            "family": _("Determines whether this ACL contains IPv4, IPv6, or dual-stack rules. Cannot be changed if rules are associated."),
+            "family": _(
+                "Determines whether this ACL contains IPv4, IPv6, or dual-stack rules. Cannot be changed if rules are associated."
+            ),
             "name": _("The name uniqueness per device is case insensitive."),
             "type": mark_safe(
                 _("<b>*Note:</b> CANNOT be changed if ACL Rules are associated to this Access List."),
@@ -221,7 +223,7 @@ class ACLAssignmentForm(NetBoxModelForm):
 class ACLStandardRuleForm(NetBoxModelForm):
     """
     GUI form to add or edit Standard Access List.
-    Requires an access_list, an index, and ACL rule type.
+    Requires an access_list, a sequence, and ACL rule type.
     See the clean function for logic on other field requirements.
     """
 
@@ -261,7 +263,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
             name=_("Access List Details"),
         ),
         FieldSet(
-            "index",
+            "sequence",
             "action",
             name=_("Rule Definition"),
         ),
@@ -280,7 +282,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
         model = ACLStandardRule
         fields = (
             "access_list",
-            "index",
+            "sequence",
             "action",
             "remark",
             "source_type",
@@ -289,7 +291,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
         )
 
         help_texts = {
-            "index": help_text_acl_rule_index,
+            "sequence": help_text_acl_rule_sequence,
             "action": help_text_acl_action,
             "remark": help_text_acl_remark,
         }
@@ -342,7 +344,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
 class ACLExtendedRuleForm(NetBoxModelForm):
     """
     GUI form to add or edit Extended Access List.
-    Requires an access_list, an index, and ACL rule type.
+    Requires an access_list, an sequence, and ACL rule type.
     See the clean function for logic on other field requirements.
     """
 
@@ -409,7 +411,7 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             name=_("Access List Details"),
         ),
         FieldSet(
-            "index",
+            "sequence",
             "action",
             name=_("Rule Definition"),
         ),
@@ -439,7 +441,7 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         model = ACLExtendedRule
         fields = (
             "access_list",
-            "index",
+            "sequence",
             "action",
             "remark",
             "source_type",
@@ -453,7 +455,7 @@ class ACLExtendedRuleForm(NetBoxModelForm):
 
         help_texts = {
             "action": help_text_acl_action,
-            "index": help_text_acl_rule_index,
+            "sequence": help_text_acl_rule_sequence,
             "protocol": help_text_acl_rule_logic,
             "remark": help_text_acl_remark,
         }

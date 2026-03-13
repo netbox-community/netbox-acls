@@ -279,7 +279,7 @@ class ACLStandardRuleFilterSet(NetBoxModelFilterSet):
         fields = (
             "id",
             "access_list",
-            "index",
+            "sequence",
             "action",
             "remark",
             "source_type",
@@ -290,7 +290,7 @@ class ACLStandardRuleFilterSet(NetBoxModelFilterSet):
         """
         Override the default search behavior for the django model.
         """
-        query = Q(access_list__name__icontains=value) | Q(index__icontains=value) | Q(action__icontains=value)
+        query = Q(access_list__name__icontains=value) | Q(sequence__icontains=value) | Q(action__icontains=value)
         return queryset.filter(query)
 
 
@@ -436,7 +436,7 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
         fields = (
             "id",
             "access_list",
-            "index",
+            "sequence",
             "action",
             "remark",
             "source_type",
@@ -454,7 +454,7 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
         """
         query = (
             Q(access_list__name__icontains=value)
-            | Q(index__icontains=value)
+            | Q(sequence__icontains=value)
             | Q(action__icontains=value)
             | Q(protocol__icontains=value)
         )

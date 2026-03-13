@@ -36,7 +36,7 @@ class ACLRuleFilterMixin(NetBoxModelFilterMixin):
         strawberry_django.filter_field()
     )
     access_list_id: ID | None = strawberry_django.filter_field()
-    index: Annotated["IntegerLookup", strawberry.lazy("netbox.graphql.filter_lookups")] | None = (
+    sequence: Annotated["IntegerLookup", strawberry.lazy("netbox.graphql.filter_lookups")] | None = (
         strawberry_django.filter_field()
     )
     description: FilterLookup[str] | None = strawberry_django.filter_field()

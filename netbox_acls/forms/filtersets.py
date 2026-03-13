@@ -213,7 +213,7 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
         ),
         FieldSet(
             "access_list_id",
-            "index",
+            "sequence",
             "action",
             "remark",
             name=_("ACL Details"),
@@ -235,9 +235,9 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_("Access List"),
     )
-    index = forms.IntegerField(
+    sequence = forms.IntegerField(
         required=False,
-        label=_("Index"),
+        label=_("Sequence"),
     )
     action = forms.ChoiceField(
         choices=add_blank_choice(ACLRuleActionChoices),
@@ -289,7 +289,7 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
         ),
         FieldSet(
             "access_list_id",
-            "index",
+            "sequence",
             "action",
             "remark",
             "protocol",
@@ -321,9 +321,9 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_("Access List"),
     )
-    index = forms.IntegerField(
+    sequence = forms.IntegerField(
         required=False,
-        label=_("Index"),
+        label=_("Sequence"),
     )
     action = forms.ChoiceField(
         choices=add_blank_choice(ACLRuleActionChoices),

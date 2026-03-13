@@ -72,7 +72,7 @@ class ACLRule(NetBoxModel):
     )
 
     # Rule
-    index = models.PositiveIntegerField()
+    sequence = models.PositiveIntegerField()
     description = models.CharField(
         verbose_name=_("Description"),
         max_length=500,
@@ -158,29 +158,29 @@ class ACLRule(NetBoxModel):
         Define the common model properties:
           - as an abstract model
           - constraints (unique together)
-          - index
+          - sequence
           - ordering
         """
 
         abstract = True
         constraints = [
             models.UniqueConstraint(
-                fields=("access_list", "index"),
-                name="%(app_label)s_%(class)s_unique_aclrule_index",
-                violation_error_message=_("Unique ACL rule index already exists."),
+                fields=("access_list", "sequence"),
+                name="%(app_label)s_%(class)s_unique_aclrule_sequence",
+                violation_error_message=_("Unique ACL rule sequence already exists."),
             ),
         ]
         indexes = (models.Index(fields=("source_type", "source_id")),)
-        ordering = ("access_list", "index", "-action")
+        ordering = ("access_list", "sequence", "-action")
 
     def __str__(self):
         """
         Returns a string representation of the object.
 
         This method generates a human-readable representation for the object
-        by including its access list and rule index.
+        by including its access list and rule sequence.
         """
-        return f"{self.access_list}: Rule {self.index}"
+        return f"{self.access_list}: Rule {self.sequence}"
 
     def clean(self):
         """

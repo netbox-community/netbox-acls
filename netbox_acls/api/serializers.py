@@ -183,7 +183,7 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
             "url",
             "display",
             "access_list",
-            "index",
+            "sequence",
             "action",
             "remark",
             "source_type",
@@ -200,7 +200,7 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
             "url",
             "display",
             "access_list",
-            "index",
+            "sequence",
         )
 
     @extend_schema_field(serializers.JSONField(allow_null=True))
@@ -286,7 +286,7 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
             "url",
             "display",
             "access_list",
-            "index",
+            "sequence",
             "action",
             "remark",
             "protocol",
@@ -311,7 +311,7 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
             "url",
             "display",
             "access_list",
-            "index",
+            "sequence",
         )
 
     @extend_schema_field(serializers.JSONField(allow_null=True))

@@ -18,7 +18,7 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
 
     model = ACLStandardRule
     view_namespace = "plugins-api:netbox_acls"
-    brief_fields = ["access_list", "display", "id", "index", "url"]
+    brief_fields = ["access_list", "display", "id", "sequence", "url"]
     user_permissions = (
         "ipam.view_prefix",
         "netbox_acls.view_accesslist",
@@ -53,21 +53,21 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         acl_standard_rules = (
             ACLStandardRule(
                 access_list=access_list_device,
-                index=10,
+                sequence=10,
                 description="Rule 10",
                 action=ACLRuleActionChoices.ACTION_PERMIT,
                 source=prefix1,
             ),
             ACLStandardRule(
                 access_list=access_list_device,
-                index=20,
+                sequence=20,
                 description="Rule 20",
                 action=ACLRuleActionChoices.ACTION_REMARK,
                 remark="Remark 1",
             ),
             ACLStandardRule(
                 access_list=access_list_vm,
-                index=10,
+                sequence=10,
                 description="Rule 10",
                 action=ACLRuleActionChoices.ACTION_DENY,
                 remark="Deny prefix",
@@ -79,7 +79,7 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         cls.create_data = [
             {
                 "access_list": access_list_device.id,
-                "index": 30,
+                "sequence": 30,
                 "description": "Rule 30",
                 "action": ACLRuleActionChoices.ACTION_DENY,
                 "source_type": "ipam.prefix",
@@ -87,7 +87,7 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
             },
             {
                 "access_list": access_list_vm.id,
-                "index": 20,
+                "sequence": 20,
                 "description": "Rule 30",
                 "action": ACLRuleActionChoices.ACTION_PERMIT,
                 "remark": "Permit prefix",
@@ -96,7 +96,7 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
             },
             {
                 "access_list": access_list_vm.id,
-                "index": 30,
+                "sequence": 30,
                 "description": "Rule 30",
                 "action": ACLRuleActionChoices.ACTION_REMARK,
                 "remark": "Remark 2",
@@ -114,7 +114,7 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
 
     model = ACLExtendedRule
     view_namespace = "plugins-api:netbox_acls"
-    brief_fields = ["access_list", "display", "id", "index", "url"]
+    brief_fields = ["access_list", "display", "id", "sequence", "url"]
     user_permissions = (
         "ipam.view_prefix",
         "netbox_acls.view_accesslist",
@@ -149,7 +149,7 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         acl_extended_rules = (
             ACLExtendedRule(
                 access_list=access_list_device,
-                index=10,
+                sequence=10,
                 description="Rule 10",
                 action=ACLRuleActionChoices.ACTION_PERMIT,
                 remark="Permit prefix",
@@ -161,14 +161,14 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
             ),
             ACLExtendedRule(
                 access_list=access_list_device,
-                index=20,
+                sequence=20,
                 description="Rule 20",
                 action=ACLRuleActionChoices.ACTION_REMARK,
                 remark="Remark 1",
             ),
             ACLExtendedRule(
                 access_list=access_list_vm,
-                index=10,
+                sequence=10,
                 description="Rule 10",
                 action=ACLRuleActionChoices.ACTION_DENY,
                 source=prefix2,
@@ -180,7 +180,7 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         cls.create_data = [
             {
                 "access_list": access_list_device.id,
-                "index": 30,
+                "sequence": 30,
                 "description": "Rule 30",
                 "action": ACLRuleActionChoices.ACTION_DENY,
                 "protocol": ACLProtocolChoices.PROTOCOL_UDP,
@@ -194,7 +194,7 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
             },
             {
                 "access_list": access_list_vm.id,
-                "index": 20,
+                "sequence": 20,
                 "description": "Rule 30",
                 "action": ACLRuleActionChoices.ACTION_PERMIT,
                 "protocol": ACLProtocolChoices.PROTOCOL_ICMP,
@@ -205,7 +205,7 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
             },
             {
                 "access_list": access_list_vm.id,
-                "index": 30,
+                "sequence": 30,
                 "description": "Rule 30",
                 "action": ACLRuleActionChoices.ACTION_REMARK,
                 "remark": "Remark 2",

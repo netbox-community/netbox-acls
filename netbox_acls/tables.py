@@ -132,7 +132,8 @@ class ACLStandardRuleTable(NetBoxTable):
     access_list = tables.Column(
         linkify=True,
     )
-    index = tables.Column(
+    sequence = tables.Column(
+        verbose_name=_("Seq"),
         linkify=True,
     )
     action = columns.ChoiceFieldColumn()
@@ -156,7 +157,7 @@ class ACLStandardRuleTable(NetBoxTable):
             "pk",
             "id",
             "access_list",
-            "index",
+            "sequence",
             "action",
             "remark",
             "tags",
@@ -165,7 +166,7 @@ class ACLStandardRuleTable(NetBoxTable):
         )
         default_columns = (
             "access_list",
-            "index",
+            "sequence",
             "action",
             "remark",
             "source",
@@ -181,7 +182,8 @@ class ACLExtendedRuleTable(NetBoxTable):
     access_list = tables.Column(
         linkify=True,
     )
-    index = tables.Column(
+    sequence = tables.Column(
+        verbose_name=_("Seq"),
         linkify=True,
     )
     action = columns.ChoiceFieldColumn()
@@ -224,7 +226,7 @@ class ACLExtendedRuleTable(NetBoxTable):
             "pk",
             "id",
             "access_list",
-            "index",
+            "sequence",
             "action",
             "remark",
             "tags",
@@ -237,7 +239,7 @@ class ACLExtendedRuleTable(NetBoxTable):
         )
         default_columns = (
             "access_list",
-            "index",
+            "sequence",
             "action",
             "remark",
             "protocol",

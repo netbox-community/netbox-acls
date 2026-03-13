@@ -5,11 +5,10 @@ while Django itself handles the database abstraction.
 
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
-from drf_spectacular.utils import extend_schema_field
 from netbox.api.fields import ContentTypeField, IntegerRangeSerializer
+from netbox.api.gfk_fields import GFKSerializerField
 from netbox.api.serializers import NetBoxModelSerializer
 from rest_framework import serializers
-from utilities.api import get_serializer_for_model
 
 from ..constants import ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
 from ..models import (
@@ -112,7 +111,7 @@ class ACLAssignmentSerializer(NetBoxModelSerializer):
     assigned_object_type = ContentTypeField(
         queryset=ContentType.objects.filter(ACL_ASSIGNMENT_MODELS),
     )
-    assigned_object = serializers.SerializerMethodField(read_only=True)
+    assigned_object = GFKSerializerField(read_only=True)
 
     # Denormalized fields
     family = serializers.CharField(read_only=True)
@@ -141,14 +140,6 @@ class ACLAssignmentSerializer(NetBoxModelSerializer):
         )
         brief_fields = ("id", "url", "display", "access_list")
 
-    @extend_schema_field(serializers.JSONField(allow_null=True))
-    def get_assigned_object(self, obj):
-        if obj.assigned_object is None:
-            return None
-        serializer = get_serializer_for_model(obj.assigned_object)
-        context = {"request": self.context["request"]}
-        return serializer(obj.assigned_object, nested=True, context=context).data
-
 
 class ACLStandardRuleSerializer(NetBoxModelSerializer):
     """
@@ -170,7 +161,7 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
         default=None,
         allow_null=True,
     )
-    source = serializers.SerializerMethodField(read_only=True)
+    source = GFKSerializerField(read_only=True)
 
     class Meta:
         """
@@ -202,14 +193,6 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
             "access_list",
             "sequence",
         )
-
-    @extend_schema_field(serializers.JSONField(allow_null=True))
-    def get_source(self, obj):
-        if obj.source_id is None:
-            return None
-        serializer = get_serializer_for_model(obj.source)
-        context = {"request": self.context["request"]}
-        return serializer(obj.source, nested=True, context=context).data
 
     def validate(self, data):
         """
@@ -257,7 +240,7 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
         default=None,
         allow_null=True,
     )
-    source = serializers.SerializerMethodField(read_only=True)
+    source = GFKSerializerField(read_only=True)
     source_port_ranges = IntegerRangeSerializer(many=True, required=False)
     source_port_terms = serializers.SerializerMethodField(read_only=True)
     destination_type = ContentTypeField(
@@ -271,7 +254,7 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
         default=None,
         allow_null=True,
     )
-    destination = serializers.SerializerMethodField(read_only=True)
+    destination = GFKSerializerField(read_only=True)
     destination_port_ranges = IntegerRangeSerializer(many=True, required=False)
     destination_port_terms = serializers.SerializerMethodField(read_only=True)
 
@@ -313,22 +296,6 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
             "access_list",
             "sequence",
         )
-
-    @extend_schema_field(serializers.JSONField(allow_null=True))
-    def get_source(self, obj):
-        if obj.source_id is None:
-            return None
-        serializer = get_serializer_for_model(obj.source)
-        context = {"request": self.context["request"]}
-        return serializer(obj.source, nested=True, context=context).data
-
-    @extend_schema_field(serializers.JSONField(allow_null=True))
-    def get_destination(self, obj):
-        if obj.destination_id is None:
-            return None
-        serializer = get_serializer_for_model(obj.destination)
-        context = {"request": self.context["request"]}
-        return serializer(obj.destination, nested=True, context=context).data
 
     def get_destination_port_terms(self, obj):
         """

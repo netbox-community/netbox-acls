@@ -5,7 +5,12 @@ import strawberry_django
 from core.graphql.filters import ContentTypeFilter
 from netbox.graphql.filters import NetBoxModelFilter
 from strawberry.scalars import ID
-from strawberry_django import BaseFilterLookup, FilterLookup
+from strawberry_django import BaseFilterLookup
+
+try:
+    from strawberry_django import StrFilterLookup
+except ImportError:
+    from strawberry_django import FilterLookup as StrFilterLookup
 
 from ... import models
 
@@ -30,7 +35,7 @@ class AccessListFilter(NetBoxModelFilter):
     GraphQL filter definition for the AccessList model.
     """
 
-    name: FilterLookup[str] | None = strawberry_django.filter_field()
+    name: StrFilterLookup[str] | None = strawberry_django.filter_field()
     type: BaseFilterLookup[Annotated["ACLTypeEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None = (
         strawberry_django.filter_field()
     )

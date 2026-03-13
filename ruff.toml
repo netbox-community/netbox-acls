@@ -35,8 +35,8 @@ exclude = [
 line-length = 120
 indent-width = 4
 
-# Always generate Python 3.10-compatible code.
-target-version = "py310"
+# Always generate Python 3.12-compatible code.
+target-version = "py312"
 
 [lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.

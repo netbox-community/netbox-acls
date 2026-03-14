@@ -28,6 +28,14 @@ classifiers=[
 keywords = ["netbox", "netbox-plugin"]
 license = {file = "LICENSE.txt"}
 
+[project.optional-dependencies]
+test = [
+    "check-manifest==0.51",
+    "pre-commit==4.5.1",
+    "pytest==9.0.2",
+    "ruff==0.15.6",
+    "yamllint==1.38.0",
+]
 
 [project.urls]
 Documentation = "https://github.com/netbox-community/netbox-acls/blob/dev/README.md"

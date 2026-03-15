@@ -2,13 +2,14 @@
 Define the django models for this plugin.
 """
 
-from dcim.models import Device, Interface, VirtualChassis
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_slug
 from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
+
+from dcim.models import Device, Interface, VirtualChassis
 from netbox.models import NetBoxModel
 from virtualization.models import VirtualMachine, VMInterface
 
@@ -21,8 +22,8 @@ from ..choices import (
 from ..constants import ACL_ASSIGNMENT_MODELS
 
 __all__ = (
-    "AccessList",
     "ACLAssignment",
+    "AccessList",
 )
 
 
@@ -184,7 +185,8 @@ class AccessList(NetBoxModel):
                     raise ValidationError(
                         {
                             "family": _(
-                                "Changing to Dual would conflict with an existing interface assignment on the same object and direction.",
+                                "Changing to Dual would conflict with an existing interface assignment "
+                                "on the same object and direction.",
                             ),
                         },
                     )
@@ -195,8 +197,8 @@ class AccessList(NetBoxModel):
                     raise ValidationError(
                         {
                             "family": _(
-                                "Changing to {family} would conflict with an existing {family} or Dual interface assignment "
-                                "on the same object and direction.",
+                                "Changing to {family} would conflict with an existing {family} or "
+                                "Dual interface assignment on the same object and direction.",
                             ).format(family=target_family),
                         },
                     )

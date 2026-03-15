@@ -1,6 +1,4 @@
 from ipam.models import Prefix
-from utilities.testing import APIViewTestCases
-
 from netbox_acls.choices import (
     ACLActionChoices,
     ACLFamilyChoices,
@@ -8,7 +6,9 @@ from netbox_acls.choices import (
     ACLRuleActionChoices,
     ACLTypeChoices,
 )
-from netbox_acls.models import AccessList, ACLExtendedRule, ACLStandardRule
+from utilities.testing import APIViewTestCases
+
+from ...models import AccessList, ACLExtendedRule, ACLStandardRule
 
 
 class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):

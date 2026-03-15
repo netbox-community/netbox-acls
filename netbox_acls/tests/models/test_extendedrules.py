@@ -1,15 +1,15 @@
 from django.core.exceptions import ValidationError
 from django.db.backends.postgresql.psycopg_any import NumericRange
+
 from utilities.data import string_to_ranges
 
-from netbox_acls.choices import (
+from ...choices import (
     ACLActionChoices,
     ACLFamilyChoices,
     ACLProtocolChoices,
     ACLTypeChoices,
 )
-from netbox_acls.models import AccessList, ACLExtendedRule
-
+from ...models import AccessList, ACLExtendedRule
 from .base import BaseTestCase
 
 

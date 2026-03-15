@@ -1,3 +1,6 @@
+from django.test import TestCase
+from netaddr import IPNetwork
+
 from dcim.models import (
     Device,
     DeviceRole,
@@ -6,9 +9,7 @@ from dcim.models import (
     Site,
     VirtualChassis,
 )
-from django.test import TestCase
 from ipam.models import RIR, Aggregate, IPAddress, IPRange, Prefix
-from netaddr import IPNetwork
 from virtualization.models import Cluster, ClusterType, VirtualMachine
 
 

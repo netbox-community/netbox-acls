@@ -1,8 +1,8 @@
 import django.contrib.postgres.fields
 import django.contrib.postgres.fields.ranges
 from django.db import migrations
-from django.db.models import Q
 from django.db.backends.postgresql.psycopg_any import NumericRange
+from django.db.models import Q
 
 from netbox_acls.constants import ACL_RULE_PORT_MAX, ACL_RULE_PORT_MIN
 

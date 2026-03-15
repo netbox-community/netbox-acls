@@ -1,16 +1,17 @@
+from django.contrib.contenttypes.models import ContentType
+
 from dcim.choices import InterfaceTypeChoices
 from dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
-from django.contrib.contenttypes.models import ContentType
 from utilities.testing import APIViewTestCases
 from virtualization.models import Cluster, ClusterType, VirtualMachine, VMInterface
 
-from netbox_acls.choices import (
+from ...choices import (
     ACLActionChoices,
     ACLAssignmentDirectionChoices,
     ACLFamilyChoices,
     ACLTypeChoices,
 )
-from netbox_acls.models import AccessList, ACLAssignment
+from ...models import AccessList, ACLAssignment
 
 
 class AccessListAPIViewTestCase(APIViewTestCases.APIViewTestCase):

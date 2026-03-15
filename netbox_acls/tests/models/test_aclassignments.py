@@ -1,15 +1,15 @@
-from dcim.models import Device, Interface, VirtualChassis
 from django.core.exceptions import ValidationError
+
+from dcim.models import Device, Interface, VirtualChassis
 from virtualization.models import VirtualMachine, VMInterface
 
-from netbox_acls.choices import (
+from ...choices import (
     ACLActionChoices,
     ACLAssignmentDirectionChoices,
     ACLFamilyChoices,
     ACLTypeChoices,
 )
-from netbox_acls.models import AccessList, ACLAssignment
-
+from ...models import AccessList, ACLAssignment
 from .base import BaseTestCase
 
 

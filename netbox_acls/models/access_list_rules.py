@@ -8,6 +8,7 @@ from django.contrib.postgres.fields import ArrayField, IntegerRangeField
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.models import NetBoxModel
 from utilities.data import ranges_to_string_list
@@ -24,9 +25,9 @@ from ..validators import validate_port_ranges
 from .access_lists import AccessList
 
 __all__ = (
+    "ACLExtendedRule",
     "ACLRule",
     "ACLStandardRule",
-    "ACLExtendedRule",
 )
 
 # Error message when the action is 'remark', but no remark is provided.

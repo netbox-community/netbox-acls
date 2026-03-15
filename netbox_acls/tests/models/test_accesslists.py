@@ -1,22 +1,22 @@
 from itertools import cycle
 
-from dcim.models import Interface
 from django.core.exceptions import ValidationError
 
-from netbox_acls.choices import (
+from dcim.models import Interface
+
+from ...choices import (
     ACLActionChoices,
     ACLAssignmentDirectionChoices,
     ACLFamilyChoices,
     ACLRuleActionChoices,
     ACLTypeChoices,
 )
-from netbox_acls.models import (
+from ...models import (
     AccessList,
     ACLAssignment,
     ACLExtendedRule,
     ACLStandardRule,
 )
-
 from .base import BaseTestCase
 
 

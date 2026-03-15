@@ -2,9 +2,10 @@
 Defines each django model's GUI filter/search options.
 """
 
-from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from django import forms
 from django.utils.translation import gettext_lazy as _
+
+from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.forms import NetBoxModelFilterSetForm
 from utilities.forms.fields import (
@@ -26,16 +27,16 @@ from ..choices import (
 )
 from ..models import (
     AccessList,
-    ACLExtendedRule,
     ACLAssignment,
+    ACLExtendedRule,
     ACLStandardRule,
 )
 
 __all__ = (
-    "AccessListFilterForm",
     "ACLAssignmentFilterForm",
-    "ACLStandardRuleFilterForm",
     "ACLExtendedRuleFilterForm",
+    "ACLStandardRuleFilterForm",
+    "AccessListFilterForm",
 )
 
 

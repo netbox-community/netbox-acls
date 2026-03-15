@@ -1,12 +1,10 @@
-from typing import List
-
 import strawberry
 import strawberry_django
 
 from .types import (
     AccessListType,
-    ACLExtendedRuleType,
     ACLAssignmentType,
+    ACLExtendedRuleType,
     ACLStandardRuleType,
 )
 
@@ -18,13 +16,13 @@ class NetBoxACLSQuery:
     """
 
     access_list: AccessListType = strawberry_django.field()
-    access_list_list: List[AccessListType] = strawberry_django.field()
+    access_list_list: list[AccessListType] = strawberry_django.field()
 
     acl_extended_rule: ACLExtendedRuleType = strawberry_django.field()
-    acl_extended_rule_list: List[ACLExtendedRuleType] = strawberry_django.field()
+    acl_extended_rule_list: list[ACLExtendedRuleType] = strawberry_django.field()
 
     acl_standard_rule: ACLStandardRuleType = strawberry_django.field()
-    acl_standard_rule_list: List[ACLStandardRuleType] = strawberry_django.field()
+    acl_standard_rule_list: list[ACLStandardRuleType] = strawberry_django.field()
 
     acl_assignment: ACLAssignmentType = strawberry_django.field()
-    acl_assignment_list: List[ACLAssignmentType] = strawberry_django.field()
+    acl_assignment_list: list[ACLAssignmentType] = strawberry_django.field()

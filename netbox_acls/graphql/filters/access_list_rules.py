@@ -3,10 +3,11 @@ from typing import TYPE_CHECKING, Annotated
 
 import strawberry
 import strawberry_django
-from core.graphql.filters import ContentTypeFilter
-from netbox.graphql.filters import NetBoxModelFilter
 from strawberry.scalars import ID
 from strawberry_django import BaseFilterLookup
+
+from core.graphql.filters import ContentTypeFilter
+from netbox.graphql.filters import NetBoxModelFilter
 
 try:
     from strawberry_django import StrFilterLookup
@@ -16,7 +17,7 @@ except ImportError:
 from ... import models
 
 if TYPE_CHECKING:
-    from netbox.graphql.filter_lookups import IntegerRangeArrayLookup, IntegerLookup
+    from netbox.graphql.filter_lookups import IntegerLookup, IntegerRangeArrayLookup
 
     from ..enums import (
         ACLProtocolEnum,
@@ -26,8 +27,8 @@ if TYPE_CHECKING:
 
 
 __all__ = (
-    "ACLStandardRuleFilter",
     "ACLExtendedRuleFilter",
+    "ACLStandardRuleFilter",
 )
 
 

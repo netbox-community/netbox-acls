@@ -7,7 +7,7 @@ from strawberry.scalars import ID
 from strawberry_django import BaseFilterLookup
 
 from core.graphql.filters import ContentTypeFilter
-from netbox.graphql.filters import NetBoxModelFilter
+from netbox.graphql.filters import PrimaryModelFilter
 
 try:
     from strawberry_django import StrFilterLookup
@@ -33,7 +33,7 @@ __all__ = (
 
 
 @dataclass
-class ACLRuleFilterMixin(NetBoxModelFilter):
+class ACLRuleFilterMixin(PrimaryModelFilter):
     """
     Base GraphQL filter mixin for ACL Rule models.
     """
@@ -45,7 +45,6 @@ class ACLRuleFilterMixin(NetBoxModelFilter):
     sequence: Annotated["IntegerLookup", strawberry.lazy("netbox.graphql.filter_lookups")] | None = (
         strawberry_django.filter_field()
     )
-    description: StrFilterLookup[str] | None = strawberry_django.filter_field()
     action: BaseFilterLookup[Annotated["ACLRuleActionEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None = (
         strawberry_django.filter_field()
     )

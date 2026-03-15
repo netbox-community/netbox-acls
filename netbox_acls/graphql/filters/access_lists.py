@@ -6,7 +6,7 @@ from strawberry.scalars import ID
 from strawberry_django import BaseFilterLookup
 
 from core.graphql.filters import ContentTypeFilter
-from netbox.graphql.filters import NetBoxModelFilter
+from netbox.graphql.filters import NetBoxModelFilter, PrimaryModelFilter
 
 try:
     from strawberry_django import StrFilterLookup
@@ -31,7 +31,7 @@ __all__ = (
 
 
 @strawberry_django.filter(models.AccessList, lookups=True)
-class AccessListFilter(NetBoxModelFilter):
+class AccessListFilter(PrimaryModelFilter):
     """
     GraphQL filter definition for the AccessList model.
     """
@@ -68,3 +68,4 @@ class ACLAssignmentFilter(NetBoxModelFilter):
     family: BaseFilterLookup[Annotated["ACLFamilyEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None = (
         strawberry_django.filter_field()
     )
+    comments: StrFilterLookup[str] | None = strawberry_django.filter_field()

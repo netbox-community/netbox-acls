@@ -10,7 +10,8 @@ from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device, Interface
 from ipam.models import Prefix
-from netbox.forms import NetBoxModelForm
+from netbox.forms import NetBoxModelForm, PrimaryModelForm
+from netbox.forms.mixins import OwnerMixin
 from utilities.forms import (
     add_blank_choice,
     get_field_value,
@@ -64,13 +65,11 @@ help_text_acl_remark = _("Remark the rule will take.")
 help_text_acl_rule_port_ranges = _("Comma/hyphen (inclusive). Example: 22,80-81,1024-65535")
 
 
-class AccessListForm(NetBoxModelForm):
+class AccessListForm(PrimaryModelForm):
     """
     GUI form to add or edit an AccessList.
     Requires a device, a name, a type, and a default_action.
     """
-
-    comments = CommentField()
 
     fieldsets = (
         FieldSet(
@@ -78,6 +77,7 @@ class AccessListForm(NetBoxModelForm):
             "type",
             "family",
             "default_action",
+            "description",
             "tags",
             name=_("Access List Details"),
         ),
@@ -90,6 +90,8 @@ class AccessListForm(NetBoxModelForm):
             "type",
             "family",
             "default_action",
+            "description",
+            "owner",
             "comments",
             "tags",
         )
@@ -107,7 +109,7 @@ class AccessListForm(NetBoxModelForm):
         }
 
 
-class ACLAssignmentForm(NetBoxModelForm):
+class ACLAssignmentForm(OwnerMixin, NetBoxModelForm):
     """
     GUI form to add or edit ACL assignments
     Requires an access_list, a name, a type, and a default_action.
@@ -160,6 +162,17 @@ class ACLAssignmentForm(NetBoxModelForm):
         ),
     )
 
+    class Meta:
+        model = ACLAssignment
+        fields = (
+            "access_list",
+            "assigned_object_type",
+            "direction",
+            "owner",
+            "comments",
+            "tags",
+        )
+
     def __init__(self, *args, **kwargs) -> None:
         """
         Initialize the ACL Assignment form.
@@ -211,18 +224,8 @@ class ACLAssignmentForm(NetBoxModelForm):
         # Ensure the selected object gets assigned
         self.instance.assigned_object = self.cleaned_data.get("assigned_object")
 
-    class Meta:
-        model = ACLAssignment
-        fields = (
-            "access_list",
-            "assigned_object_type",
-            "direction",
-            "comments",
-            "tags",
-        )
 
-
-class ACLStandardRuleForm(NetBoxModelForm):
+class ACLStandardRuleForm(PrimaryModelForm):
     """
     GUI form to add or edit Standard Access List.
     Requires an access_list, a sequence, and ACL rule type.
@@ -288,8 +291,10 @@ class ACLStandardRuleForm(NetBoxModelForm):
             "action",
             "remark",
             "source_type",
-            "tags",
             "description",
+            "owner",
+            "comments",
+            "tags",
         )
 
         help_texts = {
@@ -343,10 +348,10 @@ class ACLStandardRuleForm(NetBoxModelForm):
         self.instance.source = self.cleaned_data.get("source")
 
 
-class ACLExtendedRuleForm(NetBoxModelForm):
+class ACLExtendedRuleForm(PrimaryModelForm):
     """
     GUI form to add or edit Extended Access List.
-    Requires an access_list, an sequence, and ACL rule type.
+    Requires an access_list, a sequence, and ACL rule type.
     See the clean function for logic on other field requirements.
     """
 
@@ -451,8 +456,10 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             "destination_type",
             "destination_port_ranges",
             "protocol",
-            "tags",
             "description",
+            "owner",
+            "comments",
+            "tags",
         )
 
         help_texts = {

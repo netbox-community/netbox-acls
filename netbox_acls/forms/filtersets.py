@@ -7,7 +7,8 @@ from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
-from netbox.forms import NetBoxModelFilterSetForm
+from netbox.forms import NetBoxModelFilterSetForm, PrimaryModelFilterSetForm
+from netbox.forms.mixins import OwnerFilterMixin
 from utilities.forms.fields import (
     DynamicModelChoiceField,
     DynamicModelMultipleChoiceField,
@@ -40,7 +41,7 @@ __all__ = (
 )
 
 
-class AccessListFilterForm(NetBoxModelFilterSetForm):
+class AccessListFilterForm(PrimaryModelFilterSetForm):
     """
     GUI filter form to search the django AccessList model.
     """
@@ -56,7 +57,13 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
             "type",
             "family",
             "default_action",
+            "description",
             name=_("ACL Details"),
+        ),
+        FieldSet(
+            "owner_group_id",
+            "owner_id",
+            name=_("Ownership"),
         ),
     )
 
@@ -81,7 +88,7 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
     tag = TagFilterField(model)
 
 
-class ACLAssignmentFilterForm(NetBoxModelFilterSetForm):
+class ACLAssignmentFilterForm(OwnerFilterMixin, NetBoxModelFilterSetForm):
     """
     GUI filter form to search the django ACLAssignment model.
     """
@@ -115,6 +122,11 @@ class ACLAssignmentFilterForm(NetBoxModelFilterSetForm):
             "virtual_machine_id",
             "vminterface_id",
             name=_("Virtual Machine Details"),
+        ),
+        FieldSet(
+            "owner_group_id",
+            "owner_id",
+            name=_("Ownership"),
         ),
     )
 
@@ -200,7 +212,7 @@ class ACLAssignmentFilterForm(NetBoxModelFilterSetForm):
     tag = TagFilterField(model)
 
 
-class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
+class ACLStandardRuleFilterForm(PrimaryModelFilterSetForm):
     """
     GUI filter form to search the django ACLStandardRule model.
     """
@@ -225,6 +237,11 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
             "source_iprange_id",
             "source_prefix_id",
             name=_("Source Details"),
+        ),
+        FieldSet(
+            "owner_group_id",
+            "owner_id",
+            name=_("Ownership"),
         ),
     )
 
@@ -276,7 +293,7 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
     tag = TagFilterField(model)
 
 
-class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
+class ACLExtendedRuleFilterForm(PrimaryModelFilterSetForm):
     """
     GUI filter form to search the django ACLExtendedRule model.
     """
@@ -311,6 +328,11 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
             "destination_prefix_id",
             "destination_port",
             name=_("Destination Details"),
+        ),
+        FieldSet(
+            "owner_group_id",
+            "owner_id",
+            name=_("Ownership"),
         ),
     )
 

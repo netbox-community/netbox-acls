@@ -3,6 +3,7 @@ Define the plugin menu buttons and the plugin navigation bar entries.
 """
 
 from django.conf import settings
+
 from netbox.plugins import PluginMenu, PluginMenuButton, PluginMenuItem
 
 plugin_settings = settings.PLUGINS_CONFIG["netbox_acls"]

@@ -2,7 +2,7 @@
 Utility functions for netbox_acls.
 """
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from django.core.exceptions import ValidationError
 from django.db.backends.postgresql.psycopg_any import NumericRange

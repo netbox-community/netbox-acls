@@ -4,15 +4,16 @@ Define the object lists / table view for each of the plugin models.
 
 import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
+
 from netbox.tables import NetBoxTable, columns
 
 from .models import AccessList, ACLAssignment, ACLExtendedRule, ACLStandardRule
 
 __all__ = (
-    "AccessListTable",
     "ACLAssignmentTable",
-    "ACLStandardRuleTable",
     "ACLExtendedRuleTable",
+    "ACLStandardRuleTable",
+    "AccessListTable",
 )
 
 

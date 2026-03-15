@@ -1,8 +1,7 @@
 from django.core.exceptions import ValidationError
 
-from netbox_acls.choices import ACLActionChoices, ACLFamilyChoices, ACLTypeChoices
-from netbox_acls.models import AccessList, ACLStandardRule
-
+from ...choices import ACLActionChoices, ACLFamilyChoices, ACLTypeChoices
+from ...models import AccessList, ACLStandardRule
 from .base import BaseTestCase
 
 

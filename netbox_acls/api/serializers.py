@@ -5,10 +5,11 @@ while Django itself handles the database abstraction.
 
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
+
 from netbox.api.fields import ContentTypeField, IntegerRangeSerializer
 from netbox.api.gfk_fields import GFKSerializerField
 from netbox.api.serializers import NetBoxModelSerializer
-from rest_framework import serializers
 
 from ..constants import ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
 from ..models import (
@@ -19,10 +20,10 @@ from ..models import (
 )
 
 __all__ = [
-    "AccessListSerializer",
     "ACLAssignmentSerializer",
-    "ACLStandardRuleSerializer",
     "ACLExtendedRuleSerializer",
+    "ACLStandardRuleSerializer",
+    "AccessListSerializer",
 ]
 
 # Sets a standard error message for ACL rules with an action of remark, but no remark set.

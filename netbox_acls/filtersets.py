@@ -4,9 +4,10 @@ when filtering the site list by status or region, for instance.
 """
 
 import django_filters
-from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
+
+from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.filtersets import NetBoxModelFilterSet
 from utilities.filters import ContentTypeFilter
@@ -14,13 +15,13 @@ from utilities.filtersets import register_filterset
 from virtualization.models import VirtualMachine, VMInterface
 
 from .choices import ACLTypeChoices
-from .models import AccessList, ACLExtendedRule, ACLAssignment, ACLStandardRule
+from .models import AccessList, ACLAssignment, ACLExtendedRule, ACLStandardRule
 
 __all__ = (
-    "AccessListFilterSet",
-    "ACLStandardRuleFilterSet",
     "ACLAssignmentFilterSet",
     "ACLExtendedRuleFilterSet",
+    "ACLStandardRuleFilterSet",
+    "AccessListFilterSet",
 )
 
 

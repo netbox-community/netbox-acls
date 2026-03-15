@@ -3,16 +3,17 @@ Defines each django model's GUI form to add or edit objects for each django mode
 """
 
 from django import forms
-from dcim.models import Device, Interface
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
+
+from dcim.models import Device, Interface
 from ipam.models import Prefix
 from netbox.forms import NetBoxModelForm
 from utilities.forms import (
-    get_field_value,
     add_blank_choice,
+    get_field_value,
 )
 from utilities.forms.fields import (
     CommentField,
@@ -25,24 +26,24 @@ from utilities.forms.widgets import HTMXSelect
 from utilities.templatetags.builtins.filters import bettertitle
 from virtualization.models import VMInterface
 
-from ..constants import ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
 from ..choices import (
     ACLAssignmentDirectionChoices,
     ACLAssignmentDirectionUIChoices,
     ACLTypeChoices,
 )
+from ..constants import ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
 from ..models import (
     AccessList,
-    ACLExtendedRule,
     ACLAssignment,
+    ACLExtendedRule,
     ACLStandardRule,
 )
 
 __all__ = (
-    "AccessListForm",
     "ACLAssignmentForm",
-    "ACLStandardRuleForm",
     "ACLExtendedRuleForm",
+    "ACLStandardRuleForm",
+    "AccessListForm",
 )
 
 # Sets a standard mark_safe help_text value to be used by the various classes
@@ -96,7 +97,8 @@ class AccessListForm(NetBoxModelForm):
         help_texts = {
             "default_action": _("The default behavior of the ACL."),
             "family": _(
-                "Determines whether this ACL contains IPv4, IPv6, or dual-stack rules. Cannot be changed if rules are associated."
+                "Determines whether this ACL contains IPv4, IPv6, or dual-stack rules."
+                "Cannot be changed if rules are associated."
             ),
             "name": _("The name uniqueness per device is case insensitive."),
             "type": mark_safe(
@@ -188,7 +190,7 @@ class ACLAssignmentForm(NetBoxModelForm):
                 self.fields["assigned_object"].widget.attrs["selector"] = assigned_object_model._meta.label_lower
                 self.fields["assigned_object"].disabled = False
                 self.fields["assigned_object"].label = _(bettertitle(assigned_object_model._meta.verbose_name))
-                if assigned_object_model == Interface or assigned_object_model == VMInterface:
+                if assigned_object_model in (Interface, VMInterface):
                     self.fields["direction"].disabled = False
                     self.fields["direction"].required = True
                     self.fields["direction"].choices = add_blank_choice(ACLAssignmentDirectionUIChoices)

@@ -10,9 +10,9 @@ __all__ = (
     "ACLAssignmentDirectionUIChoices",
     "ACLFamilyChoices",
     "ACLProtocolChoices",
+    "ACLProtocolChoices",
     "ACLRuleActionChoices",
     "ACLTypeChoices",
-    "ACLProtocolChoices",
 )
 
 

@@ -2,10 +2,11 @@
 Define the object types and queries available via the graphql api.
 """
 
-from typing import Annotated, List, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
 import strawberry
 import strawberry_django
+
 from netbox.graphql.types import ContentTypeType, NetBoxObjectType
 
 from .. import models
@@ -28,19 +29,19 @@ class AccessListType(NetBoxObjectType):
     """
 
     # Related models
-    aclstandardrules: List[
+    aclstandardrules: list[
         Annotated[
             "ACLStandardRuleType",
             strawberry.lazy("netbox_acls.graphql.types"),
         ]
     ]
-    aclextendedrules: List[
+    aclextendedrules: list[
         Annotated[
             "ACLExtendedRuleType",
             strawberry.lazy("netbox_acls.graphql.types"),
         ]
     ]
-    aclassignments: List[
+    aclassignments: list[
         Annotated[
             "ACLAssignmentType",
             strawberry.lazy("netbox_acls.graphql.types"),
@@ -63,13 +64,11 @@ class ACLAssignmentType(NetBoxObjectType):
     access_list: Annotated["AccessListType", strawberry.lazy("netbox_acls.graphql.types")]
     assigned_object_type: Annotated["ContentTypeType", strawberry.lazy("netbox.graphql.types")]
     assigned_object: Annotated[
-        Union[
-            Annotated["DeviceType", strawberry.lazy("dcim.graphql.types")],
-            Annotated["InterfaceType", strawberry.lazy("dcim.graphql.types")],
-            Annotated["VirtualChassisType", strawberry.lazy("dcim.graphql.types")],
-            Annotated["VirtualMachineType", strawberry.lazy("virtualization.graphql.types")],
-            Annotated["VMInterfaceType", strawberry.lazy("virtualization.graphql.types")],
-        ],
+        Annotated["DeviceType", strawberry.lazy("dcim.graphql.types")]
+        | Annotated["InterfaceType", strawberry.lazy("dcim.graphql.types")]
+        | Annotated["VirtualChassisType", strawberry.lazy("dcim.graphql.types")]
+        | Annotated["VirtualMachineType", strawberry.lazy("virtualization.graphql.types")]
+        | Annotated["VMInterfaceType", strawberry.lazy("virtualization.graphql.types")],
         strawberry.union("ACLAssignedObjectType"),
     ]
 
@@ -93,24 +92,10 @@ class ACLStandardRuleType(NetBoxObjectType):
     source_type: Annotated["ContentTypeType", strawberry.lazy("netbox.graphql.types")] | None
     source: (
         Annotated[
-            Union[
-                Annotated[
-                    "AggregateType",
-                    strawberry.lazy("ipam.graphql.types"),
-                ],
-                Annotated[
-                    "IPAddressType",
-                    strawberry.lazy("ipam.graphql.types"),
-                ],
-                Annotated[
-                    "IPRangeType",
-                    strawberry.lazy("ipam.graphql.types"),
-                ],
-                Annotated[
-                    "PrefixType",
-                    strawberry.lazy("ipam.graphql.types"),
-                ],
-            ],
+            Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")]
+            | Annotated["IPAddressType", strawberry.lazy("ipam.graphql.types")]
+            | Annotated["IPRangeType", strawberry.lazy("ipam.graphql.types")]
+            | Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")],
             strawberry.union("ACLStandardRuleObjectType"),
         ]
         | None
@@ -144,55 +129,27 @@ class ACLExtendedRuleType(NetBoxObjectType):
     source_type: Annotated["ContentTypeType", strawberry.lazy("netbox.graphql.types")] | None
     source: (
         Annotated[
-            Union[
-                Annotated[
-                    "AggregateType",
-                    strawberry.lazy("ipam.graphql.types"),
-                ],
-                Annotated[
-                    "IPAddressType",
-                    strawberry.lazy("ipam.graphql.types"),
-                ],
-                Annotated[
-                    "IPRangeType",
-                    strawberry.lazy("ipam.graphql.types"),
-                ],
-                Annotated[
-                    "PrefixType",
-                    strawberry.lazy("ipam.graphql.types"),
-                ],
-            ],
+            Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")]
+            | Annotated["IPAddressType", strawberry.lazy("ipam.graphql.types")]
+            | Annotated["IPRangeType", strawberry.lazy("ipam.graphql.types")]
+            | Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")],
             strawberry.union("ACLStandardRuleObjectType"),
         ]
         | None
     )
-    source_port_ranges: List[str] | None
+    source_port_ranges: list[str] | None
     destination_type: Annotated["ContentTypeType", strawberry.lazy("netbox.graphql.types")] | None
     destination: (
         Annotated[
-            Union[
-                Annotated[
-                    "AggregateType",
-                    strawberry.lazy("ipam.graphql.types"),
-                ],
-                Annotated[
-                    "IPAddressType",
-                    strawberry.lazy("ipam.graphql.types"),
-                ],
-                Annotated[
-                    "IPRangeType",
-                    strawberry.lazy("ipam.graphql.types"),
-                ],
-                Annotated[
-                    "PrefixType",
-                    strawberry.lazy("ipam.graphql.types"),
-                ],
-            ],
+            Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")]
+            | Annotated["IPAddressType", strawberry.lazy("ipam.graphql.types")]
+            | Annotated["IPRangeType", strawberry.lazy("ipam.graphql.types")]
+            | Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")],
             strawberry.union("ACLStandardRuleObjectType"),
         ]
         | None
     )
-    destination_port_ranges: List[str] | None
+    destination_port_ranges: list[str] | None
 
     # Cached related source objects
     _source_aggregate: Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")] | None

@@ -3,10 +3,11 @@ Defines the business logic for the plugin.
 Specifically, all the various interactions with a client.
 """
 
-from dcim.models import Device, Interface, VirtualChassis
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Count
 from django.utils.translation import gettext_lazy as _
+
+from dcim.models import Device, Interface, VirtualChassis
 from netbox.object_actions import AddObject, BulkDelete, BulkExport
 from netbox.views import generic
 from utilities.views import ViewTab, register_model_view
@@ -15,26 +16,26 @@ from virtualization.models import VirtualMachine, VMInterface
 from . import choices, filtersets, forms, models, tables
 
 __all__ = (
-    "AccessListView",
-    "AccessListListView",
-    "AccessListEditView",
-    "AccessListDeleteView",
-    "AccessListBulkDeleteView",
-    "ACLAssignmentView",
-    "ACLAssignmentListView",
-    "ACLAssignmentEditView",
-    "ACLAssignmentDeleteView",
     "ACLAssignmentBulkDeleteView",
-    "ACLStandardRuleView",
-    "ACLStandardRuleListView",
-    "ACLStandardRuleEditView",
-    "ACLStandardRuleDeleteView",
-    "ACLStandardRuleBulkDeleteView",
-    "ACLExtendedRuleView",
-    "ACLExtendedRuleListView",
-    "ACLExtendedRuleEditView",
-    "ACLExtendedRuleDeleteView",
+    "ACLAssignmentDeleteView",
+    "ACLAssignmentEditView",
+    "ACLAssignmentListView",
+    "ACLAssignmentView",
     "ACLExtendedRuleBulkDeleteView",
+    "ACLExtendedRuleDeleteView",
+    "ACLExtendedRuleEditView",
+    "ACLExtendedRuleListView",
+    "ACLExtendedRuleView",
+    "ACLStandardRuleBulkDeleteView",
+    "ACLStandardRuleDeleteView",
+    "ACLStandardRuleEditView",
+    "ACLStandardRuleListView",
+    "ACLStandardRuleView",
+    "AccessListBulkDeleteView",
+    "AccessListDeleteView",
+    "AccessListEditView",
+    "AccessListListView",
+    "AccessListView",
 )
 
 #

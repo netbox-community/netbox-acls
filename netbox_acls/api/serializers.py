@@ -9,7 +9,8 @@ from rest_framework import serializers
 
 from netbox.api.fields import ContentTypeField, IntegerRangeSerializer
 from netbox.api.gfk_fields import GFKSerializerField
-from netbox.api.serializers import NetBoxModelSerializer
+from netbox.api.serializers import NetBoxModelSerializer, PrimaryModelSerializer
+from users.api.serializers_.mixins import OwnerMixin
 
 from ..constants import ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
 from ..models import (
@@ -36,7 +37,7 @@ error_message_remark_without_action_remark = _("CANNOT set remark unless action 
 error_message_acl_type = _("Provided parent Access List is not of right type.")
 
 
-class AccessListSerializer(NetBoxModelSerializer):
+class AccessListSerializer(PrimaryModelSerializer):
     """
     Defines the serializer for the django AccessList model and associates it with a view.
     """
@@ -60,6 +61,8 @@ class AccessListSerializer(NetBoxModelSerializer):
             "type",
             "family",
             "default_action",
+            "description",
+            "owner",
             "comments",
             "tags",
             "custom_fields",
@@ -100,7 +103,7 @@ class AccessListSerializer(NetBoxModelSerializer):
         return super().validate(data)
 
 
-class ACLAssignmentSerializer(NetBoxModelSerializer):
+class ACLAssignmentSerializer(OwnerMixin, NetBoxModelSerializer):
     """
     Defines the serializer for the django ACLAssignment model and associates it with a view.
     """
@@ -133,6 +136,7 @@ class ACLAssignmentSerializer(NetBoxModelSerializer):
             "assigned_object_type",
             "assigned_object_id",
             "assigned_object",
+            "owner",
             "comments",
             "tags",
             "custom_fields",
@@ -142,7 +146,7 @@ class ACLAssignmentSerializer(NetBoxModelSerializer):
         brief_fields = ("id", "url", "display", "access_list")
 
 
-class ACLStandardRuleSerializer(NetBoxModelSerializer):
+class ACLStandardRuleSerializer(PrimaryModelSerializer):
     """
     Defines the serializer for the django ACLStandardRule model and associates it with a view.
     """
@@ -182,6 +186,8 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
             "source_id",
             "source",
             "description",
+            "owner",
+            "comments",
             "tags",
             "created",
             "custom_fields",
@@ -221,7 +227,7 @@ class ACLStandardRuleSerializer(NetBoxModelSerializer):
         return super().validate(data)
 
 
-class ACLExtendedRuleSerializer(NetBoxModelSerializer):
+class ACLExtendedRuleSerializer(PrimaryModelSerializer):
     """
     Defines the serializer for the django ACLExtendedRule model and associates it with a view.
     """
@@ -285,6 +291,8 @@ class ACLExtendedRuleSerializer(NetBoxModelSerializer):
             "destination_port_ranges",
             "destination_port_terms",
             "description",
+            "owner",
+            "comments",
             "tags",
             "created",
             "custom_fields",

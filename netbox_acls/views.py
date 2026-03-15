@@ -124,7 +124,7 @@ class AccessListListView(generic.ObjectListView):
 
     queryset = models.AccessList.objects.annotate(
         rule_count=Count("aclextendedrules") + Count("aclstandardrules"),
-    ).prefetch_related("tags")
+    ).prefetch_related("owner", "tags")
     table = tables.AccessListTable
     filterset = filtersets.AccessListFilterSet
     filterset_form = forms.AccessListFilterForm
@@ -138,7 +138,7 @@ class AccessListEditView(generic.ObjectEditView):
     Defines the edit view for the AccessLists django model.
     """
 
-    queryset = models.AccessList.objects.prefetch_related("tags")
+    queryset = models.AccessList.objects.prefetch_related("owner", "tags")
     form = forms.AccessListForm
 
 
@@ -148,12 +148,12 @@ class AccessListDeleteView(generic.ObjectDeleteView):
     Defines delete view for the AccessLists django model.
     """
 
-    queryset = models.AccessList.objects.prefetch_related("tags")
+    queryset = models.AccessList.objects.prefetch_related("owner", "tags")
 
 
 @register_model_view(models.AccessList, "bulk_delete", path="delete", detail=False)
 class AccessListBulkDeleteView(generic.BulkDeleteView):
-    queryset = models.AccessList.objects.prefetch_related("tags")
+    queryset = models.AccessList.objects.prefetch_related("owner", "tags")
     filterset = filtersets.AccessListFilterSet
     table = tables.AccessListTable
 
@@ -204,6 +204,7 @@ class ACLAssignmentView(generic.ObjectView):
 
     queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
+        "owner",
         "tags",
     )
 
@@ -216,6 +217,7 @@ class ACLAssignmentListView(generic.ObjectListView):
 
     queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
+        "owner",
         "tags",
     )
     table = tables.ACLAssignmentTable
@@ -233,6 +235,7 @@ class ACLAssignmentEditView(generic.ObjectEditView):
 
     queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
+        "owner",
         "tags",
     )
     form = forms.ACLAssignmentForm
@@ -256,6 +259,7 @@ class ACLAssignmentDeleteView(generic.ObjectDeleteView):
 
     queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
+        "owner",
         "tags",
     )
 
@@ -264,6 +268,7 @@ class ACLAssignmentDeleteView(generic.ObjectDeleteView):
 class ACLAssignmentBulkDeleteView(generic.BulkDeleteView):
     queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
+        "owner",
         "tags",
     )
     filterset = filtersets.ACLAssignmentFilterSet
@@ -325,7 +330,7 @@ class InterfaceACLAssignmentView(ACLAssignmentChildrenView):
 @register_model_view(VirtualChassis, "aclassignments", path="access-lists")
 class VirtualChassisACLAssignmentView(ACLAssignmentChildrenView):
     """
-    Children view of ACL Assignment of VirtualChassiss.
+    Children view of ACL Assignment of VirtualChassis.
     """
 
     queryset = VirtualChassis.objects.all()
@@ -415,6 +420,7 @@ class ACLStandardRuleView(generic.ObjectView):
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
         "source",
+        "owner",
         "tags",
     )
 
@@ -428,6 +434,7 @@ class ACLStandardRuleListView(generic.ObjectListView):
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
         "source",
+        "owner",
         "tags",
     )
     table = tables.ACLStandardRuleTable
@@ -446,6 +453,7 @@ class ACLStandardRuleEditView(generic.ObjectEditView):
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
         "source",
+        "owner",
         "tags",
     )
     form = forms.ACLStandardRuleForm
@@ -469,6 +477,7 @@ class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
         "source",
+        "owner",
         "tags",
     )
 
@@ -478,6 +487,7 @@ class ACLStandardRuleBulkDeleteView(generic.BulkDeleteView):
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
         "source",
+        "owner",
         "tags",
     )
     filterset = filtersets.ACLStandardRuleFilterSet
@@ -499,6 +509,7 @@ class ACLExtendedRuleView(generic.ObjectView):
         "access_list",
         "source",
         "destination",
+        "owner",
         "tags",
     )
 
@@ -513,6 +524,7 @@ class ACLExtendedRuleListView(generic.ObjectListView):
         "access_list",
         "source",
         "destination",
+        "owner",
         "tags",
     )
     table = tables.ACLExtendedRuleTable
@@ -532,6 +544,7 @@ class ACLExtendedRuleEditView(generic.ObjectEditView):
         "access_list",
         "source",
         "destination",
+        "owner",
         "tags",
     )
     form = forms.ACLExtendedRuleForm
@@ -556,6 +569,7 @@ class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
         "access_list",
         "source",
         "destination",
+        "owner",
         "tags",
     )
 
@@ -566,6 +580,7 @@ class ACLExtendedRuleBulkDeleteView(generic.BulkDeleteView):
         "access_list",
         "source",
         "destination",
+        "owner",
         "tags",
     )
     filterset = filtersets.ACLExtendedRuleFilterSet

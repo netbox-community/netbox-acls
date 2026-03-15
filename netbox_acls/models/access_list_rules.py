@@ -10,7 +10,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
-from netbox.models import NetBoxModel
+from netbox.models import PrimaryModel
 from utilities.data import ranges_to_string_list
 
 from ..choices import (
@@ -59,7 +59,7 @@ ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_DESTINATION_PORTS_SET = _(
 )
 
 
-class ACLRule(NetBoxModel):
+class ACLRule(PrimaryModel):
     """
     Abstract model for ACL Rules.
     Inherited by both ACLStandardRule and ACLExtendedRule.

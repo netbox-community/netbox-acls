@@ -10,7 +10,8 @@ from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device, Interface, VirtualChassis
-from netbox.models import NetBoxModel
+from netbox.models import NetBoxModel, PrimaryModel
+from netbox.models.mixins import OwnerMixin
 from virtualization.models import VirtualMachine, VMInterface
 
 from ..choices import (
@@ -27,7 +28,7 @@ __all__ = (
 )
 
 
-class AccessList(NetBoxModel):
+class AccessList(PrimaryModel):
     """
     Model definition for Access Lists.
     """
@@ -54,9 +55,6 @@ class AccessList(NetBoxModel):
         max_length=30,
         default=ACLActionChoices.ACTION_DENY,
         choices=ACLActionChoices,
-    )
-    comments = models.TextField(
-        blank=True,
     )
 
     clone_fields = (
@@ -279,7 +277,7 @@ class AccessList(NetBoxModel):
         return ACLTypeChoices.colors.get(self.type)
 
 
-class ACLAssignment(NetBoxModel):
+class ACLAssignment(OwnerMixin, NetBoxModel):
     """
     Model definition for Access Lists associations with objects:
       - device

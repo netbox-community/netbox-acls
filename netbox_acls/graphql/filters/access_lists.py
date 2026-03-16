@@ -30,7 +30,7 @@ __all__ = (
 )
 
 
-@strawberry_django.filter(models.AccessList, lookups=True)
+@strawberry_django.filter_type(models.AccessList, lookups=True)
 class AccessListFilter(PrimaryModelFilter):
     """
     GraphQL filter definition for the AccessList model.
@@ -48,7 +48,7 @@ class AccessListFilter(PrimaryModelFilter):
     ) = strawberry_django.filter_field()
 
 
-@strawberry_django.filter(models.ACLAssignment, lookups=True)
+@strawberry_django.filter_type(models.ACLAssignment, lookups=True)
 class ACLAssignmentFilter(NetBoxModelFilter):
     """
     GraphQL filter definition for the ACLAssignment model.

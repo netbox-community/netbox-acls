@@ -59,7 +59,7 @@ class ACLRuleFilterMixin(PrimaryModelFilter):
     source_id: ID | None = strawberry_django.filter_field()
 
 
-@strawberry_django.filter(models.ACLStandardRule, lookups=True)
+@strawberry_django.filter_type(models.ACLStandardRule, lookups=True)
 class ACLStandardRuleFilter(ACLRuleFilterMixin):
     """
     GraphQL filter definition for the ACLStandardRule model.
@@ -68,7 +68,7 @@ class ACLStandardRuleFilter(ACLRuleFilterMixin):
     pass
 
 
-@strawberry_django.filter(models.ACLExtendedRule, lookups=True)
+@strawberry_django.filter_type(models.ACLExtendedRule, lookups=True)
 class ACLExtendedRuleFilter(ACLRuleFilterMixin):
     """
     GraphQL filter definition for the ACLExtendedRule model.

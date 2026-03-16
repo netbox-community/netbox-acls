@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING, Annotated
 import strawberry
 import strawberry_django
 
-from netbox.graphql.types import ContentTypeType, NetBoxObjectType
+from netbox.graphql.types import ContentTypeType, NetBoxObjectType, PrimaryObjectType
+from users.graphql.mixins import OwnerMixin
 
 from .. import models
 from . import filters
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
     fields="__all__",
     filters=filters.AccessListFilter,
 )
-class AccessListType(NetBoxObjectType):
+class AccessListType(PrimaryObjectType):
     """
     Defines the object type for the django model AccessList.
     """
@@ -55,7 +56,7 @@ class AccessListType(NetBoxObjectType):
     exclude=["assigned_object_type", "assigned_object_id"],
     filters=filters.ACLAssignmentFilter,
 )
-class ACLAssignmentType(NetBoxObjectType):
+class ACLAssignmentType(OwnerMixin, NetBoxObjectType):
     """
     Defines the object type for the django model ACLInterfaceAssignment.
     """
@@ -82,7 +83,7 @@ class ACLAssignmentType(NetBoxObjectType):
     ],
     filters=filters.ACLStandardRuleFilter,
 )
-class ACLStandardRuleType(NetBoxObjectType):
+class ACLStandardRuleType(PrimaryObjectType):
     """
     Defines the object type for the django model ACLStandardRule.
     """
@@ -119,7 +120,7 @@ class ACLStandardRuleType(NetBoxObjectType):
     ],
     filters=filters.ACLExtendedRuleFilter,
 )
-class ACLExtendedRuleType(NetBoxObjectType):
+class ACLExtendedRuleType(PrimaryObjectType):
     """
     Defines the object type for the django model ACLExtendedRule.
     """

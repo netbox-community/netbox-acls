@@ -46,6 +46,10 @@
               </td>
             {% endif %}
           </tr>
+          <tr>
+            <th scope="row">Description</th>
+            <td>{{ object.description|placeholder }}</td>
+          </tr>
         </table>
       </div>
       {% include 'inc/panels/custom_fields.html' %}

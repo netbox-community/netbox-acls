@@ -5,7 +5,7 @@ Define the object lists / table view for each of the plugin models.
 import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 
-from netbox.tables import NetBoxTable, columns
+from netbox.tables import NetBoxTable, PrimaryModelTable, columns
 
 from .models import AccessList, ACLAssignment, ACLExtendedRule, ACLStandardRule
 
@@ -17,7 +17,7 @@ __all__ = (
 )
 
 
-class AccessListTable(NetBoxTable):
+class AccessListTable(PrimaryModelTable):
     """
     Defines the table view for the AccessList model.
     """
@@ -42,7 +42,7 @@ class AccessListTable(NetBoxTable):
         url_name="plugins:netbox_acls:accesslist_list",
     )
 
-    class Meta(NetBoxTable.Meta):
+    class Meta(PrimaryModelTable.Meta):
         model = AccessList
         fields = (
             "pk",
@@ -52,9 +52,10 @@ class AccessListTable(NetBoxTable):
             "family",
             "rule_count",
             "default_action",
+            "description",
             "comments",
-            "action",
             "tags",
+            "action",
         )
         default_columns = (
             "name",
@@ -62,6 +63,7 @@ class AccessListTable(NetBoxTable):
             "family",
             "rule_count",
             "default_action",
+            "description",
             "tags",
         )
 
@@ -88,9 +90,6 @@ class ACLAssignmentTable(NetBoxTable):
         linkify=True,
     )
     direction = columns.ChoiceFieldColumn()
-    tags = columns.TagColumn(
-        url_name="plugins:netbox_acls:aclassignment_list",
-    )
     type = tables.Column(
         accessor=tables.A("access_list__type"),
         orderable=False,
@@ -100,6 +99,21 @@ class ACLAssignmentTable(NetBoxTable):
         accessor=tables.A("access_list__default_action"),
         orderable=False,
         verbose_name=_("Default Action"),
+    )
+    owner_group = tables.Column(
+        accessor="owner__group",
+        linkify=True,
+        verbose_name=_("Owner Group"),
+    )
+    owner = tables.Column(
+        linkify=True,
+        verbose_name=_("Owner"),
+    )
+    comments = columns.MarkdownColumn(
+        verbose_name=_("Comments"),
+    )
+    tags = columns.TagColumn(
+        url_name="plugins:netbox_acls:aclassignment_list",
     )
 
     class Meta(NetBoxTable.Meta):
@@ -112,6 +126,7 @@ class ACLAssignmentTable(NetBoxTable):
             "assigned_object_type",
             "assigned_object",
             "direction",
+            "owner",
             "tags",
         )
         default_columns = (
@@ -125,7 +140,7 @@ class ACLAssignmentTable(NetBoxTable):
         )
 
 
-class ACLStandardRuleTable(NetBoxTable):
+class ACLStandardRuleTable(PrimaryModelTable):
     """
     Defines the table view for the ACLStandardRule model.
     """
@@ -152,7 +167,7 @@ class ACLStandardRuleTable(NetBoxTable):
         linkify=True,
     )
 
-    class Meta(NetBoxTable.Meta):
+    class Meta(PrimaryModelTable.Meta):
         model = ACLStandardRule
         fields = (
             "pk",
@@ -161,9 +176,10 @@ class ACLStandardRuleTable(NetBoxTable):
             "sequence",
             "action",
             "remark",
-            "tags",
-            "description",
             "source",
+            "description",
+            "tags",
+            "comments",
         )
         default_columns = (
             "access_list",
@@ -175,7 +191,7 @@ class ACLStandardRuleTable(NetBoxTable):
         )
 
 
-class ACLExtendedRuleTable(NetBoxTable):
+class ACLExtendedRuleTable(PrimaryModelTable):
     """
     Defines the table view for the ACLExtendedRule model.
     """
@@ -221,7 +237,7 @@ class ACLExtendedRuleTable(NetBoxTable):
         orderable=False,
     )
 
-    class Meta(NetBoxTable.Meta):
+    class Meta(PrimaryModelTable.Meta):
         model = ACLExtendedRule
         fields = (
             "pk",
@@ -230,13 +246,14 @@ class ACLExtendedRuleTable(NetBoxTable):
             "sequence",
             "action",
             "remark",
-            "tags",
-            "description",
+            "protocol",
             "source",
             "source_port_ranges_list",
             "destination",
             "destination_port_ranges_list",
-            "protocol",
+            "description",
+            "tags",
+            "comments",
         )
         default_columns = (
             "access_list",

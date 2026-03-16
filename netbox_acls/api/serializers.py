@@ -5,6 +5,7 @@ while Django itself handles the database abstraction.
 
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from netbox.api.fields import ContentTypeField, IntegerRangeSerializer
@@ -306,12 +307,14 @@ class ACLExtendedRuleSerializer(PrimaryModelSerializer):
             "sequence",
         )
 
+    @extend_schema_field({"type": "array", "items": {"type": "string"}})
     def get_destination_port_terms(self, obj):
         """
         Fetches the destination port terms for the given object.
         """
         return obj.destination_port_ranges_list
 
+    @extend_schema_field({"type": "array", "items": {"type": "string"}})
     def get_source_port_terms(self, obj):
         """
         Fetches the source port terms for the given object.

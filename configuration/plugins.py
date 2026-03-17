@@ -9,5 +9,8 @@ PLUGINS = [
 ]
 
 PLUGINS_CONFIG = {  # type: ignore
-    "netbox_acls": {},
+    "netbox_acls": {
+        "top_level_menu": True,
+        "rule_sequence_step": 10,
+    },
 }

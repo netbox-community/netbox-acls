@@ -322,7 +322,7 @@ class ACLAssignment(OwnerMixin, NetBoxModel):
         choices=ACLFamilyChoices,
     )
 
-    clone_fields = ("access_list", "direction")
+    clone_fields = ("access_list", "assigned_object_type", "assigned_object_id")
     prerequisite_models = ("netbox_acls.AccessList",)
 
     class Meta:

@@ -76,7 +76,10 @@ PLUGINS = [
 
 PLUGINS_CONFIG = {
     "netbox_acls": {
-        "top_level_menu": True # If set to True the plugin will add a top level menu item for the plugin. If set to False the plugin will add a menu item under the Plugins menu item.  Default is set to True.
+        # Display the plugin in the top-level menu (True) or under the Plugins menu (False)
+        "top_level_menu": True,
+        # Sequence number increment for new ACL rules (e.g., 10, 20, 30...)
+        "rule_sequence_step": 10,
     },
 }
 ```

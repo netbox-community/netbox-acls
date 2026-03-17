@@ -23,6 +23,7 @@ from ..constants import ACL_RULE_SOURCE_DESTINATION_MODELS
 from ..utils import infer_family_from_object, normalize_port_ranges
 from ..validators import validate_port_ranges
 from .access_lists import AccessList
+from .managers import ACLRuleManager
 
 __all__ = (
     "ACLExtendedRule",
@@ -146,6 +147,8 @@ class ACLRule(PrimaryModel):
         null=True,
     )
 
+    objects = ACLRuleManager()
+
     clone_fields = (
         "access_list",
         "action",
@@ -202,6 +205,18 @@ class ACLRule(PrimaryModel):
         # Validate rule family
         self._validate_rule_family()
 
+    def clone(self):
+        """
+        Creates a clone of the current ACL rule instance.
+        """
+        attrs = super().clone()
+
+        # Use the next sequence for clone / create-and-add-another
+        if self.access_list_id:
+            attrs["sequence"] = self.__class__.objects.get_next_sequence(self.access_list_id)
+
+        return attrs
+
     def save(self, *args, **kwargs):
         """
         Saves the current instance to the database.
@@ -230,6 +245,9 @@ class ACLRule(PrimaryModel):
     cache_related_source_object.alters_data = True
 
     def _validate_rule_family(self):
+        """
+        Validates that the ACL rule's family matches the source and destination families.
+        """
         acl_family = self.access_list.family
         families = set()
 
@@ -262,6 +280,9 @@ class ACLRule(PrimaryModel):
         return ACLRuleActionChoices.colors.get(self.action)
 
     def to_objectchange(self, action):
+        """
+        Creates an ObjectChange instance for the ACL rule.
+        """
         objectchange = super().to_objectchange(action)
         objectchange.related_object = self.access_list
         return objectchange

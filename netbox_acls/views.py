@@ -38,6 +38,31 @@ __all__ = (
     "AccessListView",
 )
 
+
+class ACLRuleSequenceMixin:
+    """
+    Mixin that auto-assigns the next available sequence number to new ACL rules.
+
+    Used with ObjectEditView to pre-populate the sequence field when creating
+    rules via the "Add" form (not clone/add-another, which preserves sequence).
+    """
+
+    def alter_object(self, obj, request, url_args, url_kwargs):
+        obj = super().alter_object(obj, request, url_args, url_kwargs)
+
+        # Skip if editing an existing object or sequence already provided (clone/add-another)
+        if obj.pk or "sequence" in request.GET:
+            return obj
+
+        # Parse access_list ID; bail out gracefully if missing/invalid
+        access_list_id = request.GET.get("access_list")
+        if not access_list_id or not access_list_id.isdigit():
+            return obj
+
+        obj.sequence = obj.__class__.objects.get_next_sequence(int(access_list_id))
+        return obj
+
+
 #
 # Base children views
 #
@@ -435,7 +460,7 @@ class ACLStandardRuleListView(generic.ObjectListView):
 
 @register_model_view(models.ACLStandardRule, "add", detail=False)
 @register_model_view(models.ACLStandardRule, "edit")
-class ACLStandardRuleEditView(generic.ObjectEditView):
+class ACLStandardRuleEditView(ACLRuleSequenceMixin, generic.ObjectEditView):
     """
     Defines the edit view for the ACLStandardRule django model.
     """
@@ -516,7 +541,7 @@ class ACLExtendedRuleListView(generic.ObjectListView):
 
 @register_model_view(models.ACLExtendedRule, "add", detail=False)
 @register_model_view(models.ACLExtendedRule, "edit")
-class ACLExtendedRuleEditView(generic.ObjectEditView):
+class ACLExtendedRuleEditView(ACLRuleSequenceMixin, generic.ObjectEditView):
     """
     Defines the edit view for the ACLExtendedRule django model.
     """

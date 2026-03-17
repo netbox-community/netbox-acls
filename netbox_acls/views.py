@@ -240,16 +240,6 @@ class ACLAssignmentEditView(generic.ObjectEditView):
     )
     form = forms.ACLAssignmentForm
 
-    def get_extra_addanother_params(self, request):
-        """
-        Returns a dictionary of additional parameters to be passed to the "Add Another" button.
-        """
-
-        return {
-            "access_list": request.GET.get("access_list") or request.POST.get("access_list"),
-            "direction": request.GET.get("direction") or request.POST.get("direction"),
-        }
-
 
 @register_model_view(models.ACLAssignment, "delete")
 class ACLAssignmentDeleteView(generic.ObjectDeleteView):
@@ -458,15 +448,6 @@ class ACLStandardRuleEditView(generic.ObjectEditView):
     )
     form = forms.ACLStandardRuleForm
 
-    def get_extra_addanother_params(self, request):
-        """
-        Returns a dictionary of additional parameters to be passed to the "Add Another" button.
-        """
-
-        return {
-            "access_list": request.GET.get("access_list") or request.POST.get("access_list"),
-        }
-
 
 @register_model_view(models.ACLStandardRule, "delete")
 class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
@@ -548,15 +529,6 @@ class ACLExtendedRuleEditView(generic.ObjectEditView):
         "tags",
     )
     form = forms.ACLExtendedRuleForm
-
-    def get_extra_addanother_params(self, request):
-        """
-        Returns a dictionary of additional parameters to be passed to the "Add Another" button.
-        """
-
-        return {
-            "access_list": request.GET.get("access_list") or request.POST.get("access_list"),
-        }
 
 
 @register_model_view(models.ACLExtendedRule, "delete")

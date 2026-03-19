@@ -8,7 +8,7 @@ from django.db.models import Count
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device, Interface, VirtualChassis
-from netbox.object_actions import AddObject, BulkDelete, BulkExport
+from netbox.object_actions import AddObject, BulkDelete, BulkEdit, BulkExport
 from netbox.views import generic
 from utilities.views import ViewTab, register_model_view
 from virtualization.models import VirtualMachine, VMInterface
@@ -153,7 +153,7 @@ class AccessListListView(generic.ObjectListView):
     table = tables.AccessListTable
     filterset = filtersets.AccessListFilterSet
     filterset_form = forms.AccessListFilterForm
-    actions = (AddObject, BulkExport, BulkDelete)
+    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.AccessList, "add", detail=False)
@@ -176,8 +176,24 @@ class AccessListDeleteView(generic.ObjectDeleteView):
     queryset = models.AccessList.objects.prefetch_related("owner", "tags")
 
 
+@register_model_view(models.AccessList, "bulk_edit", path="edit", detail=False)
+class AccessListBulkEditView(generic.BulkEditView):
+    """
+    Bulk edit view for editing multiple objects of AccessLists.
+    """
+
+    queryset = models.AccessList.objects.all()
+    filterset = filtersets.AccessListFilterSet
+    table = tables.AccessListTable
+    form = forms.AccessListBulkEditForm
+
+
 @register_model_view(models.AccessList, "bulk_delete", path="delete", detail=False)
 class AccessListBulkDeleteView(generic.BulkDeleteView):
+    """
+    Bulk delete view for deleting multiple objects of AccessLists.
+    """
+
     queryset = models.AccessList.objects.prefetch_related("owner", "tags")
     filterset = filtersets.AccessListFilterSet
     table = tables.AccessListTable
@@ -248,7 +264,7 @@ class ACLAssignmentListView(generic.ObjectListView):
     table = tables.ACLAssignmentTable
     filterset = filtersets.ACLAssignmentFilterSet
     filterset_form = forms.ACLAssignmentFilterForm
-    actions = (AddObject, BulkExport, BulkDelete)
+    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLAssignment, "add", detail=False)
@@ -279,8 +295,24 @@ class ACLAssignmentDeleteView(generic.ObjectDeleteView):
     )
 
 
+@register_model_view(models.ACLAssignment, "bulk_edit", path="edit", detail=False)
+class ACLAssignmentBulkEditView(generic.BulkEditView):
+    """
+    Bulk edit view for editing multiple objects of ACLAssignments.
+    """
+
+    queryset = models.ACLAssignment.objects.all()
+    filterset = filtersets.ACLAssignmentFilterSet
+    table = tables.ACLAssignmentTable
+    form = forms.ACLAssignmentBulkEditForm
+
+
 @register_model_view(models.ACLAssignment, "bulk_delete", path="delete", detail=False)
 class ACLAssignmentBulkDeleteView(generic.BulkDeleteView):
+    """
+    Bulk delete view for deleting multiple objects of ACLAssignments.
+    """
+
     queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
         "owner",
@@ -455,7 +487,7 @@ class ACLStandardRuleListView(generic.ObjectListView):
     table = tables.ACLStandardRuleTable
     filterset = filtersets.ACLStandardRuleFilterSet
     filterset_form = forms.ACLStandardRuleFilterForm
-    actions = (AddObject, BulkExport, BulkDelete)
+    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLStandardRule, "add", detail=False)
@@ -488,8 +520,24 @@ class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
     )
 
 
+@register_model_view(models.ACLStandardRule, "bulk_edit", path="edit", detail=False)
+class ACLStandardRuleBulkEditView(generic.BulkEditView):
+    """
+    Bulk edit view for editing multiple objects of ACLStandardRules.
+    """
+
+    queryset = models.ACLStandardRule.objects.all()
+    filterset = filtersets.ACLStandardRuleFilterSet
+    table = tables.ACLStandardRuleTable
+    form = forms.ACLStandardRuleBulkEditForm
+
+
 @register_model_view(models.ACLStandardRule, "bulk_delete", path="delete", detail=False)
 class ACLStandardRuleBulkDeleteView(generic.BulkDeleteView):
+    """
+    Bulk delete view for deleting multiple objects of ACLStandardRules.
+    """
+
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
         "source",
@@ -536,7 +584,7 @@ class ACLExtendedRuleListView(generic.ObjectListView):
     table = tables.ACLExtendedRuleTable
     filterset = filtersets.ACLExtendedRuleFilterSet
     filterset_form = forms.ACLExtendedRuleFilterForm
-    actions = (AddObject, BulkExport, BulkDelete)
+    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLExtendedRule, "add", detail=False)
@@ -571,8 +619,24 @@ class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
     )
 
 
+@register_model_view(models.ACLExtendedRule, "bulk_edit", path="edit", detail=False)
+class ACLExtendedRuleBulkEditView(generic.BulkEditView):
+    """
+    Bulk edit view for editing multiple objects of ACLExtendedRules.
+    """
+
+    queryset = models.ACLExtendedRule.objects.all()
+    filterset = filtersets.ACLExtendedRuleFilterSet
+    table = tables.ACLExtendedRuleTable
+    form = forms.ACLExtendedRuleBulkEditForm
+
+
 @register_model_view(models.ACLExtendedRule, "bulk_delete", path="delete", detail=False)
 class ACLExtendedRuleBulkDeleteView(generic.BulkDeleteView):
+    """
+    Bulk delete view for deleting multiple objects of ACLExtendedRules.
+    """
+
     queryset = models.ACLExtendedRule.objects.prefetch_related(
         "access_list",
         "source",

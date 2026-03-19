@@ -117,7 +117,7 @@ class ACLAssignmentForm(OwnerMixin, NetBoxModelForm):
 
     access_list = DynamicModelChoiceField(
         queryset=AccessList.objects.all(),
-        label="Access List",
+        label=_("Access List"),
         help_text=mark_safe(
             "<b>*Note:</b> Access List must be present on the device already.",
         ),
@@ -237,10 +237,10 @@ class ACLStandardRuleForm(PrimaryModelForm):
         query_params={
             "type": ACLTypeChoices.TYPE_STANDARD,
         },
+        label=_("Access List"),
         help_text=mark_safe(
             _("<b>*Note:</b> This field will only display Standard ACLs."),
         ),
-        label="Access List",
     )
 
     # Source
@@ -360,10 +360,10 @@ class ACLExtendedRuleForm(PrimaryModelForm):
         query_params={
             "type": ACLTypeChoices.TYPE_EXTENDED,
         },
+        label=_("Access List"),
         help_text=mark_safe(
             _("<b>*Note:</b> This field will only display Extended ACLs."),
         ),
-        label="Access List",
     )
 
     # Source

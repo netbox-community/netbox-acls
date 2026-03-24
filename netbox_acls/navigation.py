@@ -73,7 +73,7 @@ aclassignment_item = PluginMenuItem(
 )
 
 
-if plugin_settings.get("top_level_menu"):
+if plugin_settings.get("top_level_menu", True):
     menu = PluginMenu(
         label="Access Lists",
         groups=(

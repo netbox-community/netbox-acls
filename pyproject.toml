@@ -1,32 +1,36 @@
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+# See PEP 518 for the spec of this file
+# https://www.python.org/dev/peps/pep-0518/
 
-[tool.setuptools]
-packages = ["netbox_acls"]
-package-data = {"netbox_acls" = ["**/*", "templates/**"]}
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "netbox-acls"
 version = "1.9.1"
-readme = "README.md"
 requires-python = ">=3.12.0"
-classifiers=[
-    'Development Status :: 5 - Production/Stable',
-    'Intended Audience :: Developers',
-    'Natural Language :: English',
-    "Programming Language :: Python :: 3 :: Only",
-    'Programming Language :: Python :: 3.12',
-    'Programming Language :: Python :: 3.13',
-    'Programming Language :: Python :: 3.14',
-    'Intended Audience :: System Administrators',
-    'Intended Audience :: Telecommunications Industry',
-    'Framework :: Django',
-    'Topic :: System :: Networking',
-    'Topic :: Internet',
-]
+description = "NetBox plugin for plugin for managing Access Control Lists (ACLs)."
+readme = { file = "README.md", content-type = "text/markdown" }
+license = "Apache-2.0"
+license-files = ["LICENSE.txt"]
 keywords = ["netbox", "netbox-plugin"]
-license = {file = "LICENSE.txt"}
+classifiers=[
+    "Development Status :: 5 - Production/Stable",
+    "Framework :: Django",
+    "Framework :: Django :: 5.2",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: System :: Networking",
+    "Topic :: Internet",
+]
 
 [project.optional-dependencies]
 test = [
@@ -38,6 +42,12 @@ test = [
 ]
 
 [project.urls]
+Homepage = "https://github.com/netbox-community/netbox-acls/"
 Documentation = "https://github.com/netbox-community/netbox-acls/blob/dev/README.md"
 Source = "https://github.com/netbox-community/netbox-acls/"
-Tracker = "https://github.com/netbox-community/netbox-acls/issues"
+Issues = "https://github.com/netbox-community/netbox-acls/issues"
+Changelog = "https://github.com/netbox-community/netbox-acls/releases"
+
+[tool.setuptools]
+packages = ["netbox_acls"]
+package-data = {"netbox_acls" = ["**/*", "templates/**"]}

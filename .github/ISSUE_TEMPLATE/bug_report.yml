@@ -1,6 +1,6 @@
 ---
 name: 🐛 Bug Report
-description: Report a reproducible bug in the current release of this NetBox Plugin
+description: Report a reproducible bug in the current release of NetBox ACLs
 title: "[Bug]: "
 labels: ["bug"]
 body:
@@ -21,32 +21,47 @@ body:
 
   - type: input
     attributes:
-      label: NetBox access-list plugin version
-      description: What version of the NetBox access-list plugin are you currently running?
-      placeholder: v1.5.0
+      label: NetBox ACLs Plugin version
+      description: What version of NetBox ACLs are you currently running?
+      placeholder: v2.0.0
     validations:
       required: true
   - type: input
     attributes:
       label: NetBox version
       description: What version of NetBox are you currently running?
-      placeholder: v3.7.4
+      placeholder: v4.5.0
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Python version
+      description: What version of Python are you currently running?
+      options:
+        - "3.12"
+        - "3.13"
+        - "3.14"
     validations:
       required: true
   - type: textarea
     attributes:
       label: Steps to Reproduce
       description: >
-        Describe in detail the exact steps that someone else can take to
-        reproduce this bug using the current stable release of the NetBox access-list plugin.
-      #placeholder: |
+        Please provide a minimal working example to demonstrate the bug. Begin
+        with the initialization of any necessary database objects and clearly
+        enumerate each operation carried out. Ensure that your example is as
+        concise as possible while adequately illustrating the issue.
+
+        _Please refrain from including any confidential or sensitive
+        information in your example._
     validations:
       required: true
   - type: textarea
     attributes:
       label: Expected Behavior
       description: What did you expect to happen?
-      placeholder: A new widget should have been created with the specified attributes
+      placeholder: >
+        The script should execute without raising any errors or exceptions
     validations:
       required: true
   - type: textarea
@@ -56,3 +71,4 @@ body:
       placeholder: A TypeError exception was raised
     validations:
       required: true
+...

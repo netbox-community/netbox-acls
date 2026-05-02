@@ -73,8 +73,8 @@ class ACLExtendedRuleIndex(SearchIndex):
         "protocol",
         "source_type",
         "source",
-        "source_ports",
+        "source_port_ranges",
         "destination",
         "destination_type",
-        "destination_ports",
+        "destination_port_ranges",
     )

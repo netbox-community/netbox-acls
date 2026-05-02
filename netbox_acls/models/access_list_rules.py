@@ -543,22 +543,46 @@ class ACLExtendedRule(ACLRule):
     cache_related_destination_objects.alters_data = True
 
     @property
-    def source_port_ranges_list(self):
-        """
-        Gets the list representation of source port ranges.
-        """
-        return ranges_to_string_list(self.source_port_ranges)
-
-    @property
     def destination_port_ranges_list(self):
         """
-        Gets the list representation of destination port ranges.
+        Return destination port ranges as a list of strings.
+
+        Ranges are formatted as a single port or as an inclusive
+        `"<start>-<end>"` range, e.g. `["22", "80-81", "443"]`.
         """
         return ranges_to_string_list(self.destination_port_ranges)
 
+    @property
+    def source_port_ranges_list(self):
+        """
+        Return source port ranges as a list of strings.
+
+        Ranges are formatted as a single port or as an inclusive
+        `"<start>-<end>"` range, e.g. `["22", "80-81", "443"]`.
+        """
+        return ranges_to_string_list(self.source_port_ranges)
+
+    def get_destination_port_ranges_display(self):
+        """
+        Return destination port ranges as a comma-separated string.
+
+        Example:
+            `"22, 80-81, 443"`
+        """
+        return ", ".join(self.destination_port_ranges_list)
+
+    def get_source_port_ranges_display(self):
+        """
+        Return source port ranges as a comma-separated string.
+
+        Example:
+            `"22, 80-81, 443"`
+        """
+        return ", ".join(self.source_port_ranges_list)
+
     def get_protocol_color(self):
         """
-        Returns the color associated with the protocol of an ACL rule.
+        Return the display color associated with the rule protocol.
         """
         return ACLProtocolChoices.colors.get(self.protocol)
 

@@ -2,4 +2,4 @@
 
 ## Reporting a Vulnerability
 
-Feel free to raise an issue about any vunerabilities introduced in this plugin.
+Feel free to raise an issue about any vulnerabilities introduced in this plugin.

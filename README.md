@@ -16,7 +16,8 @@ The following table details the tested plugin versions for each NetBox version:
 
 |   NetBox Version    | Plugin Version |
 |:-------------------:|:--------------:|
-|        4.5.x        |     2.0.0      |
+|        4.6.x        |     2.0.1      |
+|        4.5.x        |     2.0.1      |
 |        4.4.x        |     1.9.1      |
 |        4.3.x        |     1.9.1      |
 |        4.2.x        |     1.8.1      |
@@ -89,28 +90,32 @@ python3 netbox/manage.py migrate
 ## Screenshots
 
 - **Access List** (List View)
+
   ![Access List - List View](docs/img/access_lists.png)
 
 - **Access List (Standard)** (Detail View)
+
   ![Access List Type Standard - Detail View](docs/img/access_list_type_standard.png)
 
 - **Access List (Extended)** (Detail View)
+
   ![Access List Type Extended - Detail View](docs/img/access_list_type_extended.png)
 
 - **Standard Access List Rules** (List View)
+
   ![Standard Access List Rules - List View](docs/img/acl_standard_rules.png)
 
 - **Extended Access List Rules** (List View)
+
   ![Extended Access List Rules - List View](docs/img/acl_extended_rules.png)
 
-- **Interface Assignments** (List View)
-  ![Access List Interface Assignments - List View](docs/img/acl_interface_assignments.png)
+- **ACL Assignments** (List View)
+
+  ![Access List Assignments - List View](docs/img/acl_assignments.png)
 
 - **Host Access Lists** (New Card for Devices, Virtual Chassis, Virtual Machines)
-  ![Host Access Lists - New Card](docs/img/acl_host_view.png)
 
-- **Host Interface Access Lists** (New Card for Device and VM Interfaces)
-  ![Host Interface Access Lists - New Card](docs/img/access_list_type_standard.png)
+  ![Host Access Lists - New Card](docs/img/acl_host_view.png)
 
 ## Developing
 

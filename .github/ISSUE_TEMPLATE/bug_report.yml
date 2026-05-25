@@ -7,15 +7,13 @@ body:
   - type: markdown
     attributes:
       value: >
-        **NOTE:** This form is only for reporting _reproducible bugs_ in a current NetBox plugin
-        installation.
+        **NOTE:** This form is only for reporting _reproducible bugs_ in a
+        current NetBox plugin installation.
 
         - Check the release notes:
-          https://github.com/ryanmerolle/netbox-acls/releases
+          https://github.com/netbox-community/netbox-acls/releases
         - Look through the issues already resolved:
-          https://github.com/ryanmerolle/netbox-acls/issues?q=is%3Aclosed
-        - Post to Github Discussions if you need setup or usage help that is not a bug:
-          https://github.com/ryanmerolle/netbox-acls/discussions
+          https://github.com/netbox-community/netbox-acls/issues?q=is%3Aclosed
         - Join the `#netbox` channel on our Slack:
           https://join.slack.com/t/netdev-community/shared_invite/zt-mtts8g0n-Sm6Wutn62q_M4OdsaIycrQ
 
@@ -23,7 +21,7 @@ body:
     attributes:
       label: NetBox ACLs Plugin version
       description: What version of NetBox ACLs are you currently running?
-      placeholder: v2.0.0
+      placeholder: v2.0.1
     validations:
       required: true
   - type: input

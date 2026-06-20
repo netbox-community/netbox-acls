@@ -301,3 +301,33 @@ class TestAccessList(BaseTestCase):
         acl_v6.family = ACLFamilyChoices.FAMILY_IPV4
         with self.assertRaises(ValidationError):
             acl_v6.full_clean()
+
+    def test_accesslist_save_blocks_host_name_rename_collision(self):
+        """#358: save() must re-enforce the host name/family guard for full_clean()-skipping callers."""
+        acl_a = AccessList.objects.create(
+            name="ACL1",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        acl_b = AccessList.objects.create(
+            name="ACL2",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        ACLAssignment.objects.create(
+            access_list=acl_a,
+            assigned_object=self.device1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+        ACLAssignment.objects.create(
+            access_list=acl_b,
+            assigned_object=self.device1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+
+        # Rename acl_b to collide with acl_a on the same host + family, bypassing full_clean()
+        acl_b.name = "ACL1"
+        with self.assertRaises(ValidationError):
+            acl_b.save()

@@ -117,7 +117,7 @@ class AccessList(PrimaryModel):
         # Repeat the critical guards for callers that skip full_clean(), and
         # if family changes without rules, update assignment families atomically.
         with transaction.atomic():
-            original_values = self._get_persisted_values(("type", "family"))
+            original_values = self._get_persisted_values(("type", "family", "name"))
             family_changed = False
 
             if original_values:
@@ -136,6 +136,10 @@ class AccessList(PrimaryModel):
                     # Validate host-level duplicate-name constraints under the *new* family
                     self._validate_host_name_family_conflicts(self.family)
                     family_changed = True
+
+                # NAME rename guard: re-enforce here for callers that skip full_clean().
+                if original_values["name"] != self.name:
+                    self._validate_host_name_family_conflicts(self.family)
 
             rv = super().save(*args, **kwargs)
 

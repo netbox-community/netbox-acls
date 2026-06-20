@@ -322,7 +322,6 @@ class ACLExtendedRuleBulkEditForm(PrimaryModelBulkEditForm):
             name=_("Access List Details"),
         ),
         FieldSet(
-            "sequence",
             "action",
             name=_("Rule Definition"),
         ),

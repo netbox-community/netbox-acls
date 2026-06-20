@@ -249,7 +249,7 @@ class ACLExtendedRuleBulkEditForm(PrimaryModelBulkEditForm):
     access_list = DynamicModelChoiceField(
         queryset=AccessList.objects.all(),
         query_params={
-            "type": ACLTypeChoices.TYPE_STANDARD,
+            "type": ACLTypeChoices.TYPE_EXTENDED,
         },
         required=False,
         label=_("Access List"),

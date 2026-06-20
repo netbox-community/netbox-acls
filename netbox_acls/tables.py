@@ -29,9 +29,6 @@ class AccessListTable(PrimaryModelTable):
     name = tables.Column(
         linkify=True,
     )
-    device = tables.Column(
-        linkify=True,
-    )
     type = columns.ChoiceFieldColumn()
     family = columns.ChoiceFieldColumn()
     default_action = columns.ChoiceFieldColumn()
@@ -55,7 +52,6 @@ class AccessListTable(PrimaryModelTable):
             "description",
             "comments",
             "tags",
-            "action",
         )
         default_columns = (
             "name",

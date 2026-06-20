@@ -14,3 +14,15 @@ class ACLExtendedRuleFormTestCase(TestCase):
             form.fields["access_list"].query_params,
             {"type": ACLTypeChoices.TYPE_EXTENDED},
         )
+
+    def test_bulkedit_fieldset_fields_all_defined(self):
+        """#361: every field named in the extended bulk-edit fieldsets must exist on the form."""
+        form = ACLExtendedRuleBulkEditForm()
+        for fieldset in form.fieldsets:
+            for item in fieldset.items:
+                if isinstance(item, str):
+                    self.assertIn(
+                        item,
+                        form.fields,
+                        msg=f"Fieldset '{fieldset.name}' references undefined field '{item}'",
+                    )

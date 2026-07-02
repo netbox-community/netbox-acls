@@ -2,33 +2,33 @@
 Define the django models for this plugin.
 """
 
-from dcim.models import Device, Interface, VirtualChassis
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
-from django.db import models
-from django.urls import reverse
+from django.core.validators import validate_slug
+from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
-from netbox.models import NetBoxModel
+
+from dcim.models import Device, Interface, VirtualChassis
+from netbox.models import NetBoxModel, PrimaryModel
+from netbox.models.mixins import OwnerMixin
 from virtualization.models import VirtualMachine, VMInterface
 
-from ..choices import ACLActionChoices, ACLAssignmentDirectionChoices, ACLTypeChoices
+from ..choices import (
+    ACLActionChoices,
+    ACLAssignmentDirectionChoices,
+    ACLFamilyChoices,
+    ACLTypeChoices,
+)
 from ..constants import ACL_ASSIGNMENT_MODELS
 
 __all__ = (
-    "AccessList",
     "ACLAssignment",
+    "AccessList",
 )
 
 
-alphanumeric_plus = RegexValidator(
-    r"^[a-zA-Z0-9-_]+$",
-    _("Only alphanumeric, hyphens, and underscores characters are allowed."),
-)
-
-
-class AccessList(NetBoxModel):
+class AccessList(PrimaryModel):
     """
     Model definition for Access Lists.
     """
@@ -36,12 +36,19 @@ class AccessList(NetBoxModel):
     name = models.CharField(
         verbose_name=_("Name"),
         max_length=500,
-        validators=[alphanumeric_plus],
+        validators=[validate_slug],
     )
     type = models.CharField(
         verbose_name=_("Type"),
         max_length=30,
         choices=ACLTypeChoices,
+    )
+    family = models.CharField(
+        verbose_name=_("Family"),
+        max_length=8,
+        db_index=True,
+        default=ACLFamilyChoices.FAMILY_IPV4,
+        choices=ACLFamilyChoices,
     )
     default_action = models.CharField(
         verbose_name=_("Default Action"),
@@ -49,12 +56,10 @@ class AccessList(NetBoxModel):
         default=ACLActionChoices.ACTION_DENY,
         choices=ACLActionChoices,
     )
-    comments = models.TextField(
-        blank=True,
-    )
 
     clone_fields = (
         "default_action",
+        "family",
         "type",
     )
 
@@ -78,58 +83,196 @@ class AccessList(NetBoxModel):
         # Save a copy of the ACL name for validation in clean()
         self._original_name = self.__dict__.get("name")
 
-    def get_absolute_url(self):
-        """
-        The method is a Django convention; although not strictly required,
-        it conveniently returns the absolute URL for any particular object.
-        """
-        return reverse("plugins:netbox_acls:accesslist", args=[self.pk])
-
     def clean(self):
         """
         Override the model's clean method for custom validation.
         """
         super().clean()
 
-        # Validate that uniqueness of the AccessList name per assigned host type
-        # (device, virtual chassis, or virtual machine) during renaming.
-        if self.pk and self._original_name and self._original_name != self.name:
-            host_assigned_object_types = [
-                ContentType.objects.get_for_model(Device),
-                ContentType.objects.get_for_model(VirtualChassis),
-                ContentType.objects.get_for_model(VirtualMachine),
-            ]
-            acl_assignments = ACLAssignment.objects.filter(
-                access_list=self,
-                assigned_object_type__in=host_assigned_object_types,
-            )
-            for acl_assignment in acl_assignments:
-                conflicting_acl_assignments = ACLAssignment.objects.filter(
-                    access_list__name=self.name,
-                    assigned_object_type=acl_assignment.assigned_object_type,
-                    assigned_object_id=acl_assignment.assigned_object_id,
-                ).exclude(pk=acl_assignment.pk)
-                if conflicting_acl_assignments.exists():
-                    assigned_object_model = acl_assignment.assigned_object_type.model_class()
+        if self.pk:
+            original_values = self._get_persisted_values(("name", "type", "family"))
+
+            # TYPE guard: if any rules exist, forbid changing type
+            if original_values["type"] != self.type and self._has_rules():
+                raise ValidationError({"type": _("This ACL has ACL rules associated, CANNOT change ACL type.")})
+
+            # FAMILY guard
+            if original_values["family"] != self.family:
+                if self._has_rules():
+                    # If any rules exist, forbid changing family
+                    raise ValidationError({"family": _("This ACL has ACL rules associated, CANNOT change ACL family.")})
+                # Validate family changes for interface assignments
+                self._validate_interface_family_conflicts(self.family)
+                # Validate host-level duplicate-name constraints under the *new* family
+                self._validate_host_name_family_conflicts(self.family)
+
+            # NAME rename guard
+            if original_values["name"] != self.name:
+                self._validate_host_name_family_conflicts(self.family)
+
+    def save(self, *args, **kwargs):
+        """
+        Override the model's save method for custom validation.
+        """
+        # Repeat the critical guards for callers that skip full_clean(), and
+        # if family changes without rules, update assignment families atomically.
+        with transaction.atomic():
+            original_values = self._get_persisted_values(("type", "family", "name"))
+            family_changed = False
+
+            if original_values:
+                # Re-enforce TYPE guard
+                if original_values["type"] != self.type and self._has_rules():
+                    raise ValidationError({"type": _("This ACL has ACL rules associated, CANNOT change ACL type.")})
+
+                # FAMILY change preflight
+                if original_values["family"] != self.family:
+                    if self._has_rules():
+                        raise ValidationError(
+                            {"family": _("This ACL has ACL rules associated, CANNOT change ACL family.")}
+                        )
+                    # Validate family changes for interface assignments
+                    self._validate_interface_family_conflicts(self.family)
+                    # Validate host-level duplicate-name constraints under the *new* family
+                    self._validate_host_name_family_conflicts(self.family)
+                    family_changed = True
+
+                # NAME rename guard: re-enforce here for callers that skip full_clean().
+                if original_values["name"] != self.name:
+                    self._validate_host_name_family_conflicts(self.family)
+
+            rv = super().save(*args, **kwargs)
+
+            # If family changed (and we passed preflight), mirror it on assignments now
+            if family_changed:
+                # Sync denormalized family on *all* assignments (host + interface)
+                qs = self.aclassignments.select_for_update()
+                if qs.exists():
+                    qs.update(family=self.family)
+
+            return rv
+
+    def _has_rules(self) -> bool:
+        """
+        Returns whether this ACL has rules.
+        """
+        return self.aclstandardrules.exists() or self.aclextendedrules.exists()
+
+    def _get_persisted_values(self, fields=("name", "type", "family")) -> dict:
+        """
+        Fetch persisted values directly from the DB to compare against current in‑memory changes.
+        """
+        if not self.pk:
+            return {}
+        return type(self).objects.filter(pk=self.pk).values(*fields).first() or {}
+
+    def _validate_interface_family_conflicts(self, target_family: str) -> None:
+        """
+        Validates potential conflicts in interface family assignments within ACL configurations.
+
+        Ensures that assigning a target family to an access control list does not conflict
+        with existing interface assignments on the same object and direction.
+        """
+        interface_assignments = self.aclassignments.exclude(direction=ACLAssignmentDirectionChoices.DIRECTION_NONE)
+        for intf_assignment in interface_assignments:
+            qs = ACLAssignment.objects.filter(
+                assigned_object_type_id=intf_assignment.assigned_object_type_id,
+                assigned_object_id=intf_assignment.assigned_object_id,
+                direction=intf_assignment.direction,
+            ).exclude(access_list=self)
+
+            if target_family == ACLFamilyChoices.FAMILY_DUAL:
+                # Dual occupies both family slots → any existing assignment is a conflict
+                if qs.exists():
                     raise ValidationError(
                         {
-                            "name": _(
-                                "An Access List with the name '{access_list}' "
-                                "is already assigned to the {assigned_object} "
-                                "'{assigned_object_name}'.".format(
-                                    access_list=self.name,
-                                    assigned_object=assigned_object_model._meta.verbose_name,
-                                    assigned_object_name=acl_assignment.assigned_object.name,
-                                )
-                            )
-                        }
+                            "family": _(
+                                "Changing to Dual would conflict with an existing interface assignment "
+                                "on the same object and direction.",
+                            ),
+                        },
                     )
+            else:
+                # v4 conflicts with (v4 or dual); v6 conflicts with (v6 or dual)
+                conflict_families = [target_family, ACLFamilyChoices.FAMILY_DUAL]
+                if qs.filter(family__in=conflict_families).exists():
+                    raise ValidationError(
+                        {
+                            "family": _(
+                                "Changing to {family} would conflict with an existing {family} or "
+                                "Dual interface assignment on the same object and direction.",
+                            ).format(family=target_family),
+                        },
+                    )
+
+    def _validate_host_name_family_conflicts(self, target_family: str):
+        """
+        Validates that there are no conflicting host assignments for the given target family.
+
+        This method checks if there are any Access Control List (ACL) assignments with the
+        same name, assigned object type, assigned object ID, and target family that conflict
+        with the existing host assignments.
+        It raises a validation error in case of conflicts.
+        """
+
+        host_assignments = self.aclassignments.filter(direction=ACLAssignmentDirectionChoices.DIRECTION_NONE)
+        for host_assignment in host_assignments:
+            conflicting_host_assignments = ACLAssignment.objects.filter(
+                access_list__name=self.name,
+                assigned_object_type=host_assignment.assigned_object_type,
+                assigned_object_id=host_assignment.assigned_object_id,
+                family=target_family,
+            ).exclude(pk=host_assignment.pk)
+            if conflicting_host_assignments.exists():
+                assigned_object_model = host_assignment.assigned_object_type.model_class()
+                raise ValidationError(
+                    {
+                        "name": _(
+                            "An {family} Access List with the name "
+                            "'{access_list}' is already assigned to the "
+                            "{assigned_object} '{assigned_object_name}'.".format(
+                                access_list=self.name,
+                                assigned_object=assigned_object_model._meta.verbose_name,
+                                assigned_object_name=host_assignment.assigned_object.name,
+                                # TODO: Fix formating!
+                                family=target_family,
+                            ),
+                        ),
+                    },
+                )
+
+    @property
+    def is_dual(self) -> bool:
+        """
+        Returns True if the Access List is dual, False otherwise.
+        """
+        return self.family == ACLFamilyChoices.FAMILY_DUAL
+
+    @property
+    def is_ipv4(self) -> bool:
+        """
+        Returns True if the Access List is IPv4, False otherwise.
+        """
+        return self.family == ACLFamilyChoices.FAMILY_IPV4
+
+    @property
+    def is_ipv6(self) -> bool:
+        """
+        Returns True if the Access List is IPv6, False otherwise.
+        """
+        return self.family == ACLFamilyChoices.FAMILY_IPV6
 
     def get_default_action_color(self):
         """
         Retrieves the default action color from the ACLActionChoices.
         """
         return ACLActionChoices.colors.get(self.default_action)
+
+    def get_family_color(self):
+        """
+        Retrieves the family color from the ACLFamilyChoices.
+        """
+        return ACLFamilyChoices.colors.get(self.family)
 
     def get_type_color(self):
         """
@@ -138,7 +281,7 @@ class AccessList(NetBoxModel):
         return ACLTypeChoices.colors.get(self.type)
 
 
-class ACLAssignment(NetBoxModel):
+class ACLAssignment(OwnerMixin, NetBoxModel):
     """
     Model definition for Access Lists associations with objects:
       - device
@@ -174,20 +317,39 @@ class ACLAssignment(NetBoxModel):
         blank=True,
     )
 
-    clone_fields = ("access_list", "direction")
+    # Denormalized family (kept in sync with access_list.family)
+    family = models.CharField(
+        verbose_name=_("Family"),
+        max_length=8,
+        db_index=True,
+        editable=False,
+        choices=ACLFamilyChoices,
+    )
+
+    clone_fields = ("access_list", "assigned_object_type", "assigned_object_id")
     prerequisite_models = ("netbox_acls.AccessList",)
 
     class Meta:
-        unique_together = [
-            "assigned_object_type",
-            "assigned_object_id",
-            "access_list",
-            "direction",
+        constraints = [
+            # Prevent the *same ACL* from being assigned twice to the same object+direction
+            models.UniqueConstraint(
+                fields=["access_list", "assigned_object_type", "assigned_object_id", "direction"],
+                name="%(app_label)s_%(class)s_unique_object_direction_family_per_access_list",
+                violation_error_message=_("ACL Assignment for the given object and direction."),
+            ),
+            # Enforce per-family uniqueness ONLY for interface-level (direction != NONE)
+            models.UniqueConstraint(
+                fields=["assigned_object_type", "assigned_object_id", "direction", "family"],
+                condition=~models.Q(direction=ACLAssignmentDirectionChoices.DIRECTION_NONE),
+                name="%(app_label)s_%(class)s_unique_object_direction_family_interface_only",
+                violation_error_message=_("ACL Assignment for the given object, direction and family exists."),
+            ),
         ]
         ordering = [
             "assigned_object_type",
             "assigned_object_id",
             "access_list",
+            "family",
             "direction",
         ]
         verbose_name = _("ACL Assignment")
@@ -198,16 +360,6 @@ class ACLAssignment(NetBoxModel):
         Returns the string representation of the object.
         """
         return f"{self.access_list}: Object {self.assigned_object}"
-
-    def get_absolute_url(self):
-        """
-        The method is a Django convention; although not strictly required,
-        it conveniently returns the absolute URL for any particular object.
-        """
-        return reverse(
-            "plugins:netbox_acls:aclassignment",
-            args=[self.pk],
-        )
 
     def clean(self) -> None:
         """
@@ -221,13 +373,16 @@ class ACLAssignment(NetBoxModel):
                 {
                     "assigned_object": _(
                         "The {assigned_object} field is required,if an assigned object type is selected.".format(
-                            assigned_object=assigned_object_model._meta.verbose_name
-                        )
-                    )
-                }
+                            assigned_object=assigned_object_model._meta.verbose_name,
+                        ),
+                    ),
+                },
             )
 
         super().clean()
+
+        # Mirror ACL family to denormalized column early
+        self.family = self.access_list.family
 
         # Validate that uniqueness of the AccessList name per assigned host type
         # (device, virtual chassis, or virtual machine)
@@ -236,6 +391,13 @@ class ACLAssignment(NetBoxModel):
             ContentType.objects.get_for_model(VirtualChassis),
             ContentType.objects.get_for_model(VirtualMachine),
         ]
+        # If the assigned object is a host type (device, virtual chassis,
+        # or virtual machine), directional semantics (ingress/egress) are
+        # not applicable.
+        # Therefore, the direction field is set to "none" in these cases.
+        if self.assigned_object_type in host_assigned_object_types:
+            self.direction = ACLAssignmentDirectionChoices.DIRECTION_NONE
+
         if self.assigned_object_type in host_assigned_object_types:
             self._validate_unique_acl_name_per_assigned_object()
         else:
@@ -251,6 +413,7 @@ class ACLAssignment(NetBoxModel):
             access_list__name=self.access_list.name,
             assigned_object_type=self.assigned_object_type,
             assigned_object_id=self.assigned_object_id,
+            family=self.family,
         )
         if self.pk:
             conflicting_acl_assignments = conflicting_acl_assignments.exclude(pk=self.pk)
@@ -262,11 +425,12 @@ class ACLAssignment(NetBoxModel):
                     "access_list": _(
                         "An Access List with the name '{access_list}' "
                         "already exists for the specified "
-                        "{assigned_object}.".format(
-                            access_list=self.access_list.name, assigned_object=assigned_object_model._meta.verbose_name
-                        )
-                    )
-                }
+                        "{assigned_object} and family.".format(
+                            access_list=self.access_list.name,
+                            assigned_object=assigned_object_model._meta.verbose_name,
+                        ),
+                    ),
+                },
             )
 
     def _validate_unique_acl_assignment_per_assigned_interface(self) -> None:
@@ -275,6 +439,13 @@ class ACLAssignment(NetBoxModel):
             assigned_object_id=self.assigned_object_id,
             direction=self.direction,
         )
+        # Enforce: at most one IPv4 and at most one IPv6 per object+direction.
+        # A 'dual' ACL conflicts with any existing family at that object+direction.
+        if self.family != ACLFamilyChoices.FAMILY_DUAL:
+            # v4 conflicts with existing v4 or dual; same for v6
+            conflicting_acl_assignments = conflicting_acl_assignments.filter(
+                family__in=[self.family, ACLFamilyChoices.FAMILY_DUAL]
+            )
         if self.pk:
             conflicting_acl_assignments = conflicting_acl_assignments.exclude(pk=self.pk)
         if conflicting_acl_assignments.exists():
@@ -282,16 +453,20 @@ class ACLAssignment(NetBoxModel):
             raise ValidationError(
                 {
                     "direction": _(
-                        "An ACL Assignment with the same direction already exists for the specified "
-                        "{assigned_object}.".format(assigned_object=assigned_object_model._meta.verbose_name)
-                    )
-                }
+                        "An ACL Assignment for this family (or a Dual ACL) already exists on the interface "
+                        "{assigned_object} and direction.".format(
+                            assigned_object=assigned_object_model._meta.verbose_name
+                        ),
+                    ),
+                },
             )
 
     def save(self, *args, **kwargs):
         """
         Saves the current instance to the database.
         """
+        self.family = self.access_list.family
+
         host_assigned_object_types = [
             ContentType.objects.get_for_model(Device),
             ContentType.objects.get_for_model(VirtualChassis),
@@ -312,6 +487,12 @@ class ACLAssignment(NetBoxModel):
         Retrieves the direction color from the ACLAssignmentDirectionChoices.
         """
         return ACLAssignmentDirectionChoices.colors.get(self.direction)
+
+    def get_family_color(self):
+        """
+        Retrieves the family color from the ACLFamilyChoices.
+        """
+        return ACLFamilyChoices.colors.get(self.family)
 
 
 GenericRelation(

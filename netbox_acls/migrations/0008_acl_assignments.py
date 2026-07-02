@@ -11,18 +11,22 @@ def copy_host_assignments(apps, schema_editor):
     AccessList = apps.get_model("netbox_acls", "AccessList")
     ACLAssignment = apps.get_model("netbox_acls", "ACLAssignment")
 
-    for acl in AccessList.objects.using(db_alias).all():
-        ACLAssignment.objects.using(db_alias).create(
+    assignments = [
+        ACLAssignment(
             access_list=acl,
-            assigned_object_type=acl.assigned_object_type,
+            assigned_object_type_id=acl.assigned_object_type_id,
             assigned_object_id=acl.assigned_object_id,
             direction="none",
         )
+        for acl in AccessList.objects.using(db_alias).only("id", "assigned_object_type_id", "assigned_object_id")
+    ]
+
+    ACLAssignment.objects.using(db_alias).bulk_create(assignments, batch_size=100)
 
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("netbox_acls", "0005_acl_rule_source_and_destination_objects"),
+        ("netbox_acls", "0007_acl_rule_sequence_unique"),
     ]
 
     operations = [

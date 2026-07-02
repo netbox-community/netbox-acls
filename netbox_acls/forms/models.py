@@ -3,66 +3,81 @@ Defines each django model's GUI form to add or edit objects for each django mode
 """
 
 from django import forms
-from dcim.models import Device, Interface
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
+
+from dcim.models import Device, Interface
 from ipam.models import Prefix
-from netbox.forms import NetBoxModelForm
+from netbox.forms import NetBoxModelForm, PrimaryModelForm
+from netbox.forms.mixins import OwnerMixin
 from utilities.forms import (
-    get_field_value,
     add_blank_choice,
+    get_field_value,
 )
-from utilities.forms.fields import CommentField, DynamicModelChoiceField, ContentTypeChoiceField
+from utilities.forms.fields import (
+    CommentField,
+    ContentTypeChoiceField,
+    DynamicModelChoiceField,
+    NumericRangeArrayField,
+)
 from utilities.forms.rendering import FieldSet
 from utilities.forms.widgets import HTMXSelect
 from utilities.templatetags.builtins.filters import bettertitle
 from virtualization.models import VMInterface
 
-from ..constants import ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
 from ..choices import (
     ACLAssignmentDirectionChoices,
     ACLAssignmentDirectionUIChoices,
     ACLTypeChoices,
 )
+from ..constants import ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
 from ..models import (
     AccessList,
-    ACLExtendedRule,
     ACLAssignment,
+    ACLExtendedRule,
     ACLStandardRule,
 )
 
 __all__ = (
-    "AccessListForm",
     "ACLAssignmentForm",
-    "ACLStandardRuleForm",
     "ACLExtendedRuleForm",
+    "ACLStandardRuleForm",
+    "AccessListForm",
 )
 
 # Sets a standard mark_safe help_text value to be used by the various classes
 help_text_acl_rule_logic = mark_safe(
-    "<b>*Note:</b> CANNOT be set if action is set to remark.",
+    _("<b>*Note:</b> CANNOT be set if action is set to remark."),
+)
+# Sets a standard mark_safe help_text value to be used by the various classes
+help_text_acl_rule_port_logic = mark_safe(
+    _("<b>*Note:</b> CANNOT be set if action is set to remark. Only valid when protocol is TCP or UDP.")
 )
 # Sets a standard help_text value to be used by the various classes for acl action
-help_text_acl_action = "Action the rule will take (remark, deny, or allow)."
-# Sets a standard help_text value to be used by the various classes for acl index
-help_text_acl_rule_index = "Determines the order of the rule in the ACL processing. AKA Sequence Number."
+help_text_acl_action = _("Action the rule will take (remark, deny, or allow).")
+# Sets a standard help_text value to be used by the various classes for acl sequence
+help_text_acl_rule_sequence = _("Determines the order of the rule in the ACL processing.")
+# Standard help_text value to be used by the various classes for acl remark
+help_text_acl_remark = _("Remark the rule will take.")
+# Sets a standard help_text value to be used by the fields for acl port ranges
+help_text_acl_rule_port_ranges = _("Comma/hyphen (inclusive). Example: 22,80-81,1024-65535")
 
 
-class AccessListForm(NetBoxModelForm):
+class AccessListForm(PrimaryModelForm):
     """
     GUI form to add or edit an AccessList.
     Requires a device, a name, a type, and a default_action.
     """
 
-    comments = CommentField()
-
     fieldsets = (
         FieldSet(
             "name",
             "type",
+            "family",
             "default_action",
+            "description",
             "tags",
             name=_("Access List Details"),
         ),
@@ -73,40 +88,28 @@ class AccessListForm(NetBoxModelForm):
         fields = (
             "name",
             "type",
+            "family",
             "default_action",
+            "description",
+            "owner",
             "comments",
             "tags",
         )
 
         help_texts = {
             "default_action": _("The default behavior of the ACL."),
+            "family": _(
+                "Determines whether this ACL contains IPv4, IPv6, or dual-stack rules."
+                "Cannot be changed if rules are associated."
+            ),
             "name": _("The name uniqueness per device is case insensitive."),
             "type": mark_safe(
                 _("<b>*Note:</b> CANNOT be changed if ACL Rules are associated to this Access List."),
             ),
         }
 
-    def clean(self):
-        """
-        Validates and cleans the input data for the current object.
 
-        Ensures that the type of the Access Control List (ACL) cannot be
-        altered if there are existing rules associated with the current ACL.
-        """
-        super().clean()
-
-        acl_type = self.cleaned_data.get("type")
-
-        # Check if Access List has no existing rules before change the
-        # Access List's type.
-        if self.instance.pk and (
-            (acl_type == ACLTypeChoices.TYPE_EXTENDED and self.instance.aclstandardrules.exists())
-            or (acl_type == ACLTypeChoices.TYPE_STANDARD and self.instance.aclextendedrules.exists())
-        ):
-            raise ValidationError({"type": _("This ACL has ACL rules associated, CANNOT change ACL type.")})
-
-
-class ACLAssignmentForm(NetBoxModelForm):
+class ACLAssignmentForm(OwnerMixin, NetBoxModelForm):
     """
     GUI form to add or edit ACL assignments
     Requires an access_list, a name, a type, and a default_action.
@@ -114,7 +117,7 @@ class ACLAssignmentForm(NetBoxModelForm):
 
     access_list = DynamicModelChoiceField(
         queryset=AccessList.objects.all(),
-        label="Access List",
+        label=_("Access List"),
         help_text=mark_safe(
             "<b>*Note:</b> Access List must be present on the device already.",
         ),
@@ -139,7 +142,7 @@ class ACLAssignmentForm(NetBoxModelForm):
             "Device Interface or Virtual Machine Interface objects. "
             "For other types (such as Device, Virtual Chassis, or Virtual Machine), "
             "this field is disabled. "
-            "<b>*Note:</b> CANNOT assign 2 ACLs to the same interface & direction."
+            "<b>*Note:</b> CANNOT assign 2 ACLs to the same interface & direction.",
         ),
         disabled=True,
     )
@@ -158,6 +161,17 @@ class ACLAssignmentForm(NetBoxModelForm):
             name=_("Assignment"),
         ),
     )
+
+    class Meta:
+        model = ACLAssignment
+        fields = (
+            "access_list",
+            "assigned_object_type",
+            "direction",
+            "owner",
+            "comments",
+            "tags",
+        )
 
     def __init__(self, *args, **kwargs) -> None:
         """
@@ -189,7 +203,7 @@ class ACLAssignmentForm(NetBoxModelForm):
                 self.fields["assigned_object"].widget.attrs["selector"] = assigned_object_model._meta.label_lower
                 self.fields["assigned_object"].disabled = False
                 self.fields["assigned_object"].label = _(bettertitle(assigned_object_model._meta.verbose_name))
-                if assigned_object_model == Interface or assigned_object_model == VMInterface:
+                if assigned_object_model in (Interface, VMInterface):
                     self.fields["direction"].disabled = False
                     self.fields["direction"].required = True
                     self.fields["direction"].choices = add_blank_choice(ACLAssignmentDirectionUIChoices)
@@ -210,21 +224,11 @@ class ACLAssignmentForm(NetBoxModelForm):
         # Ensure the selected object gets assigned
         self.instance.assigned_object = self.cleaned_data.get("assigned_object")
 
-    class Meta:
-        model = ACLAssignment
-        fields = (
-            "access_list",
-            "assigned_object_type",
-            "direction",
-            "comments",
-            "tags",
-        )
 
-
-class ACLStandardRuleForm(NetBoxModelForm):
+class ACLStandardRuleForm(PrimaryModelForm):
     """
     GUI form to add or edit Standard Access List.
-    Requires an access_list, an index, and ACL rule type.
+    Requires an access_list, a sequence, and ACL rule type.
     See the clean function for logic on other field requirements.
     """
 
@@ -233,10 +237,10 @@ class ACLStandardRuleForm(NetBoxModelForm):
         query_params={
             "type": ACLTypeChoices.TYPE_STANDARD,
         },
+        label=_("Access List"),
         help_text=mark_safe(
-            "<b>*Note:</b> This field will only display Standard ACLs.",
+            _("<b>*Note:</b> This field will only display Standard ACLs."),
         ),
-        label="Access List",
     )
 
     # Source
@@ -264,7 +268,7 @@ class ACLStandardRuleForm(NetBoxModelForm):
             name=_("Access List Details"),
         ),
         FieldSet(
-            "index",
+            "sequence",
             "action",
             name=_("Rule Definition"),
         ),
@@ -283,20 +287,20 @@ class ACLStandardRuleForm(NetBoxModelForm):
         model = ACLStandardRule
         fields = (
             "access_list",
-            "index",
+            "sequence",
             "action",
             "remark",
             "source_type",
-            "tags",
             "description",
+            "owner",
+            "comments",
+            "tags",
         )
 
         help_texts = {
-            "index": help_text_acl_rule_index,
+            "sequence": help_text_acl_rule_sequence,
             "action": help_text_acl_action,
-            "remark": mark_safe(
-                "<b>*Note:</b> CANNOT be set if source OR action is set.",
-            ),
+            "remark": help_text_acl_remark,
         }
 
     def __init__(self, *args, **kwargs) -> None:
@@ -344,10 +348,10 @@ class ACLStandardRuleForm(NetBoxModelForm):
         self.instance.source = self.cleaned_data.get("source")
 
 
-class ACLExtendedRuleForm(NetBoxModelForm):
+class ACLExtendedRuleForm(PrimaryModelForm):
     """
     GUI form to add or edit Extended Access List.
-    Requires an access_list, an index, and ACL rule type.
+    Requires an access_list, a sequence, and ACL rule type.
     See the clean function for logic on other field requirements.
     """
 
@@ -356,10 +360,10 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         query_params={
             "type": ACLTypeChoices.TYPE_EXTENDED,
         },
+        label=_("Access List"),
         help_text=mark_safe(
-            "<b>*Note:</b> This field will only display Extended ACLs.",
+            _("<b>*Note:</b> This field will only display Extended ACLs."),
         ),
-        label="Access List",
     )
 
     # Source
@@ -378,6 +382,11 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         help_text=help_text_acl_rule_logic,
         disabled=True,
     )
+    source_port_ranges = NumericRangeArrayField(
+        required=False,
+        label=_("Source Port Ranges"),
+        help_text=(help_text_acl_rule_port_logic + " " + help_text_acl_rule_port_ranges),
+    )
 
     # Destination
     destination_type = ContentTypeChoiceField(
@@ -395,6 +404,11 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         help_text=help_text_acl_rule_logic,
         disabled=True,
     )
+    destination_port_ranges = NumericRangeArrayField(
+        required=False,
+        label=_("Destination Port Ranges"),
+        help_text=(help_text_acl_rule_port_logic + " " + help_text_acl_rule_port_ranges),
+    )
 
     fieldsets = (
         FieldSet(
@@ -404,7 +418,7 @@ class ACLExtendedRuleForm(NetBoxModelForm):
             name=_("Access List Details"),
         ),
         FieldSet(
-            "index",
+            "sequence",
             "action",
             name=_("Rule Definition"),
         ),
@@ -419,13 +433,13 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         FieldSet(
             "source_type",
             "source",
-            "source_ports",
+            "source_port_ranges",
             name=_("Source Definition"),
         ),
         FieldSet(
             "destination_type",
             "destination",
-            "destination_ports",
+            "destination_port_ranges",
             name=_("Destination Definition"),
         ),
     )
@@ -434,27 +448,25 @@ class ACLExtendedRuleForm(NetBoxModelForm):
         model = ACLExtendedRule
         fields = (
             "access_list",
-            "index",
+            "sequence",
             "action",
             "remark",
             "source_type",
-            "source_ports",
+            "source_port_ranges",
             "destination_type",
-            "destination_ports",
+            "destination_port_ranges",
             "protocol",
-            "tags",
             "description",
+            "owner",
+            "comments",
+            "tags",
         )
 
         help_texts = {
             "action": help_text_acl_action,
-            "destination_ports": help_text_acl_rule_logic,
-            "index": help_text_acl_rule_index,
+            "sequence": help_text_acl_rule_sequence,
             "protocol": help_text_acl_rule_logic,
-            "remark": mark_safe(
-                "<b>*Note:</b> CANNOT be set if action is not set to remark.",
-            ),
-            "source_ports": help_text_acl_rule_logic,
+            "remark": help_text_acl_remark,
         }
 
     def __init__(self, *args, **kwargs) -> None:

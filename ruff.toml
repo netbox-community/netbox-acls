@@ -35,13 +35,47 @@ exclude = [
 line-length = 120
 indent-width = 4
 
-# Always generate Python 3.10-compatible code.
-target-version = "py310"
+# Ignores anything in .gitignore
+respect-gitignore = true
+
+# Always generate Python 3.12-compatible code
+target-version = "py312"
 
 [lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
-select = ["E4", "E7", "E9", "F"]
-ignore = []
+select = [
+    "E4",   # pycodestyle: import-related errors
+    "E7",   # pycodestyle: statement-related errors (e.g., multiple statements on one line)
+    "E9",   # pycodestyle: runtime errors (syntax errors, IO errors)
+    "F",    # pyflakes: detects unused imports/variables, undefined names, etc.
+]
+extend-select = [
+    "C4",    # flake8-comprehensions: unnecessary list/dict/set comprehensions
+    "E1",    # pycodestyle: indentation errors (unexpected/missing indent)
+    "E2",    # pycodestyle: whitespace errors (missing/extra spaces around operators)
+    "E3",    # pycodestyle: blank line violations around definitions
+    "E501",  # pycodestyle: line too long
+    "I",     # isort: import sorting and grouping
+    "ISC",   # flake8-implicit-str-concat: implicit string concatenation detection
+    "RET",   # flake8-return: return statement consistency (redundant else, missing returns)
+    "SLF",   # flake8-self: private member access violations (_prefixed attributes)
+    "SIM",   # flake8-simplify: code simplification suggestions
+    "RUF022",# ruff: enforce sorted `__all__` lists
+    "UP",    # pyupgrade: modernize syntax for target Python version
+    "W",     # pycodestyle warnings: style warnings (whitespace, newlines, deprecations)
+]
+ignore = [
+    "D100",   # pydocstyle: missing docstring in public module
+    "D104",   # pydocstyle: missing docstring in public package (__init__.py)
+    "D105",   # pydocstyle: missing docstring in magic method
+    "D106",   # pydocstyle: missing docstring in nested class
+    "D107",   # pydocstyle: missing docstring in __init__
+    "F403",   # pyflakes: `from ... import *` used; unable to detect undefined names
+    "F405",   # pyflakes: name may be undefined or defined from star imports
+    "RET504", # flake8-return: unnecessary variable assignment before `return`
+    "UP032",  # pyupgrade: prefer f-strings over `str.format()`
+]
+preview = true
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
@@ -50,11 +84,31 @@ unfixable = []
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
+[lint.flake8-self]
+ignore-names = ["_meta", "Meta"]
+
+[lint.isort]
+known-first-party = [
+    "account",
+    "circuits",
+    "core",
+    "dcim",
+    "extras",
+    "ipam",
+    "netbox",
+    "tenancy",
+    "users",
+    "utilities",
+    "virtualization",
+    "vpn",
+    "wireless",
+]
+
 [format]
 # Like Black, use double quotes for strings.
 quote-style = "double"
 
-# Like Black, indent with spaces, rather than tabs.
+# Indent with spaces, rather than tabs.
 indent-style = "space"
 
 # Like Black, respect magic trailing commas.

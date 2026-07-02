@@ -1,15 +1,17 @@
+from django.contrib.contenttypes.models import ContentType
+
 from dcim.choices import InterfaceTypeChoices
 from dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
-from django.contrib.contenttypes.models import ContentType
 from utilities.testing import APIViewTestCases
 from virtualization.models import Cluster, ClusterType, VirtualMachine, VMInterface
 
-from netbox_acls.choices import (
+from ...choices import (
     ACLActionChoices,
     ACLAssignmentDirectionChoices,
+    ACLFamilyChoices,
     ACLTypeChoices,
 )
-from netbox_acls.models import AccessList, ACLAssignment
+from ...models import AccessList, ACLAssignment
 
 
 class AccessListAPIViewTestCase(APIViewTestCases.APIViewTestCase):
@@ -28,16 +30,19 @@ class AccessListAPIViewTestCase(APIViewTestCases.APIViewTestCase):
             AccessList(
                 name="testacl1",
                 type=ACLTypeChoices.TYPE_STANDARD,
+                family=ACLFamilyChoices.FAMILY_IPV4,
                 default_action=ACLActionChoices.ACTION_DENY,
             ),
             AccessList(
                 name="testacl2",
                 type=ACLTypeChoices.TYPE_EXTENDED,
+                family=ACLFamilyChoices.FAMILY_IPV4,
                 default_action=ACLActionChoices.ACTION_PERMIT,
             ),
             AccessList(
                 name="testacl3",
                 type=ACLTypeChoices.TYPE_EXTENDED,
+                family=ACLFamilyChoices.FAMILY_IPV6,
                 default_action=ACLActionChoices.ACTION_DENY,
             ),
         )
@@ -47,16 +52,19 @@ class AccessListAPIViewTestCase(APIViewTestCases.APIViewTestCase):
             {
                 "name": "testacl4",
                 "type": ACLTypeChoices.TYPE_STANDARD,
+                "family": ACLFamilyChoices.FAMILY_IPV4,
                 "default_action": ACLActionChoices.ACTION_DENY,
             },
             {
                 "name": "testacl5",
                 "type": ACLTypeChoices.TYPE_EXTENDED,
+                "family": ACLFamilyChoices.FAMILY_DUAL,
                 "default_action": ACLActionChoices.ACTION_DENY,
             },
             {
                 "name": "testacl6",
                 "type": ACLTypeChoices.TYPE_STANDARD,
+                "family": ACLFamilyChoices.FAMILY_IPV6,
                 "default_action": ACLActionChoices.ACTION_PERMIT,
             },
         ]
@@ -159,11 +167,13 @@ class ACLAssignmentAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         acl1 = AccessList.objects.create(
             name="testacl1",
             type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV4,
             default_action=ACLActionChoices.ACTION_DENY,
         )
         acl2 = AccessList.objects.create(
             name="testacl2",
             type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
             default_action=ACLActionChoices.ACTION_PERMIT,
         )
 
@@ -208,3 +218,6 @@ class ACLAssignmentAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 "direction": ACLAssignmentDirectionChoices.DIRECTION_EGRESS,
             },
         ]
+        cls.bulk_update_data = {
+            "comments": "Rule bulk update",
+        }

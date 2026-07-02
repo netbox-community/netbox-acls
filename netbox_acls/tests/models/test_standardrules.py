@@ -1,8 +1,7 @@
 from django.core.exceptions import ValidationError
 
-from netbox_acls.choices import ACLTypeChoices
-from netbox_acls.models import AccessList, ACLStandardRule
-
+from ...choices import ACLActionChoices, ACLFamilyChoices, ACLTypeChoices
+from ...models import AccessList, ACLStandardRule
 from .base import BaseTestCase
 
 
@@ -19,20 +18,37 @@ class TestACLStandardRule(BaseTestCase):
         super().setUpTestData()
 
         cls.acl_type = ACLTypeChoices.TYPE_STANDARD
+        cls.family = ACLFamilyChoices.FAMILY_IPV4
         cls.default_action = "deny"
 
         # AccessLists
         cls.standard_acl1 = AccessList.objects.create(
             name="STANDARD_ACL",
             type=cls.acl_type,
+            family=cls.family,
             default_action=cls.default_action,
             comments="STANDARD_ACL",
         )
         cls.standard_acl2 = AccessList.objects.create(
             name="STANDARD_ACL",
             type=cls.acl_type,
+            family=cls.family,
             default_action=cls.default_action,
             comments="STANDARD_ACL",
+        )
+        cls.standard_acl_v6 = AccessList.objects.create(
+            name="STANDARD_ACL_V6",
+            type=cls.acl_type,
+            family=ACLFamilyChoices.FAMILY_IPV6,
+            default_action=cls.default_action,
+            comments="STANDARD_ACL_V6",
+        )
+        cls.standard_acl_dual = AccessList.objects.create(
+            name="STANDARD_ACL_DUAL",
+            type=cls.acl_type,
+            family=ACLFamilyChoices.FAMILY_DUAL,
+            default_action=cls.default_action,
+            comments="STANDARD_ACL_DUAL",
         )
 
     def test_acl_standard_rule_creation_success(self):
@@ -41,7 +57,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         created_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=10,
+            sequence=10,
             action="permit",
             remark="",
             source=None,
@@ -50,7 +66,7 @@ class TestACLStandardRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLStandardRule), True)
-        self.assertEqual(created_rule.index, 10)
+        self.assertEqual(created_rule.sequence, 10)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, None)
@@ -64,7 +80,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         created_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=20,
+            sequence=20,
             action="permit",
             remark="",
             source=self.prefix1,
@@ -73,7 +89,7 @@ class TestACLStandardRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLStandardRule), True)
-        self.assertEqual(created_rule.index, 20)
+        self.assertEqual(created_rule.sequence, 20)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, self.prefix1)
@@ -87,7 +103,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         created_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=30,
+            sequence=30,
             action="remark",
             remark="Test remark",
             source=None,
@@ -96,7 +112,7 @@ class TestACLStandardRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLStandardRule), True)
-        self.assertEqual(created_rule.index, 30)
+        self.assertEqual(created_rule.sequence, 30)
         self.assertEqual(created_rule.action, "remark")
         self.assertEqual(created_rule.remark, "Test remark")
         self.assertEqual(created_rule.source, None)
@@ -110,7 +126,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         created_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=40,
+            sequence=40,
             action="permit",
             remark="",
             source=self.aggregate1,
@@ -119,7 +135,7 @@ class TestACLStandardRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLStandardRule), True)
-        self.assertEqual(created_rule.index, 40)
+        self.assertEqual(created_rule.sequence, 40)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, self.aggregate1)
@@ -133,7 +149,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         created_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=50,
+            sequence=50,
             action="permit",
             remark="",
             source=self.ip_address1,
@@ -142,7 +158,7 @@ class TestACLStandardRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLStandardRule), True)
-        self.assertEqual(created_rule.index, 50)
+        self.assertEqual(created_rule.sequence, 50)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, self.ip_address1)
@@ -156,7 +172,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         created_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=60,
+            sequence=60,
             action="permit",
             remark="",
             source=self.ip_range1,
@@ -165,13 +181,61 @@ class TestACLStandardRule(BaseTestCase):
         created_rule.full_clean()
 
         self.assertTrue(isinstance(created_rule, ACLStandardRule), True)
-        self.assertEqual(created_rule.index, 60)
+        self.assertEqual(created_rule.sequence, 60)
         self.assertEqual(created_rule.action, "permit")
         self.assertEqual(created_rule.remark, "")
         self.assertEqual(created_rule.source, self.ip_range1)
         self.assertEqual(created_rule.description, "Created rule with source ip range")
         self.assertEqual(isinstance(created_rule.access_list, AccessList), True)
         self.assertEqual(created_rule.access_list.type, self.acl_type)
+
+    def test_acl_standard_rule_action_permit_with_remark_success(self):
+        """
+        Test that ACLStandardRule with action 'permit' and remark passes validation.
+        """
+        created_rule = ACLStandardRule(
+            access_list=self.standard_acl1,
+            sequence=70,
+            action="permit",
+            remark="Inline remark",
+            source=None,
+            description="Created permit rule with remark",
+        )
+        created_rule.full_clean()
+
+        self.assertTrue(isinstance(created_rule, ACLStandardRule), True)
+        self.assertEqual(created_rule.sequence, 70)
+        self.assertEqual(created_rule.action, "permit")
+        self.assertEqual(created_rule.remark, "Inline remark")
+        self.assertEqual(created_rule.description, "Created permit rule with remark")
+        self.assertEqual(isinstance(created_rule.access_list, AccessList), True)
+        self.assertEqual(created_rule.access_list.type, self.acl_type)
+
+    def test_acl_standard_rule_action_permit_with_shared_index_action_remark_fail(self):
+        """
+        Test that ACLStandardRule rejects a standalone remark sharing the same sequence as a permit rule.
+        """
+        created_permit_rule = ACLStandardRule(
+            access_list=self.standard_acl1,
+            sequence=80,
+            action="permit",
+            remark="",
+            source=None,
+            description="Created permit rule with same sequence as remark",
+        )
+        created_permit_rule.full_clean()
+        created_permit_rule.save()
+
+        created_remark_rule = ACLStandardRule(
+            access_list=self.standard_acl1,
+            sequence=80,
+            action="remark",
+            remark="Standalone remark",
+            source=None,
+            description="Created remark rule with same sequence as permit rule",
+        )
+        with self.assertRaises(ValidationError):
+            created_remark_rule.full_clean()
 
     def test_access_list_extended_to_acl_standard_rule_assignment_fail(self):
         """
@@ -185,7 +249,7 @@ class TestACLStandardRule(BaseTestCase):
         )
         standard_rule = ACLStandardRule(
             access_list=extended_acl1,
-            index=30,
+            sequence=30,
             action="remark",
             remark="Test remark",
             source=None,
@@ -196,11 +260,11 @@ class TestACLStandardRule(BaseTestCase):
 
     def test_duplicate_index_per_acl_fail(self):
         """
-        Test that the rule index must be unique per AccessList.
+        Test that the rule sequence must be unique per AccessList.
         """
         params = {
             "access_list": self.standard_acl1,
-            "index": 10,
+            "sequence": 10,
             "action": "permit",
         }
         rule_1 = ACLStandardRule(**params)
@@ -210,28 +274,13 @@ class TestACLStandardRule(BaseTestCase):
         with self.assertRaises(ValidationError):
             rule_2.full_clean()
 
-    def test_acl_standard_rule_action_permit_with_remark_fail(self):
-        """
-        Test that ACLStandardRule with action 'permit' and remark fails validation.
-        """
-        invalid_rule = ACLStandardRule(
-            access_list=self.standard_acl1,
-            index=10,
-            action="permit",
-            remark="Remark",
-            source=None,
-            description="Invalid rule with action 'permit' and remark",
-        )
-        with self.assertRaises(ValidationError):
-            invalid_rule.full_clean()
-
     def test_acl_standard_rule_action_remark_with_no_remark_fail(self):
         """
         Test that ACLStandardRule with action 'remark' and without remark fails validation.
         """
         invalid_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=10,
+            sequence=10,
             action="remark",
             remark="",
             source=None,
@@ -246,7 +295,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         invalid_rule = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=10,
+            sequence=10,
             action="remark",
             remark="",
             source=self.prefix1,
@@ -261,7 +310,7 @@ class TestACLStandardRule(BaseTestCase):
         """
         invalid_acl_rule_source_object = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=10,
+            sequence=10,
             action="permit",
             remark="",
             source=self.device1,
@@ -279,7 +328,7 @@ class TestACLStandardRule(BaseTestCase):
         for action_choice in valid_acl_rule_action_choices:
             valid_acl_rule_action = ACLStandardRule(
                 access_list=self.standard_acl1,
-                index=10,
+                sequence=10,
                 action=action_choice,
                 remark="Remark" if action_choice == "remark" else None,
                 description=f"VALID ACL RULE ACTION CHOICES USED: action={action_choice}",
@@ -294,10 +343,48 @@ class TestACLStandardRule(BaseTestCase):
 
         invalid_acl_rule_action = ACLStandardRule(
             access_list=self.standard_acl1,
-            index=10,
+            sequence=10,
             action=invalid_acl_rule_action_choice,
             description=f"INVALID ACL RULE ACTION CHOICES USED: action={invalid_acl_rule_action_choice}",
         )
 
         with self.assertRaises(ValidationError):
             invalid_acl_rule_action.full_clean()
+
+    def test_acl_standard_rule_family_v4_acl_rejects_v6_objects(self):
+        """
+        Test that IPv4 ACL must not accept rules carrying IPv6 objects.
+        """
+        acl_v4 = AccessList.objects.create(
+            name="RF4",
+            type=self.acl_type,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=self.default_action,
+        )
+        invalid_rule = ACLStandardRule(
+            access_list=acl_v4,
+            sequence=10,
+            action=ACLActionChoices.ACTION_PERMIT,
+            source=self.prefix1_v6,
+        )
+        with self.assertRaises(ValidationError):
+            invalid_rule.full_clean()
+
+    def test_acl_standard_rule_family_v6_acl_rejects_v4_objects(self):
+        """
+        Test that IPv6 ACL must not accept rules carrying IPv4 objects.
+        """
+        acl = AccessList.objects.create(
+            name="RF6",
+            type=self.acl_type,
+            family=ACLFamilyChoices.FAMILY_IPV6,
+            default_action=self.default_action,
+        )
+        invalid_rule = ACLStandardRule(
+            access_list=acl,
+            sequence=10,
+            action=ACLActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+        )
+        with self.assertRaises(ValidationError):
+            invalid_rule.full_clean()

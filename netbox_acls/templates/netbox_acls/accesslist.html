@@ -3,17 +3,17 @@
 {% load helpers %}
 
 {% block extra_controls %}
-  {% if perms.netbox_acls.change_policy %}
-    {% with viewname=object|viewname:"" %}
-    {% if object.type == 'extended' %}
+  {% with viewname=object|viewname:"" %}
+    {% if perms.netbox_acls.add_aclextendedrule and object.type == 'extended' %}
       <a href="{% url 'plugins:netbox_acls:aclextendedrule_add' %}?access_list={{ object.pk }}&return_url={% url viewname pk=object.pk %}" class="btn btn-primary">
-    {% elif object.type == 'standard' %}
-      <a href="{% url 'plugins:netbox_acls:aclstandardrule_add' %}?access_list={{ object.pk }}&return_url={% url viewname pk=object.pk %}" class="btn btn-primary">
-    {% endif %}
-        <i class="mdi mdi-plus-thick" aria-hidden="true"></i> Rule
+        <i class="mdi mdi-plus-thick" aria-hidden="true"></i> Add Rule
       </a>
-    {% endwith %}
-  {% endif %}
+    {% elif perms.netbox_acls.add_aclstandardrule and object.type == 'standard' %}
+      <a href="{% url 'plugins:netbox_acls:aclstandardrule_add' %}?access_list={{ object.pk }}&return_url={% url viewname pk=object.pk %}" class="btn btn-primary">
+        <i class="mdi mdi-plus-thick" aria-hidden="true"></i> Add Rule
+      </a>
+    {% endif %}
+  {% endwith %}
 {% endblock extra_controls %}
 
 {% block content %}
@@ -25,6 +25,10 @@
           <tr>
             <th scope="row">Type</th>
             <td>{% badge object.get_type_display bg_color=object.get_type_color %}</td>
+          </tr>
+          <tr>
+            <th scope="row">Family</th>
+            <td>{% badge object.get_family_display bg_color=object.get_family_color %}</td>
           </tr>
           <tr>
             <th scope="row">Default Action</th>
@@ -41,6 +45,10 @@
                 <a href="{% url 'plugins:netbox_acls:aclextendedrule_list' %}?access_list_id={{ object.pk }}">{{ object.aclextendedrules.count|placeholder }}</a>
               </td>
             {% endif %}
+          </tr>
+          <tr>
+            <th scope="row">Description</th>
+            <td>{{ object.description|placeholder }}</td>
           </tr>
         </table>
       </div>

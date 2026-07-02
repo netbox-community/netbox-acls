@@ -3,15 +3,21 @@ from typing import TYPE_CHECKING, Annotated
 
 import strawberry
 import strawberry_django
-from core.graphql.filters import ContentTypeFilter
-from netbox.graphql.filter_mixins import NetBoxModelFilterMixin
 from strawberry.scalars import ID
-from strawberry_django import FilterLookup
+from strawberry_django import BaseFilterLookup
+
+from core.graphql.filters import ContentTypeFilter
+from netbox.graphql.filters import PrimaryModelFilter
+
+try:
+    from strawberry_django import StrFilterLookup
+except ImportError:
+    from strawberry_django import FilterLookup as StrFilterLookup
 
 from ... import models
 
 if TYPE_CHECKING:
-    from netbox.graphql.filter_lookups import IntegerArrayLookup, IntegerLookup
+    from netbox.graphql.filter_lookups import IntegerLookup, IntegerRangeArrayLookup
 
     from ..enums import (
         ACLProtocolEnum,
@@ -21,13 +27,13 @@ if TYPE_CHECKING:
 
 
 __all__ = (
-    "ACLStandardRuleFilter",
     "ACLExtendedRuleFilter",
+    "ACLStandardRuleFilter",
 )
 
 
 @dataclass
-class ACLRuleFilterMixin(NetBoxModelFilterMixin):
+class ACLRuleFilterMixin(PrimaryModelFilter):
     """
     Base GraphQL filter mixin for ACL Rule models.
     """
@@ -36,16 +42,15 @@ class ACLRuleFilterMixin(NetBoxModelFilterMixin):
         strawberry_django.filter_field()
     )
     access_list_id: ID | None = strawberry_django.filter_field()
-    index: Annotated["IntegerLookup", strawberry.lazy("netbox.graphql.filter_lookups")] | None = (
+    sequence: Annotated["IntegerLookup", strawberry.lazy("netbox.graphql.filter_lookups")] | None = (
         strawberry_django.filter_field()
     )
-    description: FilterLookup[str] | None = strawberry_django.filter_field()
-    action: Annotated["ACLRuleActionEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (
+    action: BaseFilterLookup[Annotated["ACLRuleActionEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None = (
         strawberry_django.filter_field()
     )
 
     # Remark
-    remark: FilterLookup[str] | None = strawberry_django.filter_field()
+    remark: StrFilterLookup[str] | None = strawberry_django.filter_field()
 
     # Source
     source_type: Annotated["ContentTypeFilter", strawberry.lazy("core.graphql.filters")] | None = (
@@ -54,7 +59,7 @@ class ACLRuleFilterMixin(NetBoxModelFilterMixin):
     source_id: ID | None = strawberry_django.filter_field()
 
 
-@strawberry_django.filter(models.ACLStandardRule, lookups=True)
+@strawberry_django.filter_type(models.ACLStandardRule, lookups=True)
 class ACLStandardRuleFilter(ACLRuleFilterMixin):
     """
     GraphQL filter definition for the ACLStandardRule model.
@@ -63,27 +68,27 @@ class ACLStandardRuleFilter(ACLRuleFilterMixin):
     pass
 
 
-@strawberry_django.filter(models.ACLExtendedRule, lookups=True)
+@strawberry_django.filter_type(models.ACLExtendedRule, lookups=True)
 class ACLExtendedRuleFilter(ACLRuleFilterMixin):
     """
     GraphQL filter definition for the ACLExtendedRule model.
     """
 
     # Source
-    source_ports: Annotated["IntegerArrayLookup", strawberry.lazy("netbox.graphql.filter_lookups")] | None = (
-        strawberry_django.filter_field()
-    )
+    source_port_ranges: (
+        Annotated["IntegerRangeArrayLookup", strawberry.lazy("netbox.graphql.filter_lookups")] | None
+    ) = strawberry_django.filter_field()
 
     # Destination
     destination_type: Annotated["ContentTypeFilter", strawberry.lazy("core.graphql.filters")] | None = (
         strawberry_django.filter_field()
     )
     destination_id: ID | None = strawberry_django.filter_field()
-    destination_ports: Annotated["IntegerArrayLookup", strawberry.lazy("netbox.graphql.filter_lookups")] | None = (
-        strawberry_django.filter_field()
-    )
+    destination_port_ranges: (
+        Annotated["IntegerRangeArrayLookup", strawberry.lazy("netbox.graphql.filter_lookups")] | None
+    ) = strawberry_django.filter_field()
 
     # Protocol
-    protocol: Annotated["ACLProtocolEnum", strawberry.lazy("netbox_acls.graphql.enums")] | None = (
+    protocol: BaseFilterLookup[Annotated["ACLProtocolEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None = (
         strawberry_django.filter_field()
     )

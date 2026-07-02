@@ -30,6 +30,9 @@ ACL_ASSIGNMENT_MODELS = Q(
 # AccessList Rule
 #
 
+ACL_RULE_PORT_MIN, ACL_RULE_PORT_MAX = 1, 65535
+
+
 ACL_RULE_SOURCE_DESTINATION_MODELS = Q(
     Q(
         app_label="ipam",

@@ -1,73 +1,67 @@
 # NetBox Access Lists Plugin
 
-A [Netbox](https://github.com/netbox-community/netbox) plugin for Access List management.
+A [NetBox](https://github.com/netbox-community/netbox) plugin for managing
+Access Lists.
 
 ## Features
 
-This plugin provides the following models:
-
-- Access Lists
-- Access List to Interface Assignment
-- Access List Rules (abstract model basis for other rules)
-- Access List Standard Rules
-- Access List Extended Rules
-
-## Origin
-
-Based on the NetBox plugin tutorial by [jeremystretch](https://github.com/jeremystretch):
-
-- [demo repository](https://github.com/netbox-community/netbox-plugin-demo)
-- [tutorial](https://github.com/netbox-community/netbox-plugin-tutorial)
-
-All credit should go to Jeremy. Thanks, Jeremy!
-
-This project just looks to build on top of this framework and model presented.
-
-## Contributing
-
-This project is currently maintained by the [netbox-community](https://github.com/netbox-community).
-
-See the [CONTRIBUTING](CONTRIBUTING.md) for more information.
+- **Access Lists** (Standard and Extended)
+- **Standard Rules** for Access Lists
+- **Extended Rules** for Access Lists
+- **Interface Assignment** for Access Lists
 
 ## Compatibility
 
-Each Plugin Version listed below has been tested with its corresponding NetBox Version.
+The following table details the tested plugin versions for each NetBox version:
 
-| NetBox Version      | Plugin Version |
+|   NetBox Version    | Plugin Version |
 |:-------------------:|:--------------:|
-|      4.4.x          |     1.9.1      |
-|      4.3.x          |     1.9.1      |
-|      4.2.x          |     1.8.1      |
-|      4.1.x          |     1.7.0      |
-|   >= 4.0.2 < 4.1.0  |     1.6.1      |
-|      3.7.x          |     1.5.0      |
-|      3.6.x          |     1.4.0      |
-|      3.5.x          |     1.3.0      |
-|      3.4.x          |     1.2.2      |
-|      3.3.x          |     1.1.0      |
-|      3.2.x          |     1.0.1      |
+|        4.6.x        |     2.0.1      |
+|        4.5.x        |     2.0.1      |
+|        4.4.x        |     1.9.1      |
+|        4.3.x        |     1.9.1      |
+|        4.2.x        |     1.8.1      |
+|        4.1.x        |     1.7.0      |
+|  >= 4.0.2 < 4.1.0   |     1.6.1      |
+|        3.7.x        |     1.5.0      |
+|        3.6.x        |     1.4.0      |
+|        3.5.x        |     1.3.0      |
+|        3.4.x        |     1.2.2      |
+|        3.3.x        |     1.1.0      |
+|        3.2.x        |     1.0.1      |
 
 ## Installing
 
-For adding to a NetBox Docker setup see
-[the general instructions for using netbox-docker with plugins](https://github.com/netbox-community/netbox-docker/wiki/Using-Netbox-Plugins).
+### For Docker Setups
 
-You can install with pip:
+For instructions specific to NetBox Docker setups,
+see the [netbox-docker plugin documentation](https://github.com/netbox-community/netbox-docker/wiki/Using-Netbox-Plugins).
+
+### Via pip
+
+Activate your NetBox Python virtual environment and run:
 
 ```bash
+source /opt/netbox/venv/bin/activate
+
 pip install netbox-acls
 ```
 
-or by adding to your `local_requirements.txt` or `plugin_requirements.txt` (netbox-docker):
+**Important:** When using NetBox's `upgrade.sh`, the virtual environment is
+deleted and recreated.
+To ensure that the ACL plugin is reinstalled during an upgrade,
+add it to your `local_requirements.txt` (for local installations) or
+`plugin_requirements.txt` (for container-based installations).
 
-```bash
+```txt
 netbox-acls
 ```
 
 ## Configuration
 
-Enable the plugin in `/opt/netbox/netbox/netbox/configuration.py`,
- or if you use netbox-docker, your `/configuration/plugins.py` file :
+Enable the plugin by editing the NetBox configuration file.
+For local installations, update `/opt/netbox/netbox/netbox/configuration.py`;
+for Docker setups, modify `/configuration/plugins.py`:
 
 ```python
 PLUGINS = [
@@ -76,53 +70,89 @@ PLUGINS = [
 
 PLUGINS_CONFIG = {
     "netbox_acls": {
-        "top_level_menu": True # If set to True the plugin will add a top level menu item for the plugin. If set to False the plugin will add a menu item under the Plugins menu item.  Default is set to True.
+        # Set to True to add a top-level menu item, or False to place it
+        # under the Plugins menu. Default is True.
+        "top_level_menu": True,
+        # Sequence number increment for new ACL rules (e.g., 10, 20, 30...)
+        "rule_sequence_step": 10,
     },
 }
 ```
 
-To add the required `netbox-acls` tables to your NetBox database, run the `migrate` manager subcommand in the NetBox virtual environment:
-```
+After configuration, apply the changes by running the database migrations:
+
+```bash
+source /opt/netbox/venv/bin/activate
 cd /opt/netbox
-sudo ./venv/bin/python3 netbox/manage.py migrate
+python3 netbox/manage.py migrate
 ```
+
+## Screenshots
+
+- **Access List** (List View)
+
+  ![Access List - List View](docs/img/access_lists.png)
+
+- **Access List (Standard)** (Detail View)
+
+  ![Access List Type Standard - Detail View](docs/img/access_list_type_standard.png)
+
+- **Access List (Extended)** (Detail View)
+
+  ![Access List Type Extended - Detail View](docs/img/access_list_type_extended.png)
+
+- **Standard Access List Rules** (List View)
+
+  ![Standard Access List Rules - List View](docs/img/acl_standard_rules.png)
+
+- **Extended Access List Rules** (List View)
+
+  ![Extended Access List Rules - List View](docs/img/acl_extended_rules.png)
+
+- **ACL Assignments** (List View)
+
+  ![Access List Assignments - List View](docs/img/acl_assignments.png)
+
+- **Host Access Lists** (New Card for Devices, Virtual Chassis, Virtual Machines)
+
+  ![Host Access Lists - New Card](docs/img/acl_host_view.png)
 
 ## Developing
 
 ### VSCode + Docker + Dev Containers
 
-To develop this plugin further one can use the included .devcontainer configuration. This configuration creates a docker container which includes a fully working netbox installation. Currently it should work when using WSL 2. For this to work make sure you have Docker Desktop installed and the WSL 2 integrations activated.
+You can use the provided `.devcontainer` configuration
+to set up a development environment with a fully functional NetBox
+installation.
+This configuration works best with WSL 2.
+For this to work, make sure you have Docker Desktop installed and the WSL 2
+integrations activated.
 
-1. In the WSL terminal, enter `code` to run Visual studio code.
-2. Install the devcontainer extension "ms-vscode-remote.remote-containers"
-3. Press Ctrl+Shift+P and use the "Dev Container: Clone Repository in Container Volume" function to clone this repository. This will take a while depending on your computer
-4. If you'd like the netbox instance to be prepopulated with example data from [netbox-initializers](https://github.com/tobiasge/netbox-initializers) run `make  initializers`
-5. Start the netbox instance using `make all`
+1. Open a WSL terminal and run `code` to launch Visual Studio Code.
+2. Install the **ms-vscode-remote.remote-containers** extension.
+3. Press `Ctrl+Shift+P` and select
+   **Dev Container: Clone Repository in Container Volume** to start cloning the
+   repository. The process may take some time.
+4. (Optional) To prepopulate NetBox with example data from
+   [netbox-initializers](https://github.com/tobiasge/netbox-initializers),
+   run: `make initializers`
+5. Start the NetBox instance: `make all`
 
-Your netbox instance will be served under 0.0.0.0:8000, so it should now be available under localhost:8000.
+After these steps, NetBox will be available at [http://localhost:8000](http://localhost:8000).
 
-## Screenshots
+## Contributing
 
-Access List - List View
-![Access List - List View](docs/img/access_lists.png)
+This project is maintained by the [netbox-community](https://github.com/netbox-community).
+For contribution guidelines, please see the [CONTRIBUTING](CONTRIBUTING.md)
+document.
 
-Access List (Type Extended) - Individual View
-![Access List Type Extended - Individual View](docs/img/access_list_type_extended.png)
+## Credits
 
-Access List (Type Standard) - Individual View
-![Access List Type Standard - Individual View](docs/img/access_list_type_standard.png)
+This plugin is based on the NetBox plugin tutorial by [jeremystretch](https://github.com/jeremystretch):
 
-Extended Access List Rules - List View
-![Extended Access List Rules - List View](docs/img/acl_extended_rules.png)
+- [Demo Repository](https://github.com/netbox-community/netbox-plugin-demo)
+- [Tutorial](https://github.com/netbox-community/netbox-plugin-tutorial)
 
-Standard Access List Rules - List View
-![Standard Access List Rules - List View](docs/img/acl_standard_rules.png)
+All credit should go to Jeremy. Thanks, Jeremy!
 
-Access List Interface Assignments- List View
-![Access List Interface Assignments- List View](docs/img/acl_interface_assignments.png)
-
-Host (device, virtual_chassis, virtual_machine) Access Lists - New Card
-![Host Access Lists - New Card](docs/img/acl_host_view.png)
-
-Host Interface (vminterface interface) Access Lists - New Card
-![Host Interface Access Lists - New Card](docs/img/access_list_type_standard.png)
+This project aims to build upon the framework and model presented there.

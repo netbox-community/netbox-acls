@@ -1,24 +1,29 @@
 """
-Define the NetBox Plugin
+NetBox ACLs Plugin - Manage Access Control Lists in NetBox.
 """
 
-import importlib.metadata
+from importlib.metadata import version
 
 from netbox.plugins import PluginConfig
+
+__all__ = ("NetBoxACLsConfig",)
 
 
 class NetBoxACLsConfig(PluginConfig):
     """
-    Plugin specifc configuration
+    NetBox plugin configuration for Access Control Lists management.
     """
 
     name = "netbox_acls"
     verbose_name = "Access Lists"
-    version = importlib.metadata.version("netbox-acls")
-    description = "Manage simple ACLs in NetBox"
+    version = version("netbox-acls")
+    description = "Manage Access Control Lists (ACL) in NetBox"
     base_url = "access-lists"
-    min_version = "4.3.0"
-    max_version = "4.4.99"
+    min_version = "4.5.0"
+    max_version = "4.6.99"
+    default_settings = {
+        "rule_sequence_step": 10,
+    }
 
 
 config = NetBoxACLsConfig

@@ -4,22 +4,31 @@ Define the django models for this plugin.
 
 from django.apps import apps
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
-from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.fields import ArrayField, IntegerRangeField
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-from ipam.models import Aggregate, IPAddress, IPRange, Prefix
-from netbox.models import NetBoxModel
 
-from ..choices import ACLProtocolChoices, ACLRuleActionChoices, ACLTypeChoices
+from ipam.models import Aggregate, IPAddress, IPRange, Prefix
+from netbox.models import PrimaryModel
+from utilities.data import ranges_to_string_list
+
+from ..choices import (
+    ACLFamilyChoices,
+    ACLProtocolChoices,
+    ACLRuleActionChoices,
+    ACLTypeChoices,
+)
 from ..constants import ACL_RULE_SOURCE_DESTINATION_MODELS
+from ..utils import infer_family_from_object, normalize_port_ranges
+from ..validators import validate_port_ranges
 from .access_lists import AccessList
+from .managers import ACLRuleManager
 
 __all__ = (
+    "ACLExtendedRule",
     "ACLRule",
     "ACLStandardRule",
-    "ACLExtendedRule",
 )
 
 # Error message when the action is 'remark', but no remark is provided.
@@ -28,23 +37,30 @@ ERROR_MESSAGE_NO_REMARK = _("When the action is 'remark', a remark is required."
 # Error message when the action is 'remark', but the source is set.
 ERROR_MESSAGE_ACTION_REMARK_SOURCE_SET = _("When the action is 'remark', the Source must not be set.")
 
-# Error message when the action is 'remark', but the source_ports are set.
+# Error message when the action is 'remark', but the source_port_ranges are set.
 ERROR_MESSAGE_ACTION_REMARK_SOURCE_PORTS_SET = _("When the action is 'remark', Source Ports must not be set.")
 
 # Error message when the action is 'remark', but the destination is set.
 ERROR_MESSAGE_ACTION_REMARK_DESTINATION_SET = _("When the action is 'remark', the Destination must not be set.")
 
-# Error message when the action is 'remark', but the destination_ports are set.
+# Error message when the action is 'remark', but the destination_port_ranges are set.
 ERROR_MESSAGE_ACTION_REMARK_DESTINATION_PORTS_SET = _("When the action is 'remark', Destination Ports must not be set.")
 
 # Error message when the action is 'remark', but the protocol is set.
 ERROR_MESSAGE_ACTION_REMARK_PROTOCOL_SET = _("When the action is 'remark', Protocol must not be set.")
 
-# Error message when a remark is provided, but the action is not set to 'remark'.
-ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK = _("A remark cannot be set unless the action is 'remark'.")
+# Error message when the protocol is not 'TCP' or 'UDP', but the source ports are set.
+ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_SOURCE_PORTS_SET = _(
+    "Source Ports can only be set when the protocol is TCP or UDP."
+)
+
+# Error message when the protocol is not 'TCP' or 'UDP', but the destination ports are set.
+ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_DESTINATION_PORTS_SET = _(
+    "Destination Ports can only be set when the protocol is TCP or UDP."
+)
 
 
-class ACLRule(NetBoxModel):
+class ACLRule(PrimaryModel):
     """
     Abstract model for ACL Rules.
     Inherited by both ACLStandardRule and ACLExtendedRule.
@@ -58,7 +74,7 @@ class ACLRule(NetBoxModel):
     )
 
     # Rule
-    index = models.PositiveIntegerField()
+    sequence = models.PositiveIntegerField()
     description = models.CharField(
         verbose_name=_("Description"),
         max_length=500,
@@ -131,6 +147,8 @@ class ACLRule(NetBoxModel):
         null=True,
     )
 
+    objects = ACLRuleManager()
+
     clone_fields = (
         "access_list",
         "action",
@@ -143,17 +161,30 @@ class ACLRule(NetBoxModel):
         """
         Define the common model properties:
           - as an abstract model
+          - constraints (unique together)
+          - sequence
           - ordering
-          - unique together
         """
 
         abstract = True
+        constraints = [
+            models.UniqueConstraint(
+                fields=("access_list", "sequence"),
+                name="%(app_label)s_%(class)s_unique_aclrule_sequence",
+                violation_error_message=_("Unique ACL rule sequence already exists."),
+            ),
+        ]
         indexes = (models.Index(fields=("source_type", "source_id")),)
-        ordering = ["access_list", "index"]
-        unique_together = ["access_list", "index"]
+        ordering = ("access_list", "sequence", "-action")
 
     def __str__(self):
-        return f"{self.access_list}: Rule {self.index}"
+        """
+        Returns a string representation of the object.
+
+        This method generates a human-readable representation for the object
+        by including its access list and rule sequence.
+        """
+        return f"{self.access_list}: Rule {self.sequence}"
 
     def clean(self):
         """
@@ -170,6 +201,21 @@ class ACLRule(NetBoxModel):
                 }
             )
         super().clean()
+
+        # Validate rule family
+        self._validate_rule_family()
+
+    def clone(self):
+        """
+        Creates a clone of the current ACL rule instance.
+        """
+        attrs = super().clone()
+
+        # Use the next sequence for clone / create-and-add-another
+        if self.access_list_id:
+            attrs["sequence"] = self.__class__.objects.get_next_sequence(self.access_list_id)
+
+        return attrs
 
     def save(self, *args, **kwargs):
         """
@@ -198,20 +244,45 @@ class ACLRule(NetBoxModel):
 
     cache_related_source_object.alters_data = True
 
-    def get_absolute_url(self):
+    def _validate_rule_family(self):
         """
-        The method is a Django convention; although not strictly required,
-        it conveniently returns the absolute URL for any particular object.
+        Validates that the ACL rule's family matches the source and destination families.
         """
-        return reverse(
-            f"plugins:{self._meta.app_label}:{self._meta.model_name}",
-            args=[self.pk],
-        )
+        acl_family = self.access_list.family
+        families = set()
+
+        # Source
+        source = getattr(self, "source", None)
+        if source:
+            fam = infer_family_from_object(source)
+            if fam:
+                families.add(fam)
+
+        # Destination (extended only)
+        destination = getattr(self, "destination", None)
+        if destination:
+            fam = infer_family_from_object(destination)
+            if fam:
+                families.add(fam)
+
+        # Enforce
+        if acl_family == ACLFamilyChoices.FAMILY_IPV4 and ACLFamilyChoices.FAMILY_IPV6 in families:
+            raise ValidationError(_("IPv4 ACL: Rule contains IPv6 criteria."))
+        if acl_family == ACLFamilyChoices.FAMILY_IPV6 and ACLFamilyChoices.FAMILY_IPV4 in families:
+            raise ValidationError(_("IPv6 ACL: Rule contains IPv4 criteria."))
+        if acl_family == ACLFamilyChoices.FAMILY_DUAL and len(families) > 1:
+            raise ValidationError(_("Dual-stack ACL: A single rule must not mix IPv4 and IPv6 criteria."))
 
     def get_action_color(self):
+        """
+        Returns the color associated with the action of an ACL rule.
+        """
         return ACLRuleActionChoices.colors.get(self.action)
 
     def to_objectchange(self, action):
+        """
+        Creates an ObjectChange instance for the ACL rule.
+        """
         objectchange = super().to_objectchange(action)
         objectchange.related_object = self.access_list
         return objectchange
@@ -259,9 +330,6 @@ class ACLStandardRule(ACLRule):
                 errors["remark"] = ERROR_MESSAGE_NO_REMARK
             if self.source:
                 errors["source"] = ERROR_MESSAGE_ACTION_REMARK_SOURCE_SET
-        # Validate that the action is "remark", when the remark field is provided
-        elif self.remark:
-            errors["remark"] = ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK
 
         if errors:
             raise ValidationError(errors)
@@ -271,7 +339,7 @@ class ACLExtendedRule(ACLRule):
     """
     Inherits ACLRule.
 
-    Add ACLExtendedRule specific fields: source_ports, destination, destination_ports, and protocol
+    Add ACLExtendedRule specific fields: source_port_ranges, destination, destination_port_ranges, and protocol
     """
 
     access_list = models.ForeignKey(
@@ -291,11 +359,12 @@ class ACLExtendedRule(ACLRule):
     )
 
     # Source
-    source_ports = ArrayField(
-        base_field=models.PositiveIntegerField(),
-        verbose_name=_("Source Ports"),
+    source_port_ranges = ArrayField(
+        base_field=IntegerRangeField(),
+        verbose_name=_("Source Port Ranges"),
+        default=list,
         blank=True,
-        null=True,
+        help_text=_("Inclusive port ranges (e.g., 10-20,22,80-81)."),
     )
 
     # Destination
@@ -317,11 +386,12 @@ class ACLExtendedRule(ACLRule):
         ct_field="destination_type",
         fk_field="destination_id",
     )
-    destination_ports = ArrayField(
-        base_field=models.PositiveIntegerField(),
-        verbose_name=_("Destination Ports"),
+    destination_port_ranges = ArrayField(
+        base_field=IntegerRangeField(),
+        verbose_name=_("Destination Port Ranges"),
+        default=list,
         blank=True,
-        null=True,
+        help_text=_("Inclusive port ranges (e.g., 10-20,22,80-81)."),
     )
 
     # Cached related objects by association name for faster access
@@ -363,10 +433,10 @@ class ACLExtendedRule(ACLRule):
         "action",
         "source_id",
         "source_type",
-        "source_ports",
+        "source_port_ranges",
         "destination_id",
         "destination_type",
-        "destination_ports",
+        "destination_port_ranges",
         "protocol",
     )
 
@@ -389,9 +459,9 @@ class ACLExtendedRule(ACLRule):
         When the action is 'remark', the remark field must be provided (non-empty),
         and the following fields must be empty:
           - source
-          - source_ports
+          - source_port_ranges
           - destination
-          - destination_ports
+          - destination_port_ranges
           - protocol
 
         Conversely, if a remark is provided, the action must be set to 'remark'.
@@ -417,20 +487,31 @@ class ACLExtendedRule(ACLRule):
                 errors["remark"] = ERROR_MESSAGE_NO_REMARK
             if self.source:
                 errors["source"] = ERROR_MESSAGE_ACTION_REMARK_SOURCE_SET
-            if self.source_ports:
-                errors["source_ports"] = ERROR_MESSAGE_ACTION_REMARK_SOURCE_PORTS_SET
+            if self.source_port_ranges:
+                errors["source_port_ranges"] = ERROR_MESSAGE_ACTION_REMARK_SOURCE_PORTS_SET
             if self.destination:
                 errors["destination"] = ERROR_MESSAGE_ACTION_REMARK_DESTINATION_SET
-            if self.destination_ports:
-                errors["destination_ports"] = ERROR_MESSAGE_ACTION_REMARK_DESTINATION_PORTS_SET
+            if self.destination_port_ranges:
+                errors["destination_port_ranges"] = ERROR_MESSAGE_ACTION_REMARK_DESTINATION_PORTS_SET
             if self.protocol:
                 errors["protocol"] = ERROR_MESSAGE_ACTION_REMARK_PROTOCOL_SET
-        # Validate that the action is "remark", when the remark field is provided
-        elif self.remark:
-            errors["remark"] = ERROR_MESSAGE_REMARK_WITHOUT_ACTION_REMARK
+        # Validate that the source or destination ports are only set when the protocol is TCP or UDP
+        elif self.protocol not in [ACLProtocolChoices.PROTOCOL_TCP, ACLProtocolChoices.PROTOCOL_UDP]:
+            if self.source_port_ranges:
+                errors["source_port_ranges"] = ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_SOURCE_PORTS_SET
+            if self.destination_port_ranges:
+                errors["destination_port_ranges"] = ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_DESTINATION_PORTS_SET
 
         if errors:
             raise ValidationError(errors)
+
+        # Normalize and validate port ranges
+        self.source_port_ranges = normalize_port_ranges(self.source_port_ranges or [], "source_port_ranges")
+        self.destination_port_ranges = normalize_port_ranges(
+            self.destination_port_ranges or [], "destination_port_ranges"
+        )
+        validate_port_ranges(self.source_port_ranges, "source_port_ranges")
+        validate_port_ranges(self.destination_port_ranges, "destination_port_ranges")
 
     def save(self, *args, **kwargs):
         """
@@ -461,7 +542,48 @@ class ACLExtendedRule(ACLRule):
 
     cache_related_destination_objects.alters_data = True
 
+    @property
+    def destination_port_ranges_list(self):
+        """
+        Return destination port ranges as a list of strings.
+
+        Ranges are formatted as a single port or as an inclusive
+        `"<start>-<end>"` range, e.g. `["22", "80-81", "443"]`.
+        """
+        return ranges_to_string_list(self.destination_port_ranges)
+
+    @property
+    def source_port_ranges_list(self):
+        """
+        Return source port ranges as a list of strings.
+
+        Ranges are formatted as a single port or as an inclusive
+        `"<start>-<end>"` range, e.g. `["22", "80-81", "443"]`.
+        """
+        return ranges_to_string_list(self.source_port_ranges)
+
+    def get_destination_port_ranges_display(self):
+        """
+        Return destination port ranges as a comma-separated string.
+
+        Example:
+            `"22, 80-81, 443"`
+        """
+        return ", ".join(self.destination_port_ranges_list)
+
+    def get_source_port_ranges_display(self):
+        """
+        Return source port ranges as a comma-separated string.
+
+        Example:
+            `"22, 80-81, 443"`
+        """
+        return ", ".join(self.source_port_ranges_list)
+
     def get_protocol_color(self):
+        """
+        Return the display color associated with the rule protocol.
+        """
         return ACLProtocolChoices.colors.get(self.protocol)
 
 

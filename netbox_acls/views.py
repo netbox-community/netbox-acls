@@ -4,9 +4,11 @@ Specifically, all the various interactions with a client.
 """
 
 from django.contrib.contenttypes.models import ContentType
-from django.utils.translation import gettext_lazy as _
-from dcim.models import Device, Interface, VirtualChassis
 from django.db.models import Count
+from django.utils.translation import gettext_lazy as _
+
+from dcim.models import Device, Interface, VirtualChassis
+from netbox.object_actions import AddObject, BulkDelete, BulkEdit, BulkExport
 from netbox.views import generic
 from utilities.views import ViewTab, register_model_view
 from virtualization.models import VirtualMachine, VMInterface
@@ -14,27 +16,52 @@ from virtualization.models import VirtualMachine, VMInterface
 from . import choices, filtersets, forms, models, tables
 
 __all__ = (
-    "AccessListView",
-    "AccessListListView",
-    "AccessListEditView",
-    "AccessListDeleteView",
-    "AccessListBulkDeleteView",
-    "ACLAssignmentView",
-    "ACLAssignmentListView",
-    "ACLAssignmentEditView",
-    "ACLAssignmentDeleteView",
     "ACLAssignmentBulkDeleteView",
-    "ACLStandardRuleView",
-    "ACLStandardRuleListView",
-    "ACLStandardRuleEditView",
-    "ACLStandardRuleDeleteView",
-    "ACLStandardRuleBulkDeleteView",
-    "ACLExtendedRuleView",
-    "ACLExtendedRuleListView",
-    "ACLExtendedRuleEditView",
-    "ACLExtendedRuleDeleteView",
+    "ACLAssignmentDeleteView",
+    "ACLAssignmentEditView",
+    "ACLAssignmentListView",
+    "ACLAssignmentView",
     "ACLExtendedRuleBulkDeleteView",
+    "ACLExtendedRuleDeleteView",
+    "ACLExtendedRuleEditView",
+    "ACLExtendedRuleListView",
+    "ACLExtendedRuleView",
+    "ACLStandardRuleBulkDeleteView",
+    "ACLStandardRuleDeleteView",
+    "ACLStandardRuleEditView",
+    "ACLStandardRuleListView",
+    "ACLStandardRuleView",
+    "AccessListBulkDeleteView",
+    "AccessListDeleteView",
+    "AccessListEditView",
+    "AccessListListView",
+    "AccessListView",
 )
+
+
+class ACLRuleSequenceMixin:
+    """
+    Mixin that auto-assigns the next available sequence number to new ACL rules.
+
+    Used with ObjectEditView to pre-populate the sequence field when creating
+    rules via the "Add" form (not clone/add-another, which preserves sequence).
+    """
+
+    def alter_object(self, obj, request, url_args, url_kwargs):
+        obj = super().alter_object(obj, request, url_args, url_kwargs)
+
+        # Skip if editing an existing object or sequence already provided (clone/add-another)
+        if obj.pk or "sequence" in request.GET:
+            return obj
+
+        # Parse access_list ID; bail out gracefully if missing/invalid
+        access_list_id = request.GET.get("access_list")
+        if not access_list_id or not access_list_id.isdigit():
+            return obj
+
+        obj.sequence = obj.__class__.objects.get_next_sequence(int(access_list_id))
+        return obj
+
 
 #
 # Base children views
@@ -53,6 +80,7 @@ class ACLAssignmentChildrenView(generic.ObjectChildrenView):
         weight=1100,
     )
     table = tables.ACLAssignmentTable
+    actions = (BulkExport, BulkDelete)
 
     def get_children(self, request, parent):
         """
@@ -121,10 +149,11 @@ class AccessListListView(generic.ObjectListView):
 
     queryset = models.AccessList.objects.annotate(
         rule_count=Count("aclextendedrules") + Count("aclstandardrules"),
-    ).prefetch_related("tags")
+    ).prefetch_related("owner", "tags")
     table = tables.AccessListTable
     filterset = filtersets.AccessListFilterSet
     filterset_form = forms.AccessListFilterForm
+    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.AccessList, "add", detail=False)
@@ -134,7 +163,7 @@ class AccessListEditView(generic.ObjectEditView):
     Defines the edit view for the AccessLists django model.
     """
 
-    queryset = models.AccessList.objects.prefetch_related("tags")
+    queryset = models.AccessList.objects.prefetch_related("owner", "tags")
     form = forms.AccessListForm
 
 
@@ -144,14 +173,63 @@ class AccessListDeleteView(generic.ObjectDeleteView):
     Defines delete view for the AccessLists django model.
     """
 
-    queryset = models.AccessList.objects.prefetch_related("tags")
+    queryset = models.AccessList.objects.prefetch_related("owner", "tags")
+
+
+@register_model_view(models.AccessList, "bulk_edit", path="edit", detail=False)
+class AccessListBulkEditView(generic.BulkEditView):
+    """
+    Bulk edit view for editing multiple objects of AccessLists.
+    """
+
+    queryset = models.AccessList.objects.all()
+    filterset = filtersets.AccessListFilterSet
+    table = tables.AccessListTable
+    form = forms.AccessListBulkEditForm
 
 
 @register_model_view(models.AccessList, "bulk_delete", path="delete", detail=False)
 class AccessListBulkDeleteView(generic.BulkDeleteView):
-    queryset = models.AccessList.objects.prefetch_related("tags")
+    """
+    Bulk delete view for deleting multiple objects of AccessLists.
+    """
+
+    queryset = models.AccessList.objects.prefetch_related("owner", "tags")
     filterset = filtersets.AccessListFilterSet
     table = tables.AccessListTable
+
+
+@register_model_view(models.AccessList, "aclassignments", path="assignments")
+class AccessListACLAssignmentView(ACLAssignmentChildrenView):
+    """
+    Children view of ACL Assignment of AccessLists.
+    """
+
+    queryset = models.AccessList.objects.all()
+    tab = ViewTab(
+        label=_("Assignments"),
+        badge=lambda obj: obj.aclassignments.count(),
+        permission="netbox_acls.view_aclassignment",
+        weight=1100,
+    )
+    template_name = "inc/view_acl_assignments_tab.html"
+
+    def get_children(self, request, parent):
+        """Return all children objects to the current parent object."""
+        return super().get_children(request, parent).filter(access_list=parent.pk)
+
+    def get_table(self, *args, **kwargs):
+        """Return the table with the assigned object colum hidden."""
+        table = super().get_table(*args, **kwargs)
+
+        # Hide the access list column
+        table.columns.hide("access_list")
+        # Hide the type column
+        table.columns.hide("type")
+        # Hide the default action column
+        table.columns.hide("default_action")
+
+        return table
 
 
 #
@@ -167,6 +245,7 @@ class ACLAssignmentView(generic.ObjectView):
 
     queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
+        "owner",
         "tags",
     )
 
@@ -179,11 +258,13 @@ class ACLAssignmentListView(generic.ObjectListView):
 
     queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
+        "owner",
         "tags",
     )
     table = tables.ACLAssignmentTable
     filterset = filtersets.ACLAssignmentFilterSet
     filterset_form = forms.ACLAssignmentFilterForm
+    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLAssignment, "add", detail=False)
@@ -195,19 +276,10 @@ class ACLAssignmentEditView(generic.ObjectEditView):
 
     queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
+        "owner",
         "tags",
     )
     form = forms.ACLAssignmentForm
-
-    def get_extra_addanother_params(self, request):
-        """
-        Returns a dictionary of additional parameters to be passed to the "Add Another" button.
-        """
-
-        return {
-            "access_list": request.GET.get("access_list") or request.POST.get("access_list"),
-            "direction": request.GET.get("direction") or request.POST.get("direction"),
-        }
 
 
 @register_model_view(models.ACLAssignment, "delete")
@@ -218,14 +290,32 @@ class ACLAssignmentDeleteView(generic.ObjectDeleteView):
 
     queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
+        "owner",
         "tags",
     )
 
 
+@register_model_view(models.ACLAssignment, "bulk_edit", path="edit", detail=False)
+class ACLAssignmentBulkEditView(generic.BulkEditView):
+    """
+    Bulk edit view for editing multiple objects of ACLAssignments.
+    """
+
+    queryset = models.ACLAssignment.objects.all()
+    filterset = filtersets.ACLAssignmentFilterSet
+    table = tables.ACLAssignmentTable
+    form = forms.ACLAssignmentBulkEditForm
+
+
 @register_model_view(models.ACLAssignment, "bulk_delete", path="delete", detail=False)
 class ACLAssignmentBulkDeleteView(generic.BulkDeleteView):
+    """
+    Bulk delete view for deleting multiple objects of ACLAssignments.
+    """
+
     queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
+        "owner",
         "tags",
     )
     filterset = filtersets.ACLAssignmentFilterSet
@@ -239,7 +329,7 @@ class DeviceACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = Device.objects.all()
-    template_name = "inc/view_tab.html"
+    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -266,7 +356,7 @@ class InterfaceACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = Interface.objects.all()
-    template_name = "inc/view_tab.html"
+    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -287,11 +377,11 @@ class InterfaceACLAssignmentView(ACLAssignmentChildrenView):
 @register_model_view(VirtualChassis, "aclassignments", path="access-lists")
 class VirtualChassisACLAssignmentView(ACLAssignmentChildrenView):
     """
-    Children view of ACL Assignment of VirtualChassiss.
+    Children view of ACL Assignment of VirtualChassis.
     """
 
     queryset = VirtualChassis.objects.all()
-    template_name = "inc/view_tab.html"
+    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -318,7 +408,7 @@ class VirtualMachineACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = VirtualMachine.objects.all()
-    template_name = "inc/view_tab.html"
+    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -345,7 +435,7 @@ class VMInterfaceACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = VMInterface.objects.all()
-    template_name = "inc/view_tab.html"
+    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -377,6 +467,7 @@ class ACLStandardRuleView(generic.ObjectView):
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
         "source",
+        "owner",
         "tags",
     )
 
@@ -390,16 +481,18 @@ class ACLStandardRuleListView(generic.ObjectListView):
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
         "source",
+        "owner",
         "tags",
     )
     table = tables.ACLStandardRuleTable
     filterset = filtersets.ACLStandardRuleFilterSet
     filterset_form = forms.ACLStandardRuleFilterForm
+    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLStandardRule, "add", detail=False)
 @register_model_view(models.ACLStandardRule, "edit")
-class ACLStandardRuleEditView(generic.ObjectEditView):
+class ACLStandardRuleEditView(ACLRuleSequenceMixin, generic.ObjectEditView):
     """
     Defines the edit view for the ACLStandardRule django model.
     """
@@ -407,18 +500,10 @@ class ACLStandardRuleEditView(generic.ObjectEditView):
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
         "source",
+        "owner",
         "tags",
     )
     form = forms.ACLStandardRuleForm
-
-    def get_extra_addanother_params(self, request):
-        """
-        Returns a dictionary of additional parameters to be passed to the "Add Another" button.
-        """
-
-        return {
-            "access_list": request.GET.get("access_list") or request.POST.get("access_list"),
-        }
 
 
 @register_model_view(models.ACLStandardRule, "delete")
@@ -430,15 +515,33 @@ class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
         "source",
+        "owner",
         "tags",
     )
 
 
+@register_model_view(models.ACLStandardRule, "bulk_edit", path="edit", detail=False)
+class ACLStandardRuleBulkEditView(generic.BulkEditView):
+    """
+    Bulk edit view for editing multiple objects of ACLStandardRules.
+    """
+
+    queryset = models.ACLStandardRule.objects.all()
+    filterset = filtersets.ACLStandardRuleFilterSet
+    table = tables.ACLStandardRuleTable
+    form = forms.ACLStandardRuleBulkEditForm
+
+
 @register_model_view(models.ACLStandardRule, "bulk_delete", path="delete", detail=False)
 class ACLStandardRuleBulkDeleteView(generic.BulkDeleteView):
+    """
+    Bulk delete view for deleting multiple objects of ACLStandardRules.
+    """
+
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
         "source",
+        "owner",
         "tags",
     )
     filterset = filtersets.ACLStandardRuleFilterSet
@@ -460,6 +563,7 @@ class ACLExtendedRuleView(generic.ObjectView):
         "access_list",
         "source",
         "destination",
+        "owner",
         "tags",
     )
 
@@ -474,16 +578,18 @@ class ACLExtendedRuleListView(generic.ObjectListView):
         "access_list",
         "source",
         "destination",
+        "owner",
         "tags",
     )
     table = tables.ACLExtendedRuleTable
     filterset = filtersets.ACLExtendedRuleFilterSet
     filterset_form = forms.ACLExtendedRuleFilterForm
+    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLExtendedRule, "add", detail=False)
 @register_model_view(models.ACLExtendedRule, "edit")
-class ACLExtendedRuleEditView(generic.ObjectEditView):
+class ACLExtendedRuleEditView(ACLRuleSequenceMixin, generic.ObjectEditView):
     """
     Defines the edit view for the ACLExtendedRule django model.
     """
@@ -492,18 +598,10 @@ class ACLExtendedRuleEditView(generic.ObjectEditView):
         "access_list",
         "source",
         "destination",
+        "owner",
         "tags",
     )
     form = forms.ACLExtendedRuleForm
-
-    def get_extra_addanother_params(self, request):
-        """
-        Returns a dictionary of additional parameters to be passed to the "Add Another" button.
-        """
-
-        return {
-            "access_list": request.GET.get("access_list") or request.POST.get("access_list"),
-        }
 
 
 @register_model_view(models.ACLExtendedRule, "delete")
@@ -516,16 +614,34 @@ class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
         "access_list",
         "source",
         "destination",
+        "owner",
         "tags",
     )
 
 
+@register_model_view(models.ACLExtendedRule, "bulk_edit", path="edit", detail=False)
+class ACLExtendedRuleBulkEditView(generic.BulkEditView):
+    """
+    Bulk edit view for editing multiple objects of ACLExtendedRules.
+    """
+
+    queryset = models.ACLExtendedRule.objects.all()
+    filterset = filtersets.ACLExtendedRuleFilterSet
+    table = tables.ACLExtendedRuleTable
+    form = forms.ACLExtendedRuleBulkEditForm
+
+
 @register_model_view(models.ACLExtendedRule, "bulk_delete", path="delete", detail=False)
 class ACLExtendedRuleBulkDeleteView(generic.BulkDeleteView):
+    """
+    Bulk delete view for deleting multiple objects of ACLExtendedRules.
+    """
+
     queryset = models.ACLExtendedRule.objects.prefetch_related(
         "access_list",
         "source",
         "destination",
+        "owner",
         "tags",
     )
     filterset = filtersets.ACLExtendedRuleFilterSet

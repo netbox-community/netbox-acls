@@ -5,21 +5,22 @@ and delete operations which each require dedicated views under the UI.
 """
 
 from django.db.models import Count
+
 from netbox.api.viewsets import NetBoxModelViewSet
 
 from .. import filtersets, models
 from .serializers import (
     AccessListSerializer,
-    ACLExtendedRuleSerializer,
     ACLAssignmentSerializer,
+    ACLExtendedRuleSerializer,
     ACLStandardRuleSerializer,
 )
 
 __all__ = [
-    "AccessListViewSet",
-    "ACLStandardRuleViewSet",
     "ACLAssignmentViewSet",
     "ACLExtendedRuleViewSet",
+    "ACLStandardRuleViewSet",
+    "AccessListViewSet",
 ]
 
 
@@ -28,13 +29,9 @@ class AccessListViewSet(NetBoxModelViewSet):
     Defines the view set for the django AccessList model and associates it with a view.
     """
 
-    queryset = (
-        models.AccessList.objects.prefetch_related("tags")
-        .annotate(
-            rule_count=Count("aclextendedrules") + Count("aclstandardrules"),
-        )
-        .prefetch_related("tags")
-    )
+    queryset = models.AccessList.objects.annotate(
+        rule_count=Count("aclextendedrules") + Count("aclstandardrules")
+    ).prefetch_related("owner", "tags")
     serializer_class = AccessListSerializer
     filterset_class = filtersets.AccessListFilterSet
 
@@ -46,6 +43,7 @@ class ACLAssignmentViewSet(NetBoxModelViewSet):
 
     queryset = models.ACLAssignment.objects.prefetch_related(
         "access_list",
+        "owner",
         "tags",
     )
     serializer_class = ACLAssignmentSerializer
@@ -60,6 +58,7 @@ class ACLStandardRuleViewSet(NetBoxModelViewSet):
     queryset = models.ACLStandardRule.objects.prefetch_related(
         "access_list",
         "source",
+        "owner",
         "tags",
     )
     serializer_class = ACLStandardRuleSerializer
@@ -75,6 +74,7 @@ class ACLExtendedRuleViewSet(NetBoxModelViewSet):
         "access_list",
         "source",
         "destination",
+        "owner",
         "tags",
     )
     serializer_class = ACLExtendedRuleSerializer

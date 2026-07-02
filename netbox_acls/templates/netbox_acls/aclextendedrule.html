@@ -20,15 +20,12 @@
             <td>{{ object.description|placeholder }}</td>
           </tr>
           <tr>
-            <th scope="row">Index</th>
-            <td>{{ object.index }}</td>
+            <th scope="row">Sequence</th>
+            <td>{{ object.sequence }}</td>
           </tr>
         </table>
       </div>
-      {% include 'inc/panels/custom_fields.html' %}
-      {% include 'inc/panels/tags.html' %}
-    </div>
-    <div class="col col-md-6">
+
       <div class="card">
         <h2 class="card-header">Details</h2>
         <table class="table table-hover attr-table">
@@ -49,19 +46,24 @@
             <td>{{ object.source|linkify|placeholder }}</td>
           </tr>
           <tr>
-            <th scope="row">Source Ports</th>
-            <td>{{ object.source_ports|join:", "|placeholder }}</td>
+            <th scope="row">Source Port Ranges</th>
+            <td>{{ object.source_port_ranges_list|join:", "|placeholder }}</td>
           </tr>
           <tr>
             <th scope="row">Destination</th>
             <td>{{ object.destination|linkify|placeholder }}</td>
           </tr>
           <tr>
-            <th scope="row">Destination Ports</th>
-            <td>{{ object.destination_ports|join:", "|placeholder }}</td>
+            <th scope="row">Destination Port Ranges</th>
+            <td>{{ object.destination_port_ranges_list|join:", "|placeholder }}</td>
           </tr>
         </table>
       </div>
+    </div>
+    <div class="col col-md-6">
+      {% include 'inc/panels/custom_fields.html' %}
+      {% include 'inc/panels/tags.html' %}
+      {% include 'inc/panels/comments.html' %}
     </div>
   </div>
 {% endblock content %}

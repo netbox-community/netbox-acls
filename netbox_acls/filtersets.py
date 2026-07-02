@@ -4,33 +4,37 @@ when filtering the site list by status or region, for instance.
 """
 
 import django_filters
-from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
+
+from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
-from netbox.filtersets import NetBoxModelFilterSet
-from utilities.filters import ContentTypeFilter, NumericArrayFilter
+from netbox.filtersets import NetBoxModelFilterSet, PrimaryModelFilterSet
+from users.filterset_mixins import OwnerFilterMixin
+from utilities.filters import ContentTypeFilter
+from utilities.filtersets import register_filterset
 from virtualization.models import VirtualMachine, VMInterface
 
 from .choices import ACLTypeChoices
-from .models import AccessList, ACLExtendedRule, ACLAssignment, ACLStandardRule
+from .models import AccessList, ACLAssignment, ACLExtendedRule, ACLStandardRule
 
 __all__ = (
-    "AccessListFilterSet",
-    "ACLStandardRuleFilterSet",
     "ACLAssignmentFilterSet",
     "ACLExtendedRuleFilterSet",
+    "ACLStandardRuleFilterSet",
+    "AccessListFilterSet",
 )
 
 
-class AccessListFilterSet(NetBoxModelFilterSet):
+@register_filterset
+class AccessListFilterSet(PrimaryModelFilterSet):
     """
     Define the filter set for the django model AccessList.
     """
 
     class Meta:
         """
-        Associates the django model AccessList & fields to the filter set.
+        Associates the django model AccessList & fields with the filter set.
         """
 
         model = AccessList
@@ -38,7 +42,9 @@ class AccessListFilterSet(NetBoxModelFilterSet):
             "id",
             "name",
             "type",
+            "family",
             "default_action",
+            "description",
             "comments",
         )
 
@@ -50,12 +56,14 @@ class AccessListFilterSet(NetBoxModelFilterSet):
             Q(name__icontains=value)
             | Q(type__icontains=value)
             | Q(default_action__icontains=value)
+            | Q(description__icontains=value)
             | Q(comments__icontains=value)
         )
         return queryset.filter(query)
 
 
-class ACLAssignmentFilterSet(NetBoxModelFilterSet):
+@register_filterset
+class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
     """
     Define the filter set for the django model ACLAssignment.
     """
@@ -159,13 +167,14 @@ class ACLAssignmentFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         """
-        Associates the django model ACLInterfaceAssignment & fields to the filter set.
+        Associates the django model ACLInterfaceAssignment & fields with the filter set.
         """
 
         model = ACLAssignment
         fields = (
             "id",
             "access_list",
+            "family",
             "site",
             "site_group",
             "region",
@@ -198,7 +207,8 @@ class ACLAssignmentFilterSet(NetBoxModelFilterSet):
         return queryset.filter(query)
 
 
-class ACLStandardRuleFilterSet(NetBoxModelFilterSet):
+@register_filterset
+class ACLStandardRuleFilterSet(PrimaryModelFilterSet):
     """
     Define the filter set for the django model ACLStandardRule.
     """
@@ -270,29 +280,38 @@ class ACLStandardRuleFilterSet(NetBoxModelFilterSet):
 
     class Meta:
         """
-        Associates the django model ACLStandardRule & fields to the filter set.
+        Associates the django model ACLStandardRule & fields with the filter set.
         """
 
         model = ACLStandardRule
         fields = (
             "id",
             "access_list",
-            "index",
+            "sequence",
             "action",
             "remark",
             "source_type",
             "source_id",
+            "description",
+            "comments",
         )
 
     def search(self, queryset, name, value):
         """
         Override the default search behavior for the django model.
         """
-        query = Q(access_list__name__icontains=value) | Q(index__icontains=value) | Q(action__icontains=value)
+        query = (
+            Q(access_list__name__icontains=value)
+            | Q(sequence__icontains=value)
+            | Q(action__icontains=value)
+            | Q(remark__icontains=value)
+            | Q(description__icontains=value)
+        )
         return queryset.filter(query)
 
 
-class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
+@register_filterset
+class ACLExtendedRuleFilterSet(PrimaryModelFilterSet):
     """
     Define the filter set for the django model ACLExtendedRule.
     """
@@ -361,9 +380,9 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
         to_field_name="id",
         label=_("Source Prefix (ID)"),
     )
-    source_port = NumericArrayFilter(
-        field_name="source_ports",
-        lookup_expr="contains",
+    source_port = django_filters.NumberFilter(
+        field_name="source_port_ranges",
+        lookup_expr="range_contains",
         label=_("Source Port"),
     )
 
@@ -419,31 +438,33 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
         to_field_name="id",
         label=_("Destination Prefix (ID)"),
     )
-    destination_port = NumericArrayFilter(
-        field_name="destination_ports",
-        lookup_expr="contains",
+    destination_port = django_filters.NumberFilter(
+        field_name="destination_port_ranges",
+        lookup_expr="range_contains",
         label=_("Destination Port"),
     )
 
     class Meta:
         """
-        Associates the django model ACLExtendedRule & fields to the filter set.
+        Associates the django model ACLExtendedRule & fields with the filter set.
         """
 
         model = ACLExtendedRule
         fields = (
             "id",
             "access_list",
-            "index",
+            "sequence",
             "action",
             "remark",
+            "protocol",
             "source_type",
             "source_id",
             "source_port",
             "destination_type",
             "destination_id",
             "destination_port",
-            "protocol",
+            "description",
+            "comments",
         )
 
     def search(self, queryset, name, value):
@@ -452,8 +473,10 @@ class ACLExtendedRuleFilterSet(NetBoxModelFilterSet):
         """
         query = (
             Q(access_list__name__icontains=value)
-            | Q(index__icontains=value)
+            | Q(sequence__icontains=value)
             | Q(action__icontains=value)
+            | Q(remark__icontains=value)
             | Q(protocol__icontains=value)
+            | Q(description__icontains=value)
         )
         return queryset.filter(query)

@@ -2,11 +2,13 @@
 Defines each django model's GUI filter/search options.
 """
 
-from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from django import forms
 from django.utils.translation import gettext_lazy as _
+
+from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
-from netbox.forms import NetBoxModelFilterSetForm
+from netbox.forms import NetBoxModelFilterSetForm, PrimaryModelFilterSetForm
+from netbox.forms.mixins import OwnerFilterMixin
 from utilities.forms.fields import (
     DynamicModelChoiceField,
     DynamicModelMultipleChoiceField,
@@ -19,26 +21,27 @@ from virtualization.models import VirtualMachine, VMInterface
 from ..choices import (
     ACLActionChoices,
     ACLAssignmentDirectionChoices,
+    ACLFamilyChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
     ACLTypeChoices,
 )
 from ..models import (
     AccessList,
-    ACLExtendedRule,
     ACLAssignment,
+    ACLExtendedRule,
     ACLStandardRule,
 )
 
 __all__ = (
-    "AccessListFilterForm",
     "ACLAssignmentFilterForm",
-    "ACLStandardRuleFilterForm",
     "ACLExtendedRuleFilterForm",
+    "ACLStandardRuleFilterForm",
+    "AccessListFilterForm",
 )
 
 
-class AccessListFilterForm(NetBoxModelFilterSetForm):
+class AccessListFilterForm(PrimaryModelFilterSetForm):
     """
     GUI filter form to search the django AccessList model.
     """
@@ -52,8 +55,15 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
         ),
         FieldSet(
             "type",
+            "family",
             "default_action",
+            "description",
             name=_("ACL Details"),
+        ),
+        FieldSet(
+            "owner_group_id",
+            "owner_id",
+            name=_("Ownership"),
         ),
     )
 
@@ -62,6 +72,11 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
         choices=add_blank_choice(ACLTypeChoices),
         required=False,
         label=_("Type"),
+    )
+    family = forms.ChoiceField(
+        choices=add_blank_choice(ACLFamilyChoices),
+        required=False,
+        label=_("Family"),
     )
     default_action = forms.ChoiceField(
         choices=add_blank_choice(ACLActionChoices),
@@ -73,7 +88,7 @@ class AccessListFilterForm(NetBoxModelFilterSetForm):
     tag = TagFilterField(model)
 
 
-class ACLAssignmentFilterForm(NetBoxModelFilterSetForm):
+class ACLAssignmentFilterForm(OwnerFilterMixin, NetBoxModelFilterSetForm):
     """
     GUI filter form to search the django ACLAssignment model.
     """
@@ -87,6 +102,7 @@ class ACLAssignmentFilterForm(NetBoxModelFilterSetForm):
         ),
         FieldSet(
             "access_list_id",
+            "family",
             "direction",
             name=_("ACL Details"),
         ),
@@ -107,6 +123,11 @@ class ACLAssignmentFilterForm(NetBoxModelFilterSetForm):
             "vminterface_id",
             name=_("Virtual Machine Details"),
         ),
+        FieldSet(
+            "owner_group_id",
+            "owner_id",
+            name=_("Ownership"),
+        ),
     )
 
     # ACL selector
@@ -114,6 +135,11 @@ class ACLAssignmentFilterForm(NetBoxModelFilterSetForm):
         queryset=AccessList.objects.all(),
         required=False,
         label=_("Access List"),
+    )
+    family = forms.ChoiceField(
+        choices=add_blank_choice(ACLFamilyChoices),
+        required=False,
+        label=_("Family"),
     )
     direction = forms.ChoiceField(
         choices=add_blank_choice(ACLAssignmentDirectionChoices),
@@ -186,7 +212,7 @@ class ACLAssignmentFilterForm(NetBoxModelFilterSetForm):
     tag = TagFilterField(model)
 
 
-class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
+class ACLStandardRuleFilterForm(PrimaryModelFilterSetForm):
     """
     GUI filter form to search the django ACLStandardRule model.
     """
@@ -200,7 +226,7 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
         ),
         FieldSet(
             "access_list_id",
-            "index",
+            "sequence",
             "action",
             "remark",
             name=_("ACL Details"),
@@ -212,6 +238,11 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
             "source_prefix_id",
             name=_("Source Details"),
         ),
+        FieldSet(
+            "owner_group_id",
+            "owner_id",
+            name=_("Ownership"),
+        ),
     )
 
     access_list_id = DynamicModelMultipleChoiceField(
@@ -222,9 +253,9 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_("Access List"),
     )
-    index = forms.IntegerField(
+    sequence = forms.IntegerField(
         required=False,
-        label=_("Index"),
+        label=_("Sequence"),
     )
     action = forms.ChoiceField(
         choices=add_blank_choice(ACLRuleActionChoices),
@@ -262,7 +293,7 @@ class ACLStandardRuleFilterForm(NetBoxModelFilterSetForm):
     tag = TagFilterField(model)
 
 
-class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
+class ACLExtendedRuleFilterForm(PrimaryModelFilterSetForm):
     """
     GUI filter form to search the django ACLExtendedRule model.
     """
@@ -276,7 +307,7 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
         ),
         FieldSet(
             "access_list_id",
-            "index",
+            "sequence",
             "action",
             "remark",
             "protocol",
@@ -298,6 +329,11 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
             "destination_port",
             name=_("Destination Details"),
         ),
+        FieldSet(
+            "owner_group_id",
+            "owner_id",
+            name=_("Ownership"),
+        ),
     )
 
     access_list_id = DynamicModelMultipleChoiceField(
@@ -308,9 +344,9 @@ class ACLExtendedRuleFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_("Access List"),
     )
-    index = forms.IntegerField(
+    sequence = forms.IntegerField(
         required=False,
-        label=_("Index"),
+        label=_("Sequence"),
     )
     action = forms.ChoiceField(
         choices=add_blank_choice(ACLRuleActionChoices),

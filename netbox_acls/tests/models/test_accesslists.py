@@ -2,8 +2,21 @@ from itertools import cycle
 
 from django.core.exceptions import ValidationError
 
-from netbox_acls.models import AccessList
+from dcim.models import Interface
 
+from ...choices import (
+    ACLActionChoices,
+    ACLAssignmentDirectionChoices,
+    ACLFamilyChoices,
+    ACLRuleActionChoices,
+    ACLTypeChoices,
+)
+from ...models import (
+    AccessList,
+    ACLAssignment,
+    ACLExtendedRule,
+    ACLStandardRule,
+)
 from .base import BaseTestCase
 
 
@@ -13,9 +26,31 @@ class TestAccessList(BaseTestCase):
     """
 
     common_acl_params = {
-        "type": "extended",
-        "default_action": "permit",
+        "type": ACLTypeChoices.TYPE_EXTENDED,
+        "family": ACLFamilyChoices.FAMILY_IPV4,
+        "default_action": ACLActionChoices.ACTION_DENY,
     }
+
+    @classmethod
+    def setUpTestData(cls):
+        """
+        Extend BaseTestCase's setUpTestData() to create additional data for testing.
+        """
+        super().setUpTestData()
+
+        interface_type = "1000baset"
+
+        # Device Interfaces
+        cls.device_interface1 = Interface.objects.create(
+            name="Interface 1",
+            device=cls.device1,
+            type=interface_type,
+        )
+        cls.device_interface2 = Interface.objects.create(
+            name="Interface 2",
+            device=cls.device1,
+            type=interface_type,
+        )
 
     def test_accesslist_standard_creation(self):
         """
@@ -26,6 +61,7 @@ class TestAccessList(BaseTestCase):
         created_acl = AccessList(
             name=acl_name,
             type="standard",
+            family="ipv4",
             default_action="deny",
         )
 
@@ -43,6 +79,7 @@ class TestAccessList(BaseTestCase):
         created_acl = AccessList(
             name=acl_name,
             type="extended",
+            family="ipv4",
             default_action="permit",
         )
 
@@ -77,21 +114,6 @@ class TestAccessList(BaseTestCase):
         )
         acl2.full_clean()
 
-    def test_alphanumeric_plus_fail(self):
-        """
-        Test that AccessList names with non-alphanumeric (excluding '_' and '-') characters fail validation.
-        """
-        non_alphanumeric_plus_chars = r" !@#$%^&*()[]{};:,./<>?\|~=+"
-
-        for i, char in enumerate(non_alphanumeric_plus_chars, start=1):
-            bad_acl_name = AccessList(
-                name=f"Test-ACL-bad_name_{i}_{char}",
-                comments=f'ACL with "{char}" in name',
-                **self.common_acl_params,
-            )
-            with self.assertRaises(ValidationError):
-                bad_acl_name.full_clean()
-
     def test_valid_acl_choices(self):
         """
         Test that AccessList action choices using VALID choices.
@@ -109,6 +131,7 @@ class TestAccessList(BaseTestCase):
             valid_acl_choice = AccessList(
                 name=f"TestACL_Valid_Choice_{default_action}_{acl_type}",
                 type=acl_type,
+                family=ACLFamilyChoices.FAMILY_IPV4,
                 default_action=default_action,
                 comments=f"VALID ACL CHOICES USED: {default_action=} {acl_type=}",
             )
@@ -123,6 +146,7 @@ class TestAccessList(BaseTestCase):
         invalid_acl_default_action = AccessList(
             name=f"TestACL_Valid_Choice_{invalid_acl_default_action_choice}_{valid_acl_types[0]}",
             type=valid_acl_types[0],
+            family=ACLFamilyChoices.FAMILY_IPV4,
             default_action=invalid_acl_default_action_choice,
             comments=f"INVALID ACL DEFAULT CHOICE USED: default_action='{invalid_acl_default_action_choice}'",
         )
@@ -134,8 +158,176 @@ class TestAccessList(BaseTestCase):
         invalid_acl_type = AccessList(
             name=f"TestACL_Valid_Choice_{valid_acl_default_action_choices[0]}_{invalid_acl_type}",
             type=invalid_acl_type,
+            family=ACLFamilyChoices.FAMILY_IPV4,
             default_action=valid_acl_default_action_choices[0],
             comments=f"INVALID ACL DEFAULT CHOICE USED: type='{invalid_acl_type}'",
         )
         with self.assertRaises(ValidationError):
             invalid_acl_type.full_clean()
+
+    def test_acl_family_change_blocked_if_standard_rules_exist(self):
+        """
+        Changing the ACL family must be blocked when any rules exist (standard).
+        """
+        acl = AccessList.objects.create(
+            name="STD",
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        # Minimal valid standard rule (uses GFK "source")
+        ACLStandardRule.objects.create(
+            access_list=acl,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+        )
+
+        acl.family = ACLFamilyChoices.FAMILY_IPV6
+        with self.assertRaises(ValidationError):
+            acl.full_clean()
+
+    def test_acl_family_change_blocked_if_extended_rules_exist(self):
+        """
+        Changing the ACL family must be blocked when any rules exist (extended).
+        """
+        acl = AccessList.objects.create(
+            name="EXT",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV6,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        ACLExtendedRule.objects.create(
+            access_list=acl,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=None,
+            destination=self.prefix1_v6,
+        )
+
+        acl.family = ACLFamilyChoices.FAMILY_IPV4
+        with self.assertRaises(ValidationError):
+            acl.full_clean()
+
+    def test_acl_family_change_updates_assignments_when_allowed_host_only(self):
+        """
+        Test that changing the ACL family with host assignments passes validation.
+        """
+        acl = AccessList.objects.create(
+            name="AccessList-v4",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        assignment = ACLAssignment.objects.create(
+            access_list=acl,
+            assigned_object=self.device1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+        self.assertEqual(assignment.family, ACLFamilyChoices.FAMILY_IPV4)
+
+        # Change to IPv6 without rules is allowed
+        acl.family = ACLFamilyChoices.FAMILY_IPV6
+        acl.full_clean()
+        acl.save()
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.family, ACLFamilyChoices.FAMILY_IPV6)
+
+    def test_acl_family_change_blocked_if_interface_assignment_conflicts(self):
+        """
+        Test that changing the ACL family is blocked if a conflicting interface assignment exists.
+        """
+        acl_v4 = AccessList.objects.create(
+            name="AccessList-v4",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        acl_v6 = AccessList.objects.create(
+            name="AccessList-v6",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV6,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+
+        # Place both ACLs (v4 and v6) on the same interface/direction
+        ACLAssignment.objects.create(
+            access_list=acl_v4,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+        ACLAssignment.objects.create(
+            access_list=acl_v6,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        # Trying to change 'AccessList-v6' to DUAL must be blocked
+        # (conflicts with existing v4)
+        acl_v6.family = ACLFamilyChoices.FAMILY_DUAL
+        with self.assertRaises(ValidationError):
+            acl_v6.full_clean()
+
+    def test_acl_family_change_on_host_blocks_duplicate_name_within_target_family(self):
+        """
+        Tests that changing the ACL family on a host with existing ACLs of the same name and family is blocked.
+        """
+        acl_v4 = AccessList.objects.create(
+            name="ACL1",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        acl_v6 = AccessList.objects.create(
+            name="ACL1",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV6,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+
+        ACLAssignment.objects.create(
+            access_list=acl_v4,
+            assigned_object=self.device1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+        ACLAssignment.objects.create(
+            access_list=acl_v6,
+            assigned_object=self.device1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+
+        # Changing the family leads to a duplicate name error
+        acl_v6.family = ACLFamilyChoices.FAMILY_IPV4
+        with self.assertRaises(ValidationError):
+            acl_v6.full_clean()
+
+    def test_accesslist_save_blocks_host_name_rename_collision(self):
+        """#358: save() must re-enforce the host name/family guard for full_clean()-skipping callers."""
+        acl_a = AccessList.objects.create(
+            name="ACL1",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        acl_b = AccessList.objects.create(
+            name="ACL2",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        ACLAssignment.objects.create(
+            access_list=acl_a,
+            assigned_object=self.device1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+        ACLAssignment.objects.create(
+            access_list=acl_b,
+            assigned_object=self.device1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+
+        # Rename acl_b to collide with acl_a on the same host + family, bypassing full_clean()
+        acl_b.name = "ACL1"
+        with self.assertRaises(ValidationError):
+            acl_b.save()

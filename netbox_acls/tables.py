@@ -242,14 +242,12 @@ class ACLExtendedRuleTable(ACLRuleTable):
 
     class Meta(ACLRuleTable.Meta):
         model = ACLExtendedRule
-        fields = (
-            *(ACLRuleTable.Meta.fields),
+        fields = ACLRuleTable.Meta.fields + (
             "protocol",
             "source_port_ranges_list",
             "destination",
             "destination_type",
             "destination_port_ranges_list",
-            "tags",
         )
         default_columns = (
             "access_list",

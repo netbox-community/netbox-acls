@@ -60,7 +60,6 @@ class AccessListTable(PrimaryModelTable):
             "rule_count",
             "default_action",
             "description",
-            "tags",
         )
 
 
@@ -132,13 +131,12 @@ class ACLAssignmentTable(NetBoxTable):
             "family",
             "assigned_object",
             "direction",
-            "tags",
         )
 
 
-class ACLStandardRuleTable(PrimaryModelTable):
+class ACLRuleTable(PrimaryModelTable):
     """
-    Defines the table view for the ACLStandardRule model.
+    Abstract table for all ACL rules.
     """
 
     access_list = tables.Column(
@@ -149,9 +147,6 @@ class ACLStandardRuleTable(PrimaryModelTable):
         linkify=True,
     )
     action = columns.ChoiceFieldColumn()
-    tags = columns.TagColumn(
-        url_name="plugins:netbox_acls:aclstandardrule_list",
-    )
 
     # Source
     source_type = columns.ContentTypeColumn(
@@ -164,7 +159,6 @@ class ACLStandardRuleTable(PrimaryModelTable):
     )
 
     class Meta(PrimaryModelTable.Meta):
-        model = ACLStandardRule
         fields = (
             "pk",
             "id",
@@ -173,6 +167,7 @@ class ACLStandardRuleTable(PrimaryModelTable):
             "action",
             "remark",
             "source",
+            "source_type",
             "description",
             "tags",
             "comments",
@@ -183,11 +178,23 @@ class ACLStandardRuleTable(PrimaryModelTable):
             "action",
             "remark",
             "source",
-            "tags",
         )
 
 
-class ACLExtendedRuleTable(PrimaryModelTable):
+class ACLStandardRuleTable(ACLRuleTable):
+    """
+    Defines the table view for the ACLStandardRule model.
+    """
+
+    tags = columns.TagColumn(
+        url_name="plugins:netbox_acls:aclstandardrule_list",
+    )
+
+    class Meta(ACLRuleTable.Meta):
+        model = ACLStandardRule
+
+
+class ACLExtendedRuleTable(ACLRuleTable):
     """
     Defines the table view for the ACLExtendedRule model.
     """
@@ -233,23 +240,14 @@ class ACLExtendedRuleTable(PrimaryModelTable):
         orderable=False,
     )
 
-    class Meta(PrimaryModelTable.Meta):
+    class Meta(ACLRuleTable.Meta):
         model = ACLExtendedRule
-        fields = (
-            "pk",
-            "id",
-            "access_list",
-            "sequence",
-            "action",
-            "remark",
+        fields = ACLRuleTable.Meta.fields + (
             "protocol",
-            "source",
             "source_port_ranges_list",
             "destination",
+            "destination_type",
             "destination_port_ranges_list",
-            "description",
-            "tags",
-            "comments",
         )
         default_columns = (
             "access_list",
@@ -261,5 +259,4 @@ class ACLExtendedRuleTable(PrimaryModelTable):
             "source_port_ranges_list",
             "destination",
             "destination_port_ranges_list",
-            "tags",
         )

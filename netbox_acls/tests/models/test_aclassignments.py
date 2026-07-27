@@ -405,3 +405,95 @@ class TestACLAssignment(BaseTestCase):
             direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
         )
         self.assertEqual(assignments.count(), 2)
+
+    def test_acl_assignment_save_update_fields_keeps_family_in_sync(self):
+        """
+        Test that a partial save writes the derived family with the Access List.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+        self.assertEqual(assignment.family, ACLFamilyChoices.FAMILY_IPV4)
+
+        assignment.access_list = self.acl_standard_v6
+        assignment.save(update_fields={"access_list"})
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.access_list_id, self.acl_standard_v6.pk)
+        self.assertEqual(assignment.family, ACLFamilyChoices.FAMILY_IPV6)
+
+    def test_acl_assignment_save_update_fields_accepts_access_list_attname(self):
+        """
+        Test that the derived family is written when update_fields names the FK attname.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        assignment.access_list = self.acl_standard_v6
+        assignment.save(update_fields={"access_list_id"})
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.access_list_id, self.acl_standard_v6.pk)
+        self.assertEqual(assignment.family, ACLFamilyChoices.FAMILY_IPV6)
+
+    def test_acl_assignment_save_empty_update_fields_is_a_noop(self):
+        """
+        Test that an empty update_fields performs no write.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        assignment.access_list = self.acl_standard_v6
+        assignment.save(update_fields=[])
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.access_list_id, self.acl_standard1.pk)
+        self.assertEqual(assignment.family, ACLFamilyChoices.FAMILY_IPV4)
+
+    def test_acl_assignment_save_update_fields_ignores_unsaved_access_list(self):
+        """
+        Test that an unsaved Access List is not persisted through the derived family.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        assignment.access_list = self.acl_standard_v6
+        assignment.comments = "Updated"
+        assignment.save(update_fields={"comments"})
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.access_list, self.acl_standard1)
+        self.assertEqual(assignment.family, ACLFamilyChoices.FAMILY_IPV4)
+        self.assertEqual(assignment.comments, "Updated")
+
+    def test_acl_assignment_save_update_fields_ignores_unsaved_direction(self):
+        """
+        Test that a partial save leaves an unsaved direction unwritten.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        assignment.direction = ACLAssignmentDirectionChoices.DIRECTION_EGRESS
+        assignment.comments = "Updated"
+        assignment.save(update_fields={"comments"})
+
+        assignment.refresh_from_db()
+        self.assertEqual(
+            assignment.direction,
+            ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+        self.assertEqual(assignment.comments, "Updated")

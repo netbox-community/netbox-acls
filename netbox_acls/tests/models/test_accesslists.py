@@ -331,3 +331,158 @@ class TestAccessList(BaseTestCase):
         acl_b.name = "ACL1"
         with self.assertRaises(ValidationError):
             acl_b.save()
+
+    def _create_host_assigned_acl_pair(self, family_b=ACLFamilyChoices.FAMILY_IPV4):
+        """
+        Creates ACL1 (IPv4) and ACL2 (in the given family), both assigned to the same host.
+        """
+        acl_a = AccessList.objects.create(
+            name="ACL1",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        acl_b = AccessList.objects.create(
+            name="ACL2",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=family_b,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        for access_list in (acl_a, acl_b):
+            ACLAssignment.objects.create(
+                access_list=access_list,
+                assigned_object=self.device1,
+                direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+            )
+        return acl_a, acl_b
+
+    def test_accesslist_save_update_fields_ignores_unsaved_name(self):
+        """
+        Test that a colliding name left out of update_fields does not trigger the rename guard.
+        """
+        acl_a, acl_b = self._create_host_assigned_acl_pair()
+
+        acl_b.name = acl_a.name
+        acl_b.comments = "Updated"
+        acl_b.save(update_fields={"comments"})
+
+        acl_b.refresh_from_db()
+        self.assertEqual(acl_b.name, "ACL2")
+        self.assertEqual(acl_b.comments, "Updated")
+
+    def test_accesslist_save_update_fields_enforces_saved_name(self):
+        """
+        Test that a colliding name included in update_fields is still rejected.
+        """
+        acl_a, acl_b = self._create_host_assigned_acl_pair()
+
+        acl_b.name = acl_a.name
+        with self.assertRaises(ValidationError):
+            acl_b.save(update_fields={"name"})
+
+    def test_accesslist_save_update_fields_ignores_unsaved_family(self):
+        """
+        Test that a family change left out of update_fields does not re-sync the assignments.
+        """
+        acl = AccessList.objects.create(
+            name="ACL1",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        assignment = ACLAssignment.objects.create(
+            access_list=acl,
+            assigned_object=self.device1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+
+        acl.family = ACLFamilyChoices.FAMILY_IPV6
+        acl.comments = "Updated"
+        acl.save(update_fields={"comments"})
+
+        acl.refresh_from_db()
+        assignment.refresh_from_db()
+        self.assertEqual(acl.comments, "Updated")
+        self.assertEqual(acl.family, ACLFamilyChoices.FAMILY_IPV4)
+        self.assertEqual(assignment.family, ACLFamilyChoices.FAMILY_IPV4)
+
+    def test_accesslist_save_update_fields_syncs_saved_family(self):
+        """
+        Test that a family change included in update_fields re-syncs the assignments.
+        """
+        acl = AccessList.objects.create(
+            name="ACL1",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        assignment = ACLAssignment.objects.create(
+            access_list=acl,
+            assigned_object=self.device1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+
+        acl.family = ACLFamilyChoices.FAMILY_IPV6
+        acl.save(update_fields={"family"})
+
+        acl.refresh_from_db()
+        assignment.refresh_from_db()
+        self.assertEqual(acl.family, ACLFamilyChoices.FAMILY_IPV6)
+        self.assertEqual(assignment.family, ACLFamilyChoices.FAMILY_IPV6)
+
+    def test_accesslist_save_update_fields_ignores_unsaved_type(self):
+        """
+        Test that a type change left out of update_fields does not trigger the rules guard.
+        """
+        acl = AccessList.objects.create(
+            name="ACL1",
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        ACLStandardRule.objects.create(
+            access_list=acl,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+        )
+
+        acl.type = ACLTypeChoices.TYPE_EXTENDED
+        acl.comments = "Updated"
+        acl.save(update_fields={"comments"})
+
+        acl.refresh_from_db()
+        self.assertEqual(acl.type, ACLTypeChoices.TYPE_STANDARD)
+        self.assertEqual(acl.comments, "Updated")
+
+    def test_accesslist_save_update_fields_validates_name_against_persisted_family(self):
+        """
+        Test that a rename is validated against the stored family, not an unsaved one.
+        """
+        acl_a, acl_b = self._create_host_assigned_acl_pair(family_b=ACLFamilyChoices.FAMILY_IPV6)
+
+        # ACL1 is IPv4 and ACL2 is IPv6, so the rename is allowed
+        acl_b.family = ACLFamilyChoices.FAMILY_IPV4
+        acl_b.name = acl_a.name
+        acl_b.save(update_fields={"name"})
+
+        acl_b.refresh_from_db()
+        self.assertEqual(acl_b.name, "ACL1")
+        self.assertEqual(acl_b.family, ACLFamilyChoices.FAMILY_IPV6)
+        self.assertEqual(
+            ACLAssignment.objects.get(access_list=acl_b).family,
+            ACLFamilyChoices.FAMILY_IPV6,
+        )
+
+    def test_accesslist_clean_tolerates_missing_row_for_pk(self):
+        """
+        Test that clean() skips the change guards when the pk is set but the row is gone.
+        """
+        acl = AccessList.objects.create(
+            name="ACL-GHOST",
+            **self.common_acl_params,
+        )
+        # Delete through the queryset so the in-memory instance keeps its pk
+        AccessList.objects.filter(pk=acl.pk).delete()
+
+        acl.full_clean()

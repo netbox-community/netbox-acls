@@ -89,66 +89,73 @@ class AccessList(PrimaryModel):
         """
         super().clean()
 
-        if self.pk:
-            original_values = self._get_persisted_values(("name", "type", "family"))
+        original_values = self._get_persisted_values(("name", "type", "family"))
 
+        if original_values:
             # TYPE guard: if any rules exist, forbid changing type
             if original_values["type"] != self.type and self._has_rules():
                 raise ValidationError({"type": _("This ACL has ACL rules associated, CANNOT change ACL type.")})
 
+            family_changed = original_values["family"] != self.family
+
             # FAMILY guard
-            if original_values["family"] != self.family:
+            if family_changed:
                 if self._has_rules():
                     # If any rules exist, forbid changing family
                     raise ValidationError({"family": _("This ACL has ACL rules associated, CANNOT change ACL family.")})
                 # Validate family changes for interface assignments
                 self._validate_interface_family_conflicts(self.family)
                 # Validate host-level duplicate-name constraints under the *new* family
-                self._validate_host_name_family_conflicts(self.family)
+                self._validate_host_name_family_conflicts(self.family, self.name)
 
             # NAME rename guard
-            if original_values["name"] != self.name:
-                self._validate_host_name_family_conflicts(self.family)
+            if not family_changed and original_values["name"] != self.name:
+                self._validate_host_name_family_conflicts(self.family, self.name)
 
     def save(self, *args, **kwargs):
         """
         Override the model's save method for custom validation.
         """
+        # update_fields may be any iterable, including a one-shot generator
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            update_fields = frozenset(update_fields)
+            kwargs["update_fields"] = update_fields
+
         # Repeat the critical guards for callers that skip full_clean(), and
         # if family changes without rules, update assignment families atomically.
         with transaction.atomic():
             original_values = self._get_persisted_values(("type", "family", "name"))
+            target_values = self._get_target_values(original_values, update_fields)
             family_changed = False
 
             if original_values:
                 # Re-enforce TYPE guard
-                if original_values["type"] != self.type and self._has_rules():
+                if original_values["type"] != target_values["type"] and self._has_rules():
                     raise ValidationError({"type": _("This ACL has ACL rules associated, CANNOT change ACL type.")})
 
                 # FAMILY change preflight
-                if original_values["family"] != self.family:
+                if original_values["family"] != target_values["family"]:
                     if self._has_rules():
                         raise ValidationError(
                             {"family": _("This ACL has ACL rules associated, CANNOT change ACL family.")}
                         )
                     # Validate family changes for interface assignments
-                    self._validate_interface_family_conflicts(self.family)
+                    self._validate_interface_family_conflicts(target_values["family"])
                     # Validate host-level duplicate-name constraints under the *new* family
-                    self._validate_host_name_family_conflicts(self.family)
+                    self._validate_host_name_family_conflicts(target_values["family"], target_values["name"])
                     family_changed = True
 
                 # NAME rename guard: re-enforce here for callers that skip full_clean().
-                if original_values["name"] != self.name:
-                    self._validate_host_name_family_conflicts(self.family)
+                if not family_changed and original_values["name"] != target_values["name"]:
+                    self._validate_host_name_family_conflicts(target_values["family"], target_values["name"])
 
             rv = super().save(*args, **kwargs)
 
             # If family changed (and we passed preflight), mirror it on assignments now
             if family_changed:
                 # Sync denormalized family on *all* assignments (host + interface)
-                qs = self.aclassignments.select_for_update()
-                if qs.exists():
-                    qs.update(family=self.family)
+                self.aclassignments.update(family=target_values["family"])
 
             return rv
 
@@ -165,6 +172,15 @@ class AccessList(PrimaryModel):
         if not self.pk:
             return {}
         return type(self).objects.filter(pk=self.pk).values(*fields).first() or {}
+
+    def _get_target_values(self, original_values: dict, update_fields: frozenset[str] | None) -> dict:
+        """
+        Returns the values this save will persist, honoring update_fields.
+        """
+        return {
+            field: getattr(self, field) if update_fields is None or field in update_fields else value
+            for field, value in original_values.items()
+        }
 
     def _validate_interface_family_conflicts(self, target_family: str) -> None:
         """
@@ -205,9 +221,9 @@ class AccessList(PrimaryModel):
                         },
                     )
 
-    def _validate_host_name_family_conflicts(self, target_family: str):
+    def _validate_host_name_family_conflicts(self, target_family: str, target_name: str) -> None:
         """
-        Validates that there are no conflicting host assignments for the given target family.
+        Validates that there are no conflicting host assignments for the given target name and family.
 
         This method checks if there are any Access Control List (ACL) assignments with the
         same name, assigned object type, assigned object ID, and target family that conflict
@@ -218,7 +234,7 @@ class AccessList(PrimaryModel):
         host_assignments = self.aclassignments.filter(direction=ACLAssignmentDirectionChoices.DIRECTION_NONE)
         for host_assignment in host_assignments:
             conflicting_host_assignments = ACLAssignment.objects.filter(
-                access_list__name=self.name,
+                access_list__name=target_name,
                 assigned_object_type=host_assignment.assigned_object_type,
                 assigned_object_id=host_assignment.assigned_object_id,
                 family=target_family,
@@ -231,7 +247,7 @@ class AccessList(PrimaryModel):
                             "An {family} Access List with the name "
                             "'{access_list}' is already assigned to the "
                             "{assigned_object} '{assigned_object_name}'.".format(
-                                access_list=self.name,
+                                access_list=target_name,
                                 assigned_object=assigned_object_model._meta.verbose_name,
                                 assigned_object_name=host_assignment.assigned_object.name,
                                 # TODO: Fix formating!
@@ -479,6 +495,15 @@ class ACLAssignment(OwnerMixin, NetBoxModel):
         # Therefore, the direction field is set to "none" in these cases.
         if self.assigned_object_type in host_assigned_object_types:
             self.direction = ACLAssignmentDirectionChoices.DIRECTION_NONE
+
+        # family is a denormalized copy of access_list.family, so persist them together.
+        # direction is derived only for host targets, so it is never promoted here.
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            update_fields = frozenset(update_fields)
+            if update_fields & {"access_list", "access_list_id"}:
+                update_fields |= {"family"}
+            kwargs["update_fields"] = update_fields
 
         super().save(*args, **kwargs)
 

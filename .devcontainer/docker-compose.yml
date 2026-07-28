@@ -60,7 +60,8 @@ services:
     command:
       - sh
       - -c # this is to evaluate the $REDIS_PASSWORD from the env
-      - redis-server --appendonly yes --requirepass $$REDIS_PASSWORD ## $$ because of docker-compose
+      # $$ escapes the $ so docker-compose passes it through untouched
+      - redis-server --appendonly yes --requirepass $$REDIS_PASSWORD
     env_file: env/redis.env
     #volumes:
     #  - netbox-redis-data:/data
@@ -69,7 +70,8 @@ services:
   #  command:
   #    - sh
   #    - -c # this is to evaluate the $REDIS_PASSWORD from the env
-  #    - redis-server --requirepass $$REDIS_PASSWORD ## $$ because of docker-compose
+  #    # $$ escapes the $ so docker-compose passes it through untouched
+  #    - redis-server --requirepass $$REDIS_PASSWORD
   #  env_file: env/redis-cache.env
   #  volumes:
   #    - netbox-redis-cache-data:/data

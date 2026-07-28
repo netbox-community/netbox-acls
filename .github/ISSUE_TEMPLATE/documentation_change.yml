@@ -1,6 +1,8 @@
 ---
 name: 📖 Documentation Change
-description: Suggest an addition or modification to the NetBox ACLs plugin documentation
+description: >-
+  Suggest an addition or modification to the NetBox ACLs plugin
+  documentation
 title: "[Docs]: "
 labels: ["documentation"]
 body:
@@ -18,7 +20,9 @@ body:
   - type: dropdown
     attributes:
       label: Area
-      description: To what section of the documentation does this change primarily pertain?
+      description: >-
+        To what section of the documentation does this change primarily
+        pertain?
       options:
         - Installation instructions
         - Configuration parameters

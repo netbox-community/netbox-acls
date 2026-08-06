@@ -3,12 +3,12 @@
 ## Reporting Bugs
 
 * First, ensure that you're running the [latest stable version](https://github.com/netbox-community/netbox/releases)
-of NetBox or this plugin is at [latest stable version](https://github.com/ryanmerolle/netbox-acls/releases).
+of NetBox or this plugin is at [latest stable version](https://github.com/netbox-community/netbox-acls/releases).
 If you're running an older version, it's possible that the bug has already been fixed
 or, you are running a version of the plugin not tested with the NetBox version
 you are running [Compatibility Matrix](./README.md#compatibility).
 
-* Next, check the GitHub [issues list](https://github.com/ryanmerolle/netbox-acls/issues)
+* Next, check the GitHub [issues list](https://github.com/netbox-community/netbox-acls/issues)
 to see if the bug you've found has already been reported. If you think you may
 be experiencing a reported issue that hasn't already been resolved, please
 click "add a reaction" in the top right corner of the issue and add a thumbs
@@ -27,7 +27,7 @@ provide all information request in the issue template, including:
 
 ## Feature Requests
 
-* First, check the GitHub [issues list](https://github.com/ryanmerolle/netbox-acls/issues)
+* First, check the GitHub [issues list](https://github.com/netbox-community/netbox-acls/issues)
 to see if the feature you're requesting is already listed. (Be sure to search
 closed issues as well, since some feature requests have been rejected.) If the
 feature you'd like to see has already been requested and is open, click "add a
@@ -81,7 +81,11 @@ resulting from multiple PRs being submitted simultaneously.)
 * All code submissions should meet the following criteria (CI will enforce
 these checks):
 
-  * TBD
+  * `ruff check netbox_acls/` reports no violations
+  * `ruff format --check netbox_acls/` reports no changes
+  * `python manage.py makemigrations netbox_acls --check` reports no missing
+    migrations, so any model change must ship its migration
+  * The full test suite passes
 
 ## Commenting
 
@@ -92,7 +96,7 @@ reduce noise in the discussion.
 
 ## Development Workflow / Tooling
 
-Development with this plugin leverges:
+Development with this plugin leverages:
 
 * VS Code
 * VS Code devcontainer

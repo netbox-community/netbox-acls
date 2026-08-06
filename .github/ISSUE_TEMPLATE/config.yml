@@ -9,7 +9,7 @@ contact_links:
   #    feature request."
   - name: 📖 Contributing Policy
     # yamllint disable-line rule:line-length
-    url: https://github.com/netbox-community/netbox-acls/blob/dev/CONTRIBUTING.md
+    url: https://github.com/netbox-community/netbox-acls/blob/main/CONTRIBUTING.md
     about: >-
       Please read through our contributing policy before opening an issue
       or pull request

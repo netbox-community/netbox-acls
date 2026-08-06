@@ -4,7 +4,9 @@
 Thank you for sharing your work and for opening a PR.
 
 (!) IMPORTANT (!):
-First make sure that you point your PR to the `dev` branch!
+First make sure that you point your PR at the right branch!
+`feature` for work targeting the next minor release,
+`main` for fixes to the current release.
 
 Now please read the comments carefully and try to provide information
 on all relevant titles.
@@ -79,4 +81,5 @@ Please put an x into the brackets (like `[x]`) if you've completed that task.
 
 * [ ] I have explained my PR according to the information in the comments
  or in a linked issue.
-* [ ] My PR targets the `dev` branch.
+* [ ] My PR targets `feature` (next minor release) or `main` (fix to the
+ current release).

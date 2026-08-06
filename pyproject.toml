@@ -43,7 +43,7 @@ test = [
 
 [project.urls]
 Homepage = "https://github.com/netbox-community/netbox-acls/"
-Documentation = "https://github.com/netbox-community/netbox-acls/blob/dev/README.md"
+Documentation = "https://github.com/netbox-community/netbox-acls/blob/main/README.md"
 Source = "https://github.com/netbox-community/netbox-acls/"
 Issues = "https://github.com/netbox-community/netbox-acls/issues"
 Changelog = "https://github.com/netbox-community/netbox-acls/releases"

@@ -1,4 +1,4 @@
-# CONTRIBUTIING
+# Contributing
 
 ## Reporting Bugs
 
@@ -68,9 +68,11 @@ will then mark the issue as "accepted."
 
 * All new functionality must include relevant tests where applicable.
 
-* When submitting a pull request, please be sure to work off of the `develop`
-branch, rather than `main`. The `dev` branch is used for ongoing
-development, while `main` is used for tagging stable releases.
+* When submitting a pull request, target the branch that matches the kind of
+change you are making. This project follows the same branch model as NetBox
+itself. `main` is the default branch and holds the current stable line, so
+fixes to the released version go there. `feature` accumulates work for the next
+minor release and is merged into `main` when that release is cut.
 
 * In most cases, it is not necessary to add a changelog entry: A maintainer will
 take care of this when the PR is merged. (This helps avoid merge conflicts
@@ -101,8 +103,10 @@ Development with this plugin leverges:
 
 ### Cutting Releases
 
-1. Merge PR (squash) into `dev` branch
-2. Merge `dev` into `release` branch
-3. Create a release (pypi auto publishes)
+1. Merge PRs (squash) into `main` for a patch release, or into `feature` for
+   the next minor release
+2. For a minor release, merge `feature` into `main` once it is complete
+3. Create a GitHub release tagged from `main`, using a bare version number with
+   no `v` prefix (pypi auto publishes)
 
 More Documentation to come.

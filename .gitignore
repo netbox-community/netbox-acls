@@ -164,6 +164,9 @@ cython_debug/
 # JetBrains
 .idea/
 
+# macOS
+.DS_Store
+
 # Temporary files
 *.tmp
 tmp/

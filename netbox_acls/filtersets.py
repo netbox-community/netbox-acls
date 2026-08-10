@@ -70,6 +70,7 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
 
     # Access List
     access_list = django_filters.ModelMultipleChoiceFilter(
+        field_name="access_list__name",
         queryset=AccessList.objects.all(),
         to_field_name="name",
         label=_("Access List (name)"),
@@ -215,6 +216,7 @@ class ACLStandardRuleFilterSet(PrimaryModelFilterSet):
 
     # Access List
     access_list = django_filters.ModelMultipleChoiceFilter(
+        field_name="access_list__name",
         queryset=AccessList.objects.all(),
         to_field_name="name",
         label=_("Access List (name)"),
@@ -318,6 +320,7 @@ class ACLExtendedRuleFilterSet(PrimaryModelFilterSet):
 
     # Access List
     access_list = django_filters.ModelMultipleChoiceFilter(
+        field_name="access_list__name",
         queryset=AccessList.objects.filter(type=ACLTypeChoices.TYPE_EXTENDED),
         to_field_name="name",
         label=_("Access List (name)"),

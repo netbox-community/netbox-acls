@@ -8,7 +8,12 @@ from django.utils.translation import gettext_lazy as _
 from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.forms import NetBoxModelFilterSetForm, PrimaryModelFilterSetForm
-from netbox.forms.mixins import OwnerFilterMixin
+
+try:
+    from netbox.forms.mixins import OwnerFilterMixin
+except ImportError:  # NetBox < 4.5.2 keeps it alongside the filter set forms
+    from netbox.forms.filtersets import OwnerFilterMixin
+
 from utilities.forms.fields import (
     DynamicModelChoiceField,
     DynamicModelMultipleChoiceField,

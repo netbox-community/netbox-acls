@@ -61,7 +61,6 @@ class AccessListBulkEditForm(PrimaryModelBulkEditForm):
     model = AccessList
     fieldsets = (
         FieldSet(
-            "name",
             "type",
             "family",
             "default_action",

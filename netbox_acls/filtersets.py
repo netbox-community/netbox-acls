@@ -16,6 +16,7 @@ from utilities.filtersets import register_filterset
 from virtualization.models import VirtualMachine, VMInterface
 
 from .choices import ACLTypeChoices
+from .constants import ACL_ASSIGNMENT_SITE_TRAVERSAL_PATHS
 from .models import AccessList, ACLAssignment, ACLExtendedRule, ACLStandardRule
 
 __all__ = (
@@ -82,23 +83,41 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
     )
 
     # Organization
-    region = django_filters.ModelMultipleChoiceFilter(
-        field_name="device__site__region",
+    region_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="site__region",
         queryset=Region.objects.all(),
-        to_field_name="id",
-        label="Region",
+        method="filter_nested_scope",
+        label=_("Region (ID)"),
+    )
+    region = django_filters.ModelMultipleChoiceFilter(
+        field_name="site__region",
+        queryset=Region.objects.all(),
+        method="filter_nested_scope",
+        label=_("Region (ID)"),
+    )
+    site_group_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="site__group",
+        queryset=SiteGroup.objects.all(),
+        method="filter_nested_scope",
+        label=_("Site group (ID)"),
     )
     site_group = django_filters.ModelMultipleChoiceFilter(
-        field_name="device__site__group",
+        field_name="site__group",
         queryset=SiteGroup.objects.all(),
-        to_field_name="id",
-        label="Site Group",
+        method="filter_nested_scope",
+        label=_("Site group (ID)"),
+    )
+    site_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="site",
+        queryset=Site.objects.all(),
+        method="filter_scope",
+        label=_("Site (ID)"),
     )
     site = django_filters.ModelMultipleChoiceFilter(
-        field_name="device__site",
+        field_name="site",
         queryset=Site.objects.all(),
-        to_field_name="id",
-        label="Site",
+        method="filter_scope",
+        label=_("Site (ID)"),
     )
 
     # Device
@@ -177,8 +196,11 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
             "access_list",
             "family",
             "site",
+            "site_id",
             "site_group",
+            "site_group_id",
             "region",
+            "region_id",
             "device",
             "device_id",
             "virtual_chassis",
@@ -206,6 +228,30 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
             | Q(virtual_machine__name__icontains=value)
         )
         return queryset.filter(query)
+
+    def _filter_scope(self, queryset, lookup, pks):
+        # FilterMethod's own guard misses this: an empty queryset is not in EMPTY_VALUES.
+        if not pks:
+            return queryset
+        query = Q()
+        for path in ACL_ASSIGNMENT_SITE_TRAVERSAL_PATHS:
+            query |= Q(**{f"{path}__{lookup}__in": pks})
+        return queryset.filter(query).distinct()
+
+    def filter_scope(self, queryset, name, value):
+        """
+        Match a scope object through every assignable target type.
+        """
+        return self._filter_scope(queryset, name, {obj.pk for obj in value})
+
+    def filter_nested_scope(self, queryset, name, value):
+        """
+        Match a nested scope object and everything below it in the tree.
+        """
+        pks = set()
+        for obj in value:
+            pks.update(obj.get_descendants(include_self=True).values_list("pk", flat=True))
+        return self._filter_scope(queryset, name, pks)
 
 
 @register_filterset

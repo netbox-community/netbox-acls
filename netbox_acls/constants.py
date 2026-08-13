@@ -26,6 +26,17 @@ ACL_ASSIGNMENT_MODELS = Q(
     )
 )
 
+# Query paths from an ACL assignment to the object carrying its site, one per assignable
+# target type. Each leading segment is the reverse generic relation query name contributed
+# to that model in models/access_lists.py.
+ACL_ASSIGNMENT_SITE_TRAVERSAL_PATHS = (
+    "device",
+    "interface__device",
+    "virtual_chassis__master",
+    "virtual_machine",
+    "vminterface__virtual_machine",
+)
+
 #
 # AccessList Rule
 #

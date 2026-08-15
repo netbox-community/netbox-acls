@@ -3,6 +3,8 @@ Filters enable users to request only a specific subset of objects matching a que
 when filtering the site list by status or region, for instance.
 """
 
+import contextlib
+
 import django_filters
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
@@ -53,13 +55,9 @@ class AccessListFilterSet(PrimaryModelFilterSet):
         """
         Override the default search behavior for the django model.
         """
-        query = (
-            Q(name__icontains=value)
-            | Q(type__icontains=value)
-            | Q(default_action__icontains=value)
-            | Q(description__icontains=value)
-            | Q(comments__icontains=value)
-        )
+        if not value.strip():
+            return queryset
+        query = Q(name__icontains=value) | Q(description__icontains=value) | Q(comments__icontains=value)
         return queryset.filter(query)
 
 
@@ -212,14 +210,16 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
         """
         Override the default search behavior for the django model.
         """
+        if not value.strip():
+            return queryset
         query = (
             Q(access_list__name__icontains=value)
-            | Q(direction__icontains=value)
             | Q(interface__name__icontains=value)
             | Q(vminterface__name__icontains=value)
             | Q(device__name__icontains=value)
             | Q(virtual_chassis__name__icontains=value)
             | Q(virtual_machine__name__icontains=value)
+            | Q(comments__icontains=value)
         )
         return queryset.filter(query)
 
@@ -351,13 +351,17 @@ class ACLStandardRuleFilterSet(PrimaryModelFilterSet):
         """
         Override the default search behavior for the django model.
         """
+        if not value.strip():
+            return queryset
         query = (
             Q(access_list__name__icontains=value)
-            | Q(sequence__icontains=value)
-            | Q(action__icontains=value)
             | Q(remark__icontains=value)
             | Q(description__icontains=value)
+            | Q(comments__icontains=value)
         )
+        # Whole number, not a substring: q=1 must not return sequence 10.
+        with contextlib.suppress(ValueError):
+            query |= Q(sequence=int(value.strip()))
         return queryset.filter(query)
 
 
@@ -523,12 +527,15 @@ class ACLExtendedRuleFilterSet(PrimaryModelFilterSet):
         """
         Override the default search behavior for the django model.
         """
+        if not value.strip():
+            return queryset
         query = (
             Q(access_list__name__icontains=value)
-            | Q(sequence__icontains=value)
-            | Q(action__icontains=value)
             | Q(remark__icontains=value)
-            | Q(protocol__icontains=value)
             | Q(description__icontains=value)
+            | Q(comments__icontains=value)
         )
+        # Whole number, not a substring: q=1 must not return sequence 10.
+        with contextlib.suppress(ValueError):
+            query |= Q(sequence=int(value.strip()))
         return queryset.filter(query)

@@ -84,6 +84,24 @@ class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         params = {"q": "teststandardacl"}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 5)
 
+    def test_q_matches_comments(self):
+        params = {"q": "reviewed"}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_q_ignores_choice_values(self):
+        """Two rules carry the Permit action, only one says permit in its text."""
+        self.assertEqual(self.filterset({"q": "permit"}, self.queryset).qs.count(), 1)
+
+    def test_q_matches_sequence_exactly(self):
+        """A digit must not match every sequence that contains it."""
+        self.assertEqual(self.filterset({"q": "10"}, self.queryset).qs.count(), 1)
+        self.assertEqual(self.filterset({"q": "1"}, self.queryset).qs.count(), 0)
+        self.assertEqual(self.filterset({"q": "0"}, self.queryset).qs.count(), 0)
+
+    def test_q_ignores_blank_terms(self):
+        """Ignoring a blank term means returning everything, not nothing."""
+        self.assertEqual(self.filterset({"q": "   "}, self.queryset).qs.count(), 5)
+
     def test_access_list(self):
         params = {"access_list_id": [self.access_list.pk]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 5)

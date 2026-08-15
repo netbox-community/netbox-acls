@@ -96,6 +96,7 @@ class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
                 assigned_object_type=ContentType.objects.get_for_model(Interface),
                 assigned_object_id=cls.interface1.pk,
                 family=cls.acl1.family,
+                comments="reviewed quarterly",
             ),
             ACLAssignment(
                 access_list=cls.acl1,
@@ -142,6 +143,19 @@ class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
     def test_q_matches_interface_name(self):
         params = {"q": "DeviceInterface1"}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_q_matches_comments(self):
+        params = {"q": "reviewed"}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_q_ignores_choice_values(self):
+        """Zero is correct here. The direction has its own filter."""
+        params = {"q": ACLAssignmentDirectionChoices.DIRECTION_EGRESS}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 0)
+
+    def test_q_ignores_blank_terms(self):
+        """Ignoring a blank term means returning everything, not nothing."""
+        self.assertEqual(self.filterset({"q": "   "}, self.queryset).qs.count(), 6)
 
     def test_access_list(self):
         params = {"access_list_id": [self.acl1.pk]}

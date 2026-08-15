@@ -7,11 +7,11 @@ import django_filters
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
-from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
+from dcim.models import Device, Interface, Region, SiteGroup, VirtualChassis
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.filtersets import NetBoxModelFilterSet, PrimaryModelFilterSet
 from users.filterset_mixins import OwnerFilterMixin
-from utilities.filters import ContentTypeFilter
+from utilities.filters import ContentTypeFilter, MultiValueCharFilter, MultiValueNumberFilter
 from utilities.filtersets import register_filterset
 from virtualization.models import VirtualMachine, VMInterface
 
@@ -83,41 +83,35 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
     )
 
     # Organization
-    region_id = django_filters.ModelMultipleChoiceFilter(
-        field_name="site__region",
-        queryset=Region.objects.all(),
-        method="filter_nested_scope",
+    region_id = MultiValueNumberFilter(
+        field_name="pk",
+        method="filter_region",
         label=_("Region (ID)"),
     )
-    region = django_filters.ModelMultipleChoiceFilter(
-        field_name="site__region",
-        queryset=Region.objects.all(),
-        method="filter_nested_scope",
-        label=_("Region (ID)"),
+    region = MultiValueCharFilter(
+        field_name="slug",
+        method="filter_region",
+        label=_("Region (slug)"),
     )
-    site_group_id = django_filters.ModelMultipleChoiceFilter(
-        field_name="site__group",
-        queryset=SiteGroup.objects.all(),
-        method="filter_nested_scope",
+    site_group_id = MultiValueNumberFilter(
+        field_name="pk",
+        method="filter_site_group",
         label=_("Site group (ID)"),
     )
-    site_group = django_filters.ModelMultipleChoiceFilter(
-        field_name="site__group",
-        queryset=SiteGroup.objects.all(),
-        method="filter_nested_scope",
-        label=_("Site group (ID)"),
+    site_group = MultiValueCharFilter(
+        field_name="slug",
+        method="filter_site_group",
+        label=_("Site group (slug)"),
     )
-    site_id = django_filters.ModelMultipleChoiceFilter(
-        field_name="site",
-        queryset=Site.objects.all(),
-        method="filter_scope",
+    site_id = MultiValueNumberFilter(
+        field_name="pk",
+        method="filter_site",
         label=_("Site (ID)"),
     )
-    site = django_filters.ModelMultipleChoiceFilter(
-        field_name="site",
-        queryset=Site.objects.all(),
-        method="filter_scope",
-        label=_("Site (ID)"),
+    site = MultiValueCharFilter(
+        field_name="slug",
+        method="filter_site",
+        label=_("Site (slug)"),
     )
 
     # Device
@@ -229,29 +223,38 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
         )
         return queryset.filter(query)
 
-    def _filter_scope(self, queryset, lookup, pks):
-        # FilterMethod's own guard misses this: an empty queryset is not in EMPTY_VALUES.
-        if not pks:
-            return queryset
+    def _filter_scope(self, queryset, lookup, values):
         query = Q()
         for path in ACL_ASSIGNMENT_SITE_TRAVERSAL_PATHS:
-            query |= Q(**{f"{path}__{lookup}__in": pks})
+            query |= Q(**{f"{path}__{lookup}__in": values})
         return queryset.filter(query).distinct()
 
-    def filter_scope(self, queryset, name, value):
-        """
-        Match a scope object through every assignable target type.
-        """
-        return self._filter_scope(queryset, name, {obj.pk for obj in value})
-
-    def filter_nested_scope(self, queryset, name, value):
-        """
-        Match a nested scope object and everything below it in the tree.
-        """
+    def _filter_nested_scope(self, queryset, model, path, lookup, values):
         pks = set()
-        for obj in value:
+        for obj in model.objects.filter(**{f"{lookup}__in": values}):
             pks.update(obj.get_descendants(include_self=True).values_list("pk", flat=True))
-        return self._filter_scope(queryset, name, pks)
+        # A value matching no object has to match no assignment either.
+        if not pks:
+            return queryset.none()
+        return self._filter_scope(queryset, f"{path}__pk", pks)
+
+    def filter_site(self, queryset, name, value):
+        """
+        Match a site through every assignable target type.
+        """
+        return self._filter_scope(queryset, f"site__{name}", value)
+
+    def filter_region(self, queryset, name, value):
+        """
+        Match a region and everything below it in the tree.
+        """
+        return self._filter_nested_scope(queryset, Region, "site__region", name, value)
+
+    def filter_site_group(self, queryset, name, value):
+        """
+        Match a site group and everything below it in the tree.
+        """
+        return self._filter_nested_scope(queryset, SiteGroup, "site__group", name, value)
 
 
 @register_filterset

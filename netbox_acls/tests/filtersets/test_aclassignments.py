@@ -179,35 +179,64 @@ class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         params = {"virtual_chassis": [self.virtual_chassis.name]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
 
-    # Every assignment in this fixture resolves to Site 1, each by a different relation,
-    # so all six counts are the full 6.
+    # Every assignment resolves to Site 1 by a different relation, so each scope filter matches all 6.
+    # A rejected value leaves the count at 6 too, so the errors assertions are what make these bite.
 
     def test_site(self):
-        params = {"site": [self.site.pk]}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 6)
-        params = {"site_id": [self.site.pk]}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 6)
+        filterset = self.filterset({"site": [self.site.slug]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 6)
+
+        filterset = self.filterset({"site_id": [self.site.pk]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 6)
 
     def test_region(self):
-        params = {"region": [self.region.pk]}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 6)
-        params = {"region_id": [self.region.pk]}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 6)
+        filterset = self.filterset({"region": [self.region.slug]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 6)
+
+        filterset = self.filterset({"region_id": [self.region.pk]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 6)
 
     def test_site_group(self):
-        params = {"site_group": [self.site_group.pk]}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 6)
-        params = {"site_group_id": [self.site_group.pk]}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 6)
+        filterset = self.filterset({"site_group": [self.site_group.slug]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 6)
+
+        filterset = self.filterset({"site_group_id": [self.site_group.pk]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 6)
 
     def test_region_matches_descendants(self):
         """Selecting a parent region matches assignments sited in its children."""
-        params = {"region_id": [self.parent_region.pk]}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 6)
+        filterset = self.filterset({"region": [self.parent_region.slug]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 6)
+
+        filterset = self.filterset({"region_id": [self.parent_region.pk]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 6)
 
     def test_scope_filters_ignore_absent_parameters(self):
-        """Guards the FilterMethod empty-queryset trap, which silently matched nothing."""
+        """An absent scope parameter filters nothing out."""
         self.assertEqual(self.filterset({}, self.queryset).qs.count(), 6)
+
+    def test_scope_filters_reject_unresolvable_values(self):
+        """A value that resolves to no object matches nothing, not everything."""
+        # The absent ID has to be truthy, since the multi-value field discards falsy entries.
+        absent = 999999
+        for params in (
+            {"site": ["no-such-site"]},
+            {"site_id": [absent]},
+            {"region": ["no-such-region"]},
+            {"region_id": [absent]},
+            {"site_group": ["no-such-group"]},
+            {"site_group_id": [absent]},
+        ):
+            with self.subTest(params=params):
+                self.assertEqual(self.filterset(params, self.queryset).qs.count(), 0)
 
     # direction and family are single-valued ChoiceFilters, so assert one value at a time.
 

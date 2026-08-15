@@ -47,9 +47,14 @@ class AccessListFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         params = {"q": "testacl1"}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
 
-    def test_q_matches_default_action(self):
+    def test_q_ignores_choice_values(self):
+        """Zero is correct here. The default action has its own filter."""
         params = {"q": ACLActionChoices.ACTION_REJECT}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 0)
+
+    def test_q_ignores_blank_terms(self):
+        """Ignoring a blank term means returning everything, not nothing."""
+        self.assertEqual(self.filterset({"q": "   "}, self.queryset).qs.count(), 3)
 
     def test_name(self):
         params = {"name": ["testacl1", "testacl2"]}

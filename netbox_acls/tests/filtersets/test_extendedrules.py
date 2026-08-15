@@ -109,9 +109,24 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         params = {"q": "an extended remark"}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
 
-    def test_q_matches_protocol(self):
+    def test_q_ignores_choice_values(self):
+        """Zero is correct here. The protocol has its own filter."""
         params = {"q": ACLProtocolChoices.PROTOCOL_ICMP}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 0)
+
+    def test_q_matches_sequence_exactly(self):
+        """A digit must not match every sequence that contains it."""
+        self.assertEqual(self.filterset({"q": "10"}, self.queryset).qs.count(), 1)
+        self.assertEqual(self.filterset({"q": "1"}, self.queryset).qs.count(), 0)
+        self.assertEqual(self.filterset({"q": "0"}, self.queryset).qs.count(), 0)
+
+    def test_q_matches_comments(self):
+        params = {"q": "reviewed"}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_q_ignores_blank_terms(self):
+        """Ignoring a blank term means returning everything, not nothing."""
+        self.assertEqual(self.filterset({"q": "   "}, self.queryset).qs.count(), 5)
 
     def test_access_list(self):
         params = {"access_list_id": [self.access_list.pk]}

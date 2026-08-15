@@ -35,9 +35,9 @@ classifiers=[
 [project.optional-dependencies]
 test = [
     "check-manifest==0.51",
-    "pre-commit==4.6.1",
+    "pre-commit==4.6.2",
     "pytest==9.1.1",
-    "ruff==0.16.2",
+    "ruff==0.16.3",
     "yamllint==1.38.0",
 ]
 

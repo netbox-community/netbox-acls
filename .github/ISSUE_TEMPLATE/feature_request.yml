@@ -17,7 +17,7 @@ body:
     attributes:
       label: NetBox ACLs Plugin version
       description: What version of NetBox ACLs are you currently running?
-      placeholder: v2.0.2
+      placeholder: v2.0.3
     validations:
       required: true
   - type: input

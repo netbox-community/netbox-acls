@@ -54,12 +54,14 @@ class ACLRuleSequenceMixin:
         if obj.pk or "sequence" in request.GET:
             return obj
 
-        # Parse access_list ID; bail out gracefully if missing/invalid
-        access_list_id = request.GET.get("access_list")
-        if not access_list_id or not access_list_id.isdigit():
+        # Parse access_list ID; bail out gracefully if missing/invalid.
+        # Not str.isdigit(): it accepts superscript digits that int() then rejects.
+        try:
+            access_list_id = int(request.GET.get("access_list", ""))
+        except ValueError:
             return obj
 
-        obj.sequence = obj.__class__.objects.get_next_sequence(int(access_list_id))
+        obj.sequence = obj.__class__.objects.get_next_sequence(access_list_id)
         return obj
 
 

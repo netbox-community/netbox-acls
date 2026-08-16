@@ -233,6 +233,41 @@ class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         self.assertEqual(filterset.errors, {})
         self.assertEqual(filterset.qs.count(), 6)
 
+    # Deprecated: the bare names took a primary key from 2.0.0 to 2.0.2, so both forms resolve.
+
+    def test_scope_filters_accept_legacy_primary_keys(self):
+        for params in (
+            {"site": [str(self.site.pk)]},
+            {"region": [str(self.region.pk)]},
+            {"site_group": [str(self.site_group.pk)]},
+        ):
+            with self.subTest(params=params):
+                filterset = self.filterset(params, self.queryset)
+                self.assertEqual(filterset.errors, {})
+                self.assertEqual(filterset.qs.count(), 6)
+
+    def test_scope_filters_prefer_a_slug_over_a_primary_key(self):
+        """A numeric slug wins over the site whose primary key it collides with."""
+        Site.objects.create(name="Site 2", slug=str(self.site.pk))
+
+        filterset = self.filterset({"site": [str(self.site.pk)]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 0)
+
+    def test_scope_filters_survive_an_out_of_range_number(self):
+        """A value too large for the primary key column matches nothing rather than erroring."""
+        filterset = self.filterset({"site": ["9" * 40]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 0)
+
+    def test_scope_filters_survive_unparsable_numeric_strings(self):
+        """str.isdigit() accepts a superscript, and int() rejects it and over-long strings."""
+        for value in ("²", "9" * 5000):
+            with self.subTest(value=value):
+                filterset = self.filterset({"site": [value]}, self.queryset)
+                self.assertEqual(filterset.errors, {})
+                self.assertEqual(filterset.qs.count(), 0)
+
     def test_scope_filters_ignore_absent_parameters(self):
         """An absent scope parameter filters nothing out."""
         self.assertEqual(self.filterset({}, self.queryset).qs.count(), 6)

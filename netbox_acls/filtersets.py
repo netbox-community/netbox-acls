@@ -9,7 +9,7 @@ import django_filters
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
-from dcim.models import Device, Interface, Region, SiteGroup, VirtualChassis
+from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.filtersets import NetBoxModelFilterSet, PrimaryModelFilterSet
 from users.filterset_mixins import OwnerFilterMixin
@@ -229,9 +229,38 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
             query |= Q(**{f"{path}__{lookup}__in": values})
         return queryset.filter(query).distinct()
 
+    def _resolve_scope_objects(self, model, values):
+        """
+        Resolve slugs, then primary keys for values no slug claimed.
+
+        The bare names took a primary key before 2.0.3. Numeric values still resolve so
+        those callers keep working. Deprecated, and the fallback goes in the next major.
+        """
+        numeric = {}
+        for value in values:
+            # Not str.isdigit(): it accepts superscript digits that int() then rejects.
+            try:
+                pk = int(value)
+            except ValueError:
+                continue
+            if pk > 0:
+                numeric[value] = pk
+        if not numeric:
+            return model.objects.filter(slug__in=values)
+
+        claimed = set(model.objects.filter(slug__in=list(numeric)).values_list("slug", flat=True))
+        legacy = [pk for value, pk in numeric.items() if value not in claimed]
+        if not legacy:
+            return model.objects.filter(slug__in=values)
+        return model.objects.filter(Q(slug__in=values) | Q(pk__in=legacy))
+
     def _filter_nested_scope(self, queryset, model, path, lookup, values):
+        if lookup == "slug":
+            objects = self._resolve_scope_objects(model, values)
+        else:
+            objects = model.objects.filter(pk__in=values)
         pks = set()
-        for obj in model.objects.filter(**{f"{lookup}__in": values}):
+        for obj in objects:
             pks.update(obj.get_descendants(include_self=True).values_list("pk", flat=True))
         # A value matching no object has to match no assignment either.
         if not pks:
@@ -242,6 +271,9 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
         """
         Match a site through every assignable target type.
         """
+        if name == "slug":
+            pks = self._resolve_scope_objects(Site, value).values_list("pk", flat=True)
+            return self._filter_scope(queryset, "site__pk", list(pks))
         return self._filter_scope(queryset, f"site__{name}", value)
 
     def filter_region(self, queryset, name, value):

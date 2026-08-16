@@ -103,10 +103,14 @@ class ACLRuleSequenceTestsMixin:
         form = self._get_form("add", self.add_permission)
         self.assertIsNone(form.instance.sequence)
 
-    def test_non_numeric_access_list_is_ignored(self):
+    def test_malformed_access_list_is_ignored(self):
         """Test that a malformed access list id is ignored rather than raising."""
-        form = self._get_form("add", self.add_permission, query="?access_list=notanumber")
-        self.assertIsNone(form.instance.sequence)
+        # str.isdigit() is true for the superscript and the 5000-digit string, and int()
+        # rejects both.
+        for value in ("notanumber", "²", "9" * 5000):
+            with self.subTest(value=value):
+                form = self._get_form("add", self.add_permission, query=f"?access_list={value}")
+                self.assertIsNone(form.instance.sequence)
 
     def test_sequence_untouched_when_editing(self):
         """Test that editing an existing rule does not recompute its sequence."""

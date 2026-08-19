@@ -134,6 +134,21 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         params = {"access_list": [self.access_list.name]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 5)
 
+    def test_access_list_filter_is_limited_to_extended(self):
+        """
+        The extended rule filters reject a standard access list while the standard rule
+        filters accept any type. Pinned so the asymmetry cannot change unnoticed.
+        """
+        standard_acl = AccessList.objects.create(
+            name="astandardacl",
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        filterset = self.filterset({}, self.queryset)
+        self.assertNotIn(standard_acl, filterset.filters["access_list"].queryset)
+        self.assertNotIn(standard_acl, filterset.filters["access_list_id"].queryset)
+
     def test_sequence(self):
         params = {"sequence": [10, 20]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)

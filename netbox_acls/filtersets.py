@@ -289,13 +289,12 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
         return self._filter_nested_scope(queryset, SiteGroup, "site__group", name, value)
 
 
-@register_filterset
-class ACLStandardRuleFilterSet(PrimaryModelFilterSet):
+class ACLRuleFilterSetMixin(django_filters.FilterSet):
     """
-    Define the filter set for the django model ACLStandardRule.
+    Filters shared by both concrete ACL rule filter sets.
     """
 
-    # Access List
+    # Access List. The extended set overrides both to narrow them by ACL type.
     access_list = django_filters.ModelMultipleChoiceFilter(
         field_name="access_list__name",
         queryset=AccessList.objects.all(),
@@ -360,24 +359,6 @@ class ACLStandardRuleFilterSet(PrimaryModelFilterSet):
         to_field_name="id",
         label=_("Source Prefix (ID)"),
     )
-
-    class Meta:
-        """
-        Associates the django model ACLStandardRule & fields with the filter set.
-        """
-
-        model = ACLStandardRule
-        fields = (
-            "id",
-            "access_list",
-            "sequence",
-            "action",
-            "remark",
-            "source_type",
-            "source_id",
-            "description",
-            "comments",
-        )
 
     def search(self, queryset, name, value):
         """
@@ -398,7 +379,32 @@ class ACLStandardRuleFilterSet(PrimaryModelFilterSet):
 
 
 @register_filterset
-class ACLExtendedRuleFilterSet(PrimaryModelFilterSet):
+class ACLStandardRuleFilterSet(ACLRuleFilterSetMixin, PrimaryModelFilterSet):
+    """
+    Define the filter set for the django model ACLStandardRule.
+    """
+
+    class Meta:
+        """
+        Associates the django model ACLStandardRule & fields with the filter set.
+        """
+
+        model = ACLStandardRule
+        fields = (
+            "id",
+            "access_list",
+            "sequence",
+            "action",
+            "remark",
+            "source_type",
+            "source_id",
+            "description",
+            "comments",
+        )
+
+
+@register_filterset
+class ACLExtendedRuleFilterSet(ACLRuleFilterSetMixin, PrimaryModelFilterSet):
     """
     Define the filter set for the django model ACLExtendedRule.
     """
@@ -417,57 +423,6 @@ class ACLExtendedRuleFilterSet(PrimaryModelFilterSet):
     )
 
     # Source
-    source_type = ContentTypeFilter(
-        label=_("Source Type"),
-    )
-    source_aggregate = django_filters.ModelMultipleChoiceFilter(
-        field_name="_source_aggregate__prefix",
-        queryset=Aggregate.objects.all(),
-        to_field_name="prefix",
-        label=_("Source Aggregate (name)"),
-    )
-    source_aggregate_id = django_filters.ModelMultipleChoiceFilter(
-        field_name="_source_aggregate",
-        queryset=Aggregate.objects.all(),
-        to_field_name="id",
-        label=_("Source Aggregate (ID)"),
-    )
-    source_ipaddress = django_filters.ModelMultipleChoiceFilter(
-        field_name="_source_ipaddress__address",
-        queryset=IPAddress.objects.all(),
-        to_field_name="address",
-        label=_("Source IP-Address (name)"),
-    )
-    source_ipaddress_id = django_filters.ModelMultipleChoiceFilter(
-        field_name="_source_ipaddress",
-        queryset=IPAddress.objects.all(),
-        to_field_name="id",
-        label=_("Source IP-Address (ID)"),
-    )
-    source_iprange = django_filters.ModelMultipleChoiceFilter(
-        field_name="_source_iprange__start_address",
-        queryset=IPRange.objects.all(),
-        to_field_name="start_address",
-        label=_("Source IP-Range (name)"),
-    )
-    source_iprange_id = django_filters.ModelMultipleChoiceFilter(
-        field_name="_source_iprange",
-        queryset=IPRange.objects.all(),
-        to_field_name="id",
-        label=_("Source IP-Range (ID)"),
-    )
-    source_prefix = django_filters.ModelMultipleChoiceFilter(
-        field_name="_source_prefix__prefix",
-        queryset=Prefix.objects.all(),
-        to_field_name="prefix",
-        label=_("Source Prefix (name)"),
-    )
-    source_prefix_id = django_filters.ModelMultipleChoiceFilter(
-        field_name="_source_prefix",
-        queryset=Prefix.objects.all(),
-        to_field_name="id",
-        label=_("Source Prefix (ID)"),
-    )
     source_port = django_filters.NumberFilter(
         field_name="source_port_ranges",
         lookup_expr="range_contains",
@@ -554,20 +509,3 @@ class ACLExtendedRuleFilterSet(PrimaryModelFilterSet):
             "description",
             "comments",
         )
-
-    def search(self, queryset, name, value):
-        """
-        Override the default search behavior for the django model.
-        """
-        if not value.strip():
-            return queryset
-        query = (
-            Q(access_list__name__icontains=value)
-            | Q(remark__icontains=value)
-            | Q(description__icontains=value)
-            | Q(comments__icontains=value)
-        )
-        # Whole number, not a substring: q=1 must not return sequence 10.
-        with contextlib.suppress(ValueError):
-            query |= Q(sequence=int(value.strip()))
-        return queryset.filter(query)

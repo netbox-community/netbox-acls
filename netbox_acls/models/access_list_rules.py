@@ -69,7 +69,6 @@ class ACLRule(PrimaryModel):
     access_list = models.ForeignKey(
         to=AccessList,
         on_delete=models.CASCADE,
-        related_name="rules",
         verbose_name=_("Access List"),
     )
 

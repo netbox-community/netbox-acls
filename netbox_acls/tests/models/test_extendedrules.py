@@ -7,6 +7,7 @@ from ...choices import (
     ACLActionChoices,
     ACLFamilyChoices,
     ACLProtocolChoices,
+    ACLRuleActionChoices,
     ACLTypeChoices,
 )
 from ...models import AccessList, ACLExtendedRule
@@ -1101,3 +1102,33 @@ class TestACLExtendedRule(BaseTestCase):
 
         with self.assertRaises(ValidationError):
             invalid_rule.full_clean()
+
+    def test_switching_the_destination_leaves_the_source_shadow_columns(self):
+        """Test that the two roles are independent, so switching one leaves the other."""
+        rule = ACLExtendedRule.objects.create(
+            access_list=self.extended_acl1,
+            sequence=920,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+            destination=self.aggregate1,
+        )
+        cached = self._cached_objects(rule)
+        self.assertEqual(cached["_source_prefix"], self.prefix1.pk)
+        self.assertEqual(cached["_destination_aggregate"], self.aggregate1.pk)
+
+        rule.destination = self.ip_range1
+        rule.save()
+
+        cached = self._cached_objects(rule)
+        self.assertEqual(cached["_source_prefix"], self.prefix1.pk)
+        self.assertIsNone(cached["_destination_aggregate"])
+        self.assertEqual(cached["_destination_iprange"], self.ip_range1.pk)
+
+    @staticmethod
+    def _cached_objects(rule):
+        """Read the shadow columns back from the database, which is what the filters query."""
+        return (
+            ACLExtendedRule.objects.filter(pk=rule.pk)
+            .values("_source_prefix", "_destination_aggregate", "_destination_iprange")
+            .get()
+        )

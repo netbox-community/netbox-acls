@@ -2,7 +2,6 @@
 Define the django models for this plugin.
 """
 
-from django.apps import apps
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.postgres.fields import ArrayField, IntegerRangeField
 from django.core.exceptions import ValidationError
@@ -12,6 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.models import PrimaryModel
 from utilities.data import ranges_to_string_list
+from utilities.object_types import object_type_identifier
 
 from ..choices import (
     ACLFamilyChoices,
@@ -157,6 +157,9 @@ class ACLRule(PrimaryModel):
     )
     prerequisite_models: tuple = ("netbox_acls.AccessList",)
 
+    # Generic references mirrored into shadow columns, one set per role.
+    cached_object_roles = ("source",)
+
     class Meta:
         """
         Define the common model properties:
@@ -221,28 +224,28 @@ class ACLRule(PrimaryModel):
         """
         Saves the current instance to the database.
         """
-        # Cache the related source objects for faster access
-        self.cache_related_source_object()
+        # Cache the related objects for faster access
+        for role in self.cached_object_roles:
+            self.cache_related_objects(role)
 
         super().save(*args, **kwargs)
 
-    def cache_related_source_object(self):
+    def cache_related_objects(self, role):
         """
-        Cache the related source objects for faster access.
+        Refresh one role's shadow columns from its generic reference.
         """
-        self._source_aggregate = self._source_ipaddress = self._source_iprange = self._source_prefix = None
-        if self.source_type:
-            source_type = self.source_type.model_class()
-            if source_type == apps.get_model("ipam", "aggregate"):
-                self._source_aggregate = self.source
-            elif source_type == apps.get_model("ipam", "ipaddress"):
-                self._source_ipaddress = self.source
-            elif source_type == apps.get_model("ipam", "iprange"):
-                self._source_iprange = self.source
-            elif source_type == apps.get_model("ipam", "prefix"):
-                self._source_prefix = self.source
+        content_type = getattr(self, f"{role}_type")
+        label = object_type_identifier(content_type) if content_type else None
+        prefix = f"_{role}_"
 
-    cache_related_source_object.alters_data = True
+        # Shadow columns are located by name, so _<role>_<model> is a contract.
+        for field in self._meta.fields:
+            if not field.is_relation or not field.name.startswith(prefix):
+                continue
+            matched = field.related_model._meta.label_lower == label
+            setattr(self, field.name, getattr(self, role) if matched else None)
+
+    cache_related_objects.alters_data = True
 
     def _validate_rule_family(self):
         """
@@ -440,6 +443,8 @@ class ACLExtendedRule(ACLRule):
         "protocol",
     )
 
+    cached_object_roles = ("source", "destination")
+
     class Meta(ACLRule.Meta):
         """
         Define the model properties adding to or overriding the inherited class:
@@ -513,35 +518,6 @@ class ACLExtendedRule(ACLRule):
         validate_port_ranges(self.source_port_ranges, "source_port_ranges")
         validate_port_ranges(self.destination_port_ranges, "destination_port_ranges")
 
-    def save(self, *args, **kwargs):
-        """
-        Saves the current instance to the database.
-        """
-        # Cache the related destination objects for faster access
-        self.cache_related_destination_objects()
-
-        super().save(*args, **kwargs)
-
-    def cache_related_destination_objects(self):
-        """
-        Cache the related destination objects for faster access.
-        """
-        self._destination_aggregate = self._destination_ipaddress = self._destination_iprange = (
-            self._destination_prefix
-        ) = None
-        if self.destination_type:
-            destination_type = self.destination_type.model_class()
-            if destination_type == apps.get_model("ipam", "aggregate"):
-                self._destination_aggregate = self.destination
-            elif destination_type == apps.get_model("ipam", "ipaddress"):
-                self._destination_ipaddress = self.destination
-            elif destination_type == apps.get_model("ipam", "iprange"):
-                self._destination_iprange = self.destination
-            elif destination_type == apps.get_model("ipam", "prefix"):
-                self._destination_prefix = self.destination
-
-    cache_related_destination_objects.alters_data = True
-
     @property
     def destination_port_ranges_list(self):
         """
@@ -588,106 +564,24 @@ class ACLExtendedRule(ACLRule):
 
 
 #
-# Generic Relations: ACLStandardRule
+# Generic Relations
 #
 
-# Source Aggregate
-GenericRelation(
-    to=ACLStandardRule,
-    content_type_field="source_type",
-    object_id_field="source_id",
-    related_query_name="source_aggregate",
-).contribute_to_class(Aggregate, "accesslist_standard_rule_sources")
-
-# Source IPAddress
-GenericRelation(
-    to=ACLStandardRule,
-    content_type_field="source_type",
-    object_id_field="source_id",
-    related_query_name="source_ip_address",
-).contribute_to_class(IPAddress, "accesslist_standard_rule_sources")
-
-# Source IPRange
-GenericRelation(
-    to=ACLStandardRule,
-    content_type_field="source_type",
-    object_id_field="source_id",
-    related_query_name="source_ip_range",
-).contribute_to_class(IPRange, "accesslist_standard_rule_sources")
-
-# Source Prefix
-GenericRelation(
-    to=ACLStandardRule,
-    content_type_field="source_type",
-    object_id_field="source_id",
-    related_query_name="source_prefix",
-).contribute_to_class(Prefix, "accesslist_standard_rule_sources")
-
-
-#
-# Generic Relations: ACLExtendedRule
-#
-
-# Source Aggregate
-GenericRelation(
-    to=ACLExtendedRule,
-    content_type_field="source_type",
-    object_id_field="source_id",
-    related_query_name="source_aggregate",
-).contribute_to_class(Aggregate, "accesslist_extended_rule_sources")
-
-# Source IPAddress
-GenericRelation(
-    to=ACLExtendedRule,
-    content_type_field="source_type",
-    object_id_field="source_id",
-    related_query_name="source_ip_address",
-).contribute_to_class(IPAddress, "accesslist_extended_rule_sources")
-
-# Source IPRange
-GenericRelation(
-    to=ACLExtendedRule,
-    content_type_field="source_type",
-    object_id_field="source_id",
-    related_query_name="source_ip_range",
-).contribute_to_class(IPRange, "accesslist_extended_rule_sources")
-
-# Source Prefix
-GenericRelation(
-    to=ACLExtendedRule,
-    content_type_field="source_type",
-    object_id_field="source_id",
-    related_query_name="source_prefix",
-).contribute_to_class(Prefix, "accesslist_extended_rule_sources")
-
-# Destination Aggregate
-GenericRelation(
-    to=ACLExtendedRule,
-    content_type_field="destination_type",
-    object_id_field="destination_id",
-    related_query_name="destination_aggregate",
-).contribute_to_class(Aggregate, "accesslist_extended_rule_destinations")
-
-# Destination IPAddress
-GenericRelation(
-    to=ACLExtendedRule,
-    content_type_field="destination_type",
-    object_id_field="destination_id",
-    related_query_name="destination_ip_address",
-).contribute_to_class(IPAddress, "accesslist_extended_rule_destinations")
-
-# Destination IPRange
-GenericRelation(
-    to=ACLExtendedRule,
-    content_type_field="destination_type",
-    object_id_field="destination_id",
-    related_query_name="destination_ip_range",
-).contribute_to_class(IPRange, "accesslist_extended_rule_destinations")
-
-# Destination Prefix
-GenericRelation(
-    to=ACLExtendedRule,
-    content_type_field="destination_type",
-    object_id_field="destination_id",
-    related_query_name="destination_prefix",
-).contribute_to_class(Prefix, "accesslist_extended_rule_destinations")
+for _rule_model, _role, _accessor in (
+    (ACLStandardRule, "source", "accesslist_standard_rule_sources"),
+    (ACLExtendedRule, "source", "accesslist_extended_rule_sources"),
+    (ACLExtendedRule, "destination", "accesslist_extended_rule_destinations"),
+):
+    # The query name segment differs from the model name where that runs words together.
+    for _model, _query_name in (
+        (Aggregate, "aggregate"),
+        (IPAddress, "ip_address"),
+        (IPRange, "ip_range"),
+        (Prefix, "prefix"),
+    ):
+        GenericRelation(
+            to=_rule_model,
+            content_type_field=f"{_role}_type",
+            object_id_field=f"{_role}_id",
+            related_query_name=f"{_role}_{_query_name}",
+        ).contribute_to_class(_model, _accessor)

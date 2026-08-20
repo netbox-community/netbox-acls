@@ -39,7 +39,7 @@ class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         )
 
         # create() rather than bulk_create(), because save() is what runs
-        # cache_related_source_object() to populate the _source_* shadow columns
+        # cache_related_objects() to populate the _source_* shadow columns
         # that the source_prefix and friends filters actually query.
         ACLStandardRule.objects.create(
             access_list=cls.access_list,

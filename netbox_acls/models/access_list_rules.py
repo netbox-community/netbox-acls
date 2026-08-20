@@ -348,7 +348,7 @@ class ACLExtendedRule(ACLRule):
         to=AccessList,
         on_delete=models.CASCADE,
         related_name="aclextendedrules",
-        limit_choices_to={"type": "extended"},
+        limit_choices_to={"type": ACLTypeChoices.TYPE_EXTENDED},
         verbose_name=_("Extended Access List"),
     )
 

@@ -1,5 +1,5 @@
 """
-Draft for a possible BulkEditForm, but may not be worth wile.
+Defines each django model's GUI form to edit multiple objects at once.
 """
 
 from django import forms

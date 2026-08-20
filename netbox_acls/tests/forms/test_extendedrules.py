@@ -12,16 +12,17 @@ from ...choices import (
     ACLTypeChoices,
 )
 from ...constants import ACL_RULE_SOURCE_DESTINATION_MODELS
-from ...forms import ACLExtendedRuleBulkEditForm, ACLExtendedRuleForm
+from ...forms import ACLExtendedRuleBulkEditForm, ACLExtendedRuleFilterForm, ACLExtendedRuleForm
 from ...models import AccessList, ACLExtendedRule
 from ..views.base import build_ipam_objects
-from .base import BulkEditFieldsetTestMixin
+from .base import BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin
 
 
-class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, TestCase):
+class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin, TestCase):
     """Form tests for ACLExtendedRule forms."""
 
     bulk_edit_form = ACLExtendedRuleBulkEditForm
+    filter_form = ACLExtendedRuleFilterForm
 
     @classmethod
     def setUpTestData(cls):
@@ -201,4 +202,12 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, TestCase):
                 "description",
                 "comments",
             ),
+        )
+
+    def test_filterform_access_list_filtered_to_extended(self):
+        """Test that the filter form's Access List picker filters to Extended ACLs."""
+        form = ACLExtendedRuleFilterForm()
+        self.assertEqual(
+            form.fields["access_list_id"].query_params,
+            {"type": ACLTypeChoices.TYPE_EXTENDED},
         )

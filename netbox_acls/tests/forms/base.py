@@ -2,7 +2,10 @@
 Shared bases for the plugin's form tests.
 """
 
-__all__ = ("BulkEditFieldsetTestMixin",)
+__all__ = (
+    "BulkEditFieldsetTestMixin",
+    "FilterFormFieldsetTestMixin",
+)
 
 
 class BulkEditFieldsetTestMixin:
@@ -38,3 +41,26 @@ class BulkEditFieldsetTestMixin:
                 form.fields,
                 msg=f"nullable_fields references undefined field '{name}'",
             )
+
+
+class FilterFormFieldsetTestMixin:
+    """
+    Assert every field a filter form names in its fieldsets exists on the form.
+
+    A fieldset entry with no matching field renders as a missing filter, which
+    is silent: the form still works and the filter is simply unavailable.
+    """
+
+    filter_form = None
+
+    def test_filterform_fieldset_fields_all_defined(self):
+        """Test that every field named in the filter form fieldsets exists on the form."""
+        form = self.filter_form()
+        for fieldset in form.fieldsets:
+            for item in fieldset.items:
+                if isinstance(item, str):
+                    self.assertIn(
+                        item,
+                        form.fields,
+                        msg=f"Fieldset '{fieldset.name}' references undefined field '{item}'",
+                    )

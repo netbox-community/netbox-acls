@@ -3,16 +3,17 @@ from django.test import TestCase
 
 from ...choices import ACLActionChoices, ACLFamilyChoices, ACLRuleActionChoices, ACLTypeChoices
 from ...constants import ACL_RULE_SOURCE_DESTINATION_MODELS
-from ...forms import ACLStandardRuleBulkEditForm, ACLStandardRuleForm
+from ...forms import ACLStandardRuleBulkEditForm, ACLStandardRuleFilterForm, ACLStandardRuleForm
 from ...models import AccessList, ACLStandardRule
 from ..views.base import build_ipam_objects
-from .base import BulkEditFieldsetTestMixin
+from .base import BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin
 
 
-class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, TestCase):
+class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin, TestCase):
     """Form tests for ACLStandardRule forms."""
 
     bulk_edit_form = ACLStandardRuleBulkEditForm
+    filter_form = ACLStandardRuleFilterForm
 
     @classmethod
     def setUpTestData(cls):
@@ -143,4 +144,20 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, TestCase):
         self.assertEqual(
             ACLStandardRuleBulkEditForm.nullable_fields,
             ("remark", "source_type", "source", "description", "comments"),
+        )
+
+    def test_filterform_carries_no_extended_filters(self):
+        """Test that the shared mixin leaks no extended-only filter into the standard form."""
+        form = ACLStandardRuleFilterForm()
+        for name in ("protocol", "source_port", "destination_port"):
+            self.assertNotIn(name, form.fields)
+        for model_name in ("aggregate", "ipaddress", "iprange", "prefix"):
+            self.assertNotIn(f"destination_{model_name}_id", form.fields)
+
+    def test_filterform_access_list_filtered_to_standard(self):
+        """Test that the filter form's Access List picker filters to Standard ACLs."""
+        form = ACLStandardRuleFilterForm()
+        self.assertEqual(
+            form.fields["access_list_id"].query_params,
+            {"type": ACLTypeChoices.TYPE_STANDARD},
         )

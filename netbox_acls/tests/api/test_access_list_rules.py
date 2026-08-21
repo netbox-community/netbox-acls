@@ -132,6 +132,20 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
             ["When the action is 'remark', a remark is required."],
         )
 
+    def test_remark_action_accepts_a_rule_that_already_has_a_remark(self):
+        """Test that a partial update need not resend the remark alongside the action."""
+        rule = ACLStandardRule.objects.get(access_list=self.access_list_device, sequence=20)
+        self.assertTrue(rule.remark)
+
+        self.add_permissions("netbox_acls.change_aclstandardrule")
+        response = self.client.patch(
+            self._get_detail_url(rule),
+            {"action": ACLRuleActionChoices.ACTION_REMARK},
+            format="json",
+            **self.header,
+        )
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+
     def test_source_fields_are_optional(self):
         """A rule with neither a source type nor a source is valid, only a half-set pair is not."""
         self.add_permissions("netbox_acls.add_aclstandardrule")
@@ -276,6 +290,20 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
             response.data["remark"],
             ["When the action is 'remark', a remark is required."],
         )
+
+    def test_remark_action_accepts_a_rule_that_already_has_a_remark(self):
+        """Test that a partial update need not resend the remark alongside the action."""
+        rule = ACLExtendedRule.objects.get(access_list=self.access_list_device, sequence=20)
+        self.assertTrue(rule.remark)
+
+        self.add_permissions("netbox_acls.change_aclextendedrule")
+        response = self.client.patch(
+            self._get_detail_url(rule),
+            {"action": ACLRuleActionChoices.ACTION_REMARK},
+            format="json",
+            **self.header,
+        )
+        self.assertHttpStatus(response, status.HTTP_200_OK)
 
     def test_remark_action_rejects_a_protocol(self):
         """One of the four extra conditions only an extended rule can fail."""

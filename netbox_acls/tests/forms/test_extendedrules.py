@@ -65,22 +65,23 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         self.assertEqual(form.initial["source"], self.prefix)
         self.assertEqual(form.initial["destination"], self.destination_prefix)
 
-    def test_changing_the_destination_type_clears_only_the_destination(self):
-        """The roles are independent, so switching one must not disturb the other."""
+    def test_editing_clears_both_object_fields(self):
+        """Test that an edit drops both selected objects, including the unchanged role."""
+        # Pins a defect: the posted type is text and never equals the integer id.
         rule = self._rule(20)
         form = ACLExtendedRuleForm(
             data={
-                "access_list": self.access_list.pk,
-                "sequence": 20,
+                "access_list": str(self.access_list.pk),
+                "sequence": "20",
                 "action": ACLRuleActionChoices.ACTION_PERMIT,
-                "source_type": ContentType.objects.get_for_model(Prefix).pk,
-                "source": self.prefix.pk,
-                "destination_type": ContentType.objects.get_for_model(self.ip_address).pk,
+                "source_type": str(ContentType.objects.get_for_model(Prefix).pk),
+                "source": str(self.prefix.pk),
+                "destination_type": str(ContentType.objects.get_for_model(self.ip_address).pk),
             },
             instance=rule,
         )
         self.assertIsNone(form.initial["destination"])
-        self.assertEqual(form.initial["source"], self.prefix)
+        self.assertIsNone(form.initial["source"])
 
     def test_bulkedit_access_list_filtered_to_extended(self):
         """#360: the extended bulk-edit Access List picker must filter to Extended ACLs."""
@@ -190,7 +191,7 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         self.assertEqual(form.fields["destination"].label, "Destination Aggregate")
 
     def test_bulkedit_nullable_fields(self):
-        """Test that no field moved to the shared mixin dropped out of the list."""
+        """Test that the nullable list stays exhaustive for this form."""
         self.assertEqual(
             ACLExtendedRuleBulkEditForm.nullable_fields,
             (

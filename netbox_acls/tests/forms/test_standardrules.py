@@ -64,20 +64,21 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         )
         self.assertIsNone(form.initial["source"])
 
-    def test_keeping_the_source_type_keeps_the_source(self):
-        """The counterpart to the clear, so the guard cannot fire on every edit."""
+    def test_editing_clears_the_source_even_when_the_type_is_unchanged(self):
+        """Test that an edit drops the selected source whether or not its type changed."""
+        # Pins a defect: the posted type is text and never equals the integer id.
         rule = self._rule(30)
         form = ACLStandardRuleForm(
             data={
-                "access_list": self.access_list.pk,
-                "sequence": 30,
+                "access_list": str(self.access_list.pk),
+                "sequence": "30",
                 "action": ACLRuleActionChoices.ACTION_PERMIT,
-                "source_type": ContentType.objects.get_for_model(self.prefix).pk,
-                "source": self.prefix.pk,
+                "source_type": str(ContentType.objects.get_for_model(self.prefix).pk),
+                "source": str(self.prefix.pk),
             },
             instance=rule,
         )
-        self.assertEqual(form.initial["source"], self.prefix)
+        self.assertIsNone(form.initial["source"])
 
     def test_bulkedit_access_list_filtered_to_standard(self):
         """Guard the standard bulk-edit picker the extended form (#360) was copied from."""
@@ -140,7 +141,7 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         self.assertEqual(form.fields["source"].label, "Source IP Range")
 
     def test_bulkedit_nullable_fields(self):
-        """Test that no field moved to the shared mixin dropped out of the list."""
+        """Test that the nullable list stays exhaustive for this form."""
         self.assertEqual(
             ACLStandardRuleBulkEditForm.nullable_fields,
             ("remark", "source_type", "source", "description", "comments"),

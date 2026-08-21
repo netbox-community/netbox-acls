@@ -126,7 +126,7 @@ class ACLRuleSerializerMixin(serializers.Serializer):
     Fields and brief fields shared by both concrete rule serializers.
 
     Validation belongs to the models, which full_clean() reaches through
-    ValidatedModelSerializer. Do not reintroduce it here.
+    ValidatedModelSerializer.
     """
 
     access_list = AccessListSerializer(nested=True, required=True)

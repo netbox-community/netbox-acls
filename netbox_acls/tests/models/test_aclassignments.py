@@ -497,3 +497,31 @@ class TestACLAssignment(BaseTestCase):
             ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
         )
         self.assertEqual(assignment.comments, "Updated")
+
+    def test_clean_reports_an_unset_access_list_rather_than_raising(self):
+        """
+        Test that full_clean on an assignment with no access list returns a field error.
+        """
+        assignment = ACLAssignment(
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        with self.assertRaises(ValidationError) as context:
+            assignment.full_clean()
+
+        self.assertIn("access_list", context.exception.message_dict)
+
+    def test_clean_reports_an_unset_assigned_object_type_rather_than_raising(self):
+        """
+        Test that full_clean on an assignment with no assigned object type returns a field error.
+        """
+        assignment = ACLAssignment(
+            access_list=self.acl_standard1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        with self.assertRaises(ValidationError) as context:
+            assignment.full_clean()
+
+        self.assertIn("assigned_object_type", context.exception.message_dict)

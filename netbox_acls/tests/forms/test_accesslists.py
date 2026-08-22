@@ -2,7 +2,7 @@ from django import forms
 from django.test import TestCase
 
 from ...choices import ACLActionChoices, ACLFamilyChoices, ACLRuleActionChoices, ACLTypeChoices
-from ...forms import AccessListBulkEditForm, AccessListFilterForm, AccessListForm
+from ...forms import AccessListBulkEditForm, AccessListFilterForm, AccessListForm, AccessListImportForm
 from ...models import AccessList, ACLStandardRule
 from .base import BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin
 
@@ -83,3 +83,46 @@ class AccessListFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTestMi
         self.assertFalse(form.fields["description"].required)
         named = {item for fieldset in form.fieldsets for item in fieldset.items if isinstance(item, str)}
         self.assertIn("description", named)
+
+
+class AccessListImportFormTestCase(TestCase):
+    """Import form tests for AccessList."""
+
+    def test_blank_optional_columns_keep_the_model_defaults(self):
+        """Test that a blank family or default action cell leaves the model default in place."""
+        form = AccessListImportForm(
+            data={
+                "name": "acl-defaults",
+                "type": ACLTypeChoices.TYPE_STANDARD,
+                "family": "",
+                "default_action": "",
+            },
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        access_list = form.save()
+        self.assertEqual(access_list.family, ACLFamilyChoices.FAMILY_IPV4)
+        self.assertEqual(access_list.default_action, ACLActionChoices.ACTION_DENY)
+
+    def test_type_cannot_change_once_rules_exist(self):
+        """Test that the model's own type guard fires through the import form."""
+        access_list = AccessList.objects.create(
+            name="acl-with-rules",
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        ACLStandardRule.objects.create(
+            access_list=access_list,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_REMARK,
+            remark="a remark",
+        )
+
+        form = AccessListImportForm(
+            data={"name": access_list.name, "type": ACLTypeChoices.TYPE_EXTENDED},
+            instance=access_list,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("type", form.errors)

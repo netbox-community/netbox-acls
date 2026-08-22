@@ -254,7 +254,6 @@ class AccessListListView(generic.ObjectListView):
     table = tables.AccessListTable
     filterset = filtersets.AccessListFilterSet
     filterset_form = forms.AccessListFilterForm
-    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.AccessList, "add", detail=False)
@@ -275,6 +274,16 @@ class AccessListDeleteView(generic.ObjectDeleteView):
     """
 
     queryset = models.AccessList.objects.select_related("owner").prefetch_related("tags")
+
+
+@register_model_view(models.AccessList, "bulk_import", path="import", detail=False)
+class AccessListBulkImportView(generic.BulkImportView):
+    """
+    Bulk import view for importing multiple objects of AccessLists.
+    """
+
+    queryset = models.AccessList.objects.all()
+    model_form = forms.AccessListImportForm
 
 
 @register_model_view(models.AccessList, "bulk_edit", path="edit", detail=False)

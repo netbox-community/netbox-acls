@@ -3,7 +3,7 @@ import re
 
 from django.urls import reverse
 
-from utilities.testing import create_tags
+from utilities.testing import ViewTestCases, create_tags
 
 from ...choices import (
     ACLActionChoices,
@@ -15,7 +15,10 @@ from ...models import AccessList, ACLExtendedRule, ACLStandardRule
 from .base import PluginTestCases
 
 
-class AccessListViewTestCase(PluginTestCases.ObjectViewTestCase):
+class AccessListViewTestCase(
+    PluginTestCases.ObjectViewTestCase,
+    ViewTestCases.BulkImportObjectsViewTestCase,
+):
     """View tests for AccessList."""
 
     model = AccessList
@@ -111,6 +114,20 @@ class AccessListViewTestCase(PluginTestCases.ObjectViewTestCase):
         cls.bulk_edit_data = {
             "description": "Bulk edited",
         }
+
+        cls.csv_data = (
+            "name,type,family,default_action,description",
+            "testacl-import-1,standard,ipv4,deny,Imported one",
+            "testacl-import-2,extended,ipv6,permit,Imported two",
+            "testacl-import-3,standard,dual,reject,Imported three",
+        )
+
+        # standard carries rules, so the update crosses AccessList.save()'s type and family guards.
+        cls.csv_update_data = (
+            "id,description",
+            f"{standard.pk},Updated by import",
+            f"{extended.pk},Updated by import too",
+        )
 
     def test_rules_table_matches_access_list_type(self):
         """Test that the embedded rule table holds this ACL's rules and no others."""

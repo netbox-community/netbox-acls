@@ -391,7 +391,6 @@ class ACLAssignmentListView(generic.ObjectListView):
     table = tables.ACLAssignmentTable
     filterset = filtersets.ACLAssignmentFilterSet
     filterset_form = forms.ACLAssignmentFilterForm
-    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLAssignment, "add", detail=False)
@@ -420,6 +419,16 @@ class ACLAssignmentDeleteView(generic.ObjectDeleteView):
         "assigned_object",
         "tags",
     )
+
+
+@register_model_view(models.ACLAssignment, "bulk_import", path="import", detail=False)
+class ACLAssignmentBulkImportView(generic.BulkImportView):
+    """
+    Bulk import view for importing multiple objects of ACLAssignments.
+    """
+
+    queryset = models.ACLAssignment.objects.all()
+    model_form = forms.ACLAssignmentImportForm
 
 
 @register_model_view(models.ACLAssignment, "bulk_edit", path="edit", detail=False)

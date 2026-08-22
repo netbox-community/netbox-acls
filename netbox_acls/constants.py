@@ -70,3 +70,12 @@ ACL_RULE_SOURCE_DESTINATION_MODELS = Q(
         ),
     )
 )
+
+# Natural value per source or destination content type, for import. None means ID only.
+# Must match ACL_RULE_SOURCE_DESTINATION_MODELS exactly.
+ACL_RULE_OBJECT_LOOKUPS = {
+    "ipam.aggregate": "prefix",
+    "ipam.ipaddress": "address",
+    "ipam.iprange": None,
+    "ipam.prefix": "prefix",
+}

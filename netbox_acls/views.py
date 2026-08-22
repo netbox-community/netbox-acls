@@ -635,7 +635,6 @@ class ACLStandardRuleListView(generic.ObjectListView):
     table = tables.ACLStandardRuleTable
     filterset = filtersets.ACLStandardRuleFilterSet
     filterset_form = forms.ACLStandardRuleFilterForm
-    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLStandardRule, "add", detail=False)
@@ -664,6 +663,16 @@ class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
         "source",
         "tags",
     )
+
+
+@register_model_view(models.ACLStandardRule, "bulk_import", path="import", detail=False)
+class ACLStandardRuleBulkImportView(generic.BulkImportView):
+    """
+    Bulk import view for importing multiple objects of ACLStandardRules.
+    """
+
+    queryset = models.ACLStandardRule.objects.all()
+    model_form = forms.ACLStandardRuleImportForm
 
 
 @register_model_view(models.ACLStandardRule, "bulk_edit", path="edit", detail=False)

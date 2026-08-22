@@ -586,3 +586,17 @@ class TestACLStandardRule(BaseTestCase):
                 ACLRuleLogOptionChoices.OPTION_SYSLOG,
             ],
         )
+
+    def test_clean_reports_an_unset_access_list_rather_than_raising(self):
+        """
+        Test that full_clean on a rule with no access list returns a field error.
+        """
+        rule = ACLStandardRule(
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+        )
+
+        with self.assertRaises(ValidationError) as context:
+            rule.full_clean()
+
+        self.assertIn("access_list", context.exception.message_dict)

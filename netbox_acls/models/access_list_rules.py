@@ -284,6 +284,10 @@ class ACLRule(PrimaryModel):
         """
         Validates that the ACL rule's family matches the source and destination families.
         """
+        # access_list is non-null, so its descriptor raises rather than returning None when unset.
+        if not self.access_list_id:
+            return
+
         acl_family = self.access_list.family
         families = set()
 

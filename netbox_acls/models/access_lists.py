@@ -408,7 +408,7 @@ class ACLAssignment(OwnerMixin, NetBoxModel):
         if self.assigned_object_type_id in host_assigned_object_type_ids:
             self.direction = ACLAssignmentDirectionChoices.DIRECTION_NONE
             self._validate_unique_acl_name_per_assigned_object()
-        elif self.assigned_object_type_id:
+        elif self.assigned_object_type_id and self.access_list_id:
             self._validate_unique_acl_assignment_per_assigned_interface()
 
     def _validate_unique_acl_name_per_assigned_object(self) -> None:
@@ -417,6 +417,10 @@ class ACLAssignment(OwnerMixin, NetBoxModel):
         the assigned object type and object ID.
         This ensures each ACL name is unique for the same object.
         """
+        # access_list is non-null, so its descriptor raises rather than returning None when unset.
+        if not self.access_list_id:
+            return
+
         conflicting_acl_assignments = ACLAssignment.objects.filter(
             access_list__name=self.access_list.name,
             assigned_object_type=self.assigned_object_type,

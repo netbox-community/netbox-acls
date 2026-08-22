@@ -502,9 +502,29 @@ class TestACLAssignment(BaseTestCase):
         """
         Test that full_clean on an assignment with no access list returns a field error.
         """
+        # Without a colliding assignment the interface check finds nothing either way.
+        ACLAssignment.objects.create(
+            access_list=self.acl_standard_dual,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
         assignment = ACLAssignment(
             assigned_object=self.device_interface1,
             direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        with self.assertRaises(ValidationError) as context:
+            assignment.full_clean()
+
+        self.assertEqual(set(context.exception.message_dict), {"access_list"})
+
+    def test_clean_reports_an_unset_access_list_on_a_host_target(self):
+        """
+        Test that a host assignment with no access list returns a field error.
+        """
+        assignment = ACLAssignment(
+            assigned_object=self.device1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
         )
 
         with self.assertRaises(ValidationError) as context:

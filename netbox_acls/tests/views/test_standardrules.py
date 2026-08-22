@@ -11,13 +11,13 @@ from ...choices import (
     ACLTypeChoices,
 )
 from ...models import AccessList, ACLStandardRule
-from .base import ACLRuleSequenceTestsMixin, PluginTestCases, build_ipam_objects
+from .base import ACLRuleSequenceTestsMixin, PluginViewTestCase, build_ipam_objects
 
 
 class ACLStandardRuleViewTestCase(
     ACLRuleSequenceTestsMixin,
-    PluginTestCases.ObjectViewTestCase,
-    ViewTestCases.BulkImportObjectsViewTestCase,
+    PluginViewTestCase,
+    ViewTestCases.PrimaryObjectViewTestCase,
 ):
     """View tests for ACLStandardRule."""
 

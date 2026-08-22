@@ -1,8 +1,12 @@
+import json
+
+import yaml
 from django.contrib.contenttypes.models import ContentType
 
 from dcim.choices import InterfaceTypeChoices
 from dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
-from utilities.testing import ViewTestCases, create_tags
+from netbox.choices import ImportFormatChoices
+from utilities.testing import ModelViewTestCase, ViewTestCases, create_tags
 from virtualization.models import Cluster, ClusterType, VirtualMachine, VMInterface
 
 from ...choices import (
@@ -12,13 +16,10 @@ from ...choices import (
     ACLTypeChoices,
 )
 from ...models import AccessList, ACLAssignment
-from .base import PluginTestCases
+from .base import PluginViewTestCase
 
 
-class ACLAssignmentViewTestCase(
-    PluginTestCases.ObjectViewTestCase,
-    ViewTestCases.BulkImportObjectsViewTestCase,
-):
+class ACLAssignmentViewTestCase(PluginViewTestCase, ViewTestCases.PrimaryObjectViewTestCase):
     """View tests for ACLAssignment."""
 
     model = ACLAssignment
@@ -186,3 +187,66 @@ class ACLAssignmentViewTestCase(
 
         self.assertHttpStatus(response, 200)
         self.assertContains(response, 'id="attr_assigned_object"')
+
+
+class ACLAssignmentImportFormatTestCase(PluginViewTestCase, ModelViewTestCase):
+    """
+    Confirm the import view accepts the JSON and YAML shapes NetBox parses.
+
+    NetBox owns all three parsers, so one round trip each is enough. CSV is covered by
+    ACLAssignmentViewTestCase.
+    """
+
+    model = ACLAssignment
+    # restrict_form_fields narrows the access_list field, so its view permission is required.
+    user_permissions = ("netbox_acls.view_accesslist",)
+
+    @classmethod
+    def setUpTestData(cls):
+        site = Site.objects.create(name="Site 1", slug="site-1")
+        manufacturer = Manufacturer.objects.create(name="Manufacturer 1", slug="manufacturer-1")
+        device_type = DeviceType.objects.create(manufacturer=manufacturer, model="Device Type 1")
+        device_role = DeviceRole.objects.create(name="Device Role 1", slug="device-role-1")
+        cls.devices = [
+            Device.objects.create(name=f"Device {index}", site=site, device_type=device_type, role=device_role)
+            for index in (1, 2)
+        ]
+
+        cls.access_list = AccessList.objects.create(
+            name="testacl1",
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+
+    def _record(self, device):
+        # Plain keys only: the "column.to_field" header override is set on the CSV path alone.
+        return {
+            "access_list": self.access_list.name,
+            "assigned_object_type": "dcim.device",
+            "assigned_object": device.name,
+            "direction": ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        }
+
+    def _import(self, data, import_format):
+        self.add_permissions("netbox_acls.add_aclassignment")
+        return self.client.post(
+            self._get_url("bulk_import"),
+            {"data": data, "format": import_format},
+        )
+
+    def test_import_json(self):
+        """Test that a JSON document creates one assignment."""
+        response = self._import(json.dumps([self._record(self.devices[0])]), ImportFormatChoices.JSON)
+
+        self.assertHttpStatus(response, 302)
+        self.assertEqual(ACLAssignment.objects.count(), 1)
+        self.assertEqual(ACLAssignment.objects.get().assigned_object, self.devices[0])
+
+    def test_import_yaml(self):
+        """Test that a YAML document creates one assignment."""
+        response = self._import(yaml.dump([self._record(self.devices[1])]), ImportFormatChoices.YAML)
+
+        self.assertHttpStatus(response, 302)
+        self.assertEqual(ACLAssignment.objects.count(), 1)
+        self.assertEqual(ACLAssignment.objects.get().assigned_object, self.devices[1])

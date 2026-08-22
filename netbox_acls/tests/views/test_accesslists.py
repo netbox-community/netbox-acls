@@ -12,13 +12,10 @@ from ...choices import (
     ACLTypeChoices,
 )
 from ...models import AccessList, ACLExtendedRule, ACLStandardRule
-from .base import PluginTestCases
+from .base import PluginViewTestCase
 
 
-class AccessListViewTestCase(
-    PluginTestCases.ObjectViewTestCase,
-    ViewTestCases.BulkImportObjectsViewTestCase,
-):
+class AccessListViewTestCase(PluginViewTestCase, ViewTestCases.PrimaryObjectViewTestCase):
     """View tests for AccessList."""
 
     model = AccessList

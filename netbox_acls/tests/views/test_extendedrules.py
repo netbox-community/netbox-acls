@@ -15,13 +15,13 @@ from ...choices import (
 )
 from ...models import AccessList, ACLExtendedRule
 from ...utils import normalize_port_ranges
-from .base import ACLRuleSequenceTestsMixin, PluginTestCases, build_ipam_objects
+from .base import ACLRuleSequenceTestsMixin, PluginViewTestCase, build_ipam_objects
 
 
 class ACLExtendedRuleViewTestCase(
     ACLRuleSequenceTestsMixin,
-    PluginTestCases.ObjectViewTestCase,
-    ViewTestCases.BulkImportObjectsViewTestCase,
+    PluginViewTestCase,
+    ViewTestCases.PrimaryObjectViewTestCase,
 ):
     """View tests for ACLExtendedRule."""
 

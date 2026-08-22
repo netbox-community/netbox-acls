@@ -10,7 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from dcim.models import Device, Interface, VirtualChassis
 from extras.ui.panels import CustomFieldsPanel, TagsPanel
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
-from netbox.object_actions import AddObject, BulkDelete, BulkEdit, BulkExport
+from netbox.object_actions import BulkDelete, BulkExport
 from netbox.ui import layout
 from netbox.ui.breadcrumbs import Breadcrumb, filtered_list_url
 from netbox.ui.panels import CommentsPanel
@@ -791,7 +791,6 @@ class ACLExtendedRuleListView(generic.ObjectListView):
     table = tables.ACLExtendedRuleTable
     filterset = filtersets.ACLExtendedRuleFilterSet
     filterset_form = forms.ACLExtendedRuleFilterForm
-    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLExtendedRule, "add", detail=False)
@@ -822,6 +821,16 @@ class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
         "destination",
         "tags",
     )
+
+
+@register_model_view(models.ACLExtendedRule, "bulk_import", path="import", detail=False)
+class ACLExtendedRuleBulkImportView(generic.BulkImportView):
+    """
+    Bulk import view for importing multiple objects of ACLExtendedRules.
+    """
+
+    queryset = models.ACLExtendedRule.objects.all()
+    model_form = forms.ACLExtendedRuleImportForm
 
 
 @register_model_view(models.ACLExtendedRule, "bulk_edit", path="edit", detail=False)

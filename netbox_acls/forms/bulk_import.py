@@ -13,6 +13,7 @@ from utilities.forms.fields import (
     CSVContentTypeField,
     CSVModelChoiceField,
     CSVMultipleChoiceField,
+    NumericRangeArrayField,
 )
 from utilities.object_types import object_type_identifier
 
@@ -20,6 +21,7 @@ from ..choices import (
     ACLActionChoices,
     ACLAssignmentDirectionChoices,
     ACLFamilyChoices,
+    ACLProtocolChoices,
     ACLRuleActionChoices,
     ACLRuleLogOptionChoices,
     ACLTypeChoices,
@@ -31,10 +33,11 @@ from ..constants import (
     ACL_RULE_OBJECT_LOOKUPS,
     ACL_RULE_SOURCE_DESTINATION_MODELS,
 )
-from ..models import AccessList, ACLAssignment, ACLStandardRule
+from ..models import AccessList, ACLAssignment, ACLExtendedRule, ACLStandardRule
 
 __all__ = (
     "ACLAssignmentImportForm",
+    "ACLExtendedRuleImportForm",
     "ACLRuleImportFormMixin",
     "ACLStandardRuleImportForm",
     "AccessListImportForm",
@@ -330,6 +333,68 @@ class ACLStandardRuleImportForm(ACLRuleImportFormMixin, PrimaryModelImportForm):
             "remark",
             "source_type",
             "source_id",
+            "log_matches",
+            "log_options",
+            "description",
+            "owner",
+            "comments",
+            "tags",
+        )
+
+
+class ACLExtendedRuleImportForm(ACLRuleImportFormMixin, PrimaryModelImportForm):
+    """
+    Import form for Extended ACL Rules.
+    """
+
+    access_list = CSVModelChoiceField(
+        label=_("Access List"),
+        queryset=AccessList.objects.filter(type=ACLTypeChoices.TYPE_EXTENDED),
+        to_field_name="name",
+        help_text=_("Name of an extended access list. Use an access_list.id header to pick one by ID."),
+    )
+    protocol = CSVChoiceField(
+        label=_("Protocol"),
+        choices=ACLProtocolChoices,
+        required=False,
+        help_text=_("Port ranges apply to tcp and udp only."),
+    )
+    source_port_ranges = NumericRangeArrayField(required=False)
+    destination_type = CSVContentTypeField(
+        label=_("Destination type (app & model)"),
+        queryset=ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS),
+        required=False,
+        help_text=_("Type of the object the rule matches as its destination, as app.model."),
+    )
+    destination = forms.CharField(
+        label=_("Destination"),
+        required=False,
+        help_text=_("Prefix, address or aggregate value. IP ranges are addressable by destination_id only."),
+    )
+    destination_id = forms.IntegerField(
+        label=_("Destination ID"),
+        required=False,
+        help_text=_("Numeric ID of the destination object, as an alternative to destination."),
+    )
+    destination_port_ranges = NumericRangeArrayField(required=False)
+
+    object_roles = ("source", "destination")
+
+    class Meta:
+        model = ACLExtendedRule
+        # source and destination are the GenericForeignKey names, which Django forbids here.
+        fields = (
+            "access_list",
+            "sequence",
+            "action",
+            "remark",
+            "protocol",
+            "source_type",
+            "source_id",
+            "source_port_ranges",
+            "destination_type",
+            "destination_id",
+            "destination_port_ranges",
             "log_matches",
             "log_options",
             "description",

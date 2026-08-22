@@ -3,7 +3,7 @@ from django.db.backends.postgresql.psycopg_any import NumericRange
 from netaddr import IPNetwork
 
 from ipam.models import Prefix
-from utilities.testing import create_tags
+from utilities.testing import ViewTestCases, create_tags
 
 from ...choices import (
     ACLActionChoices,
@@ -18,7 +18,11 @@ from ...utils import normalize_port_ranges
 from .base import ACLRuleSequenceTestsMixin, PluginTestCases, build_ipam_objects
 
 
-class ACLExtendedRuleViewTestCase(ACLRuleSequenceTestsMixin, PluginTestCases.ObjectViewTestCase):
+class ACLExtendedRuleViewTestCase(
+    ACLRuleSequenceTestsMixin,
+    PluginTestCases.ObjectViewTestCase,
+    ViewTestCases.BulkImportObjectsViewTestCase,
+):
     """View tests for ACLExtendedRule."""
 
     model = ACLExtendedRule
@@ -90,6 +94,8 @@ class ACLExtendedRuleViewTestCase(ACLRuleSequenceTestsMixin, PluginTestCases.Obj
             description="deny the range",
         )
 
+        cls.rules = list(ACLExtendedRule.objects.order_by("sequence"))
+
         tags = create_tags("Alpha", "Bravo", "Charlie")
 
         # Ports are posted inclusively and need protocol tcp or udp. These values
@@ -116,6 +122,29 @@ class ACLExtendedRuleViewTestCase(ACLRuleSequenceTestsMixin, PluginTestCases.Obj
         cls.bulk_edit_data = {
             "description": "Bulk edited",
         }
+
+        # Ten columns, so every row carries nine commas. Ports need tcp or udp.
+        cls.csv_data = (
+            (
+                "access_list,sequence,action,protocol,source_type,source,source_port_ranges,"
+                "destination_type,destination,destination_port_ranges"
+            ),
+            (
+                f"{cls.access_list.name},210,permit,tcp,ipam.prefix,{cls.source_prefix.prefix},1024-2048,"
+                f"ipam.prefix,{cls.destination_prefix.prefix},80-81"
+            ),
+            (
+                f"{cls.access_list.name},220,deny,udp,ipam.prefix,{cls.source_prefix.prefix},53,"
+                f"ipam.prefix,{cls.destination_prefix.prefix},"
+            ),
+            f"{cls.access_list.name},230,permit,ip,,,,,,",
+        )
+
+        cls.csv_update_data = (
+            "id,description",
+            f"{cls.rules[0].pk},Updated by import",
+            f"{cls.rules[1].pk},Updated by import too",
+        )
 
     def test_detail_view_renders_log_option_labels(self):
         """Test that the detail page shows option labels rather than stored values."""

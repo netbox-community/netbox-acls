@@ -9,6 +9,28 @@ from netbox.tables import NetBoxTable, PrimaryModelTable, columns
 
 from .models import AccessList, ACLAssignment, ACLExtendedRule, ACLStandardRule
 
+
+class LogOptionsColumn(columns.TemplateColumn):
+    """
+    Display each log option as a colored badge.
+    """
+
+    template_code = """
+    {% for label, color in record.log_options_badges %}
+      {% badge label bg_color=color %}
+    {% empty %}
+      {{ ''|placeholder }}
+    {% endfor %}
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(template_code=self.template_code, orderable=False, **kwargs)
+
+    def value(self, value):
+        """Export the labels rather than the rendered badges."""
+        return ", ".join(value)
+
+
 __all__ = (
     "ACLAssignmentTable",
     "ACLExtendedRuleTable",
@@ -158,6 +180,14 @@ class ACLRuleTable(PrimaryModelTable):
         linkify=True,
     )
 
+    # Logging
+    log_matches = columns.BooleanColumn(
+        verbose_name=_("Log Matches"),
+    )
+    log_options_list = LogOptionsColumn(
+        verbose_name=_("Log Options"),
+    )
+
     class Meta(PrimaryModelTable.Meta):
         fields = (
             "pk",
@@ -168,6 +198,8 @@ class ACLRuleTable(PrimaryModelTable):
             "remark",
             "source",
             "source_type",
+            "log_matches",
+            "log_options_list",
             "description",
             "tags",
             "comments",
@@ -178,6 +210,7 @@ class ACLRuleTable(PrimaryModelTable):
             "action",
             "remark",
             "source",
+            "log_matches",
         )
 
 
@@ -243,4 +276,5 @@ class ACLExtendedRuleTable(ACLRuleTable):
             "source_port_ranges_list",
             "destination",
             "destination_port_ranges_list",
+            "log_matches",
         )

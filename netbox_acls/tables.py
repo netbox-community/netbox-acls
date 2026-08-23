@@ -199,28 +199,12 @@ class ACLExtendedRuleTable(ACLRuleTable):
     Defines the table view for the ACLExtendedRule model.
     """
 
-    access_list = tables.Column(
-        linkify=True,
-    )
-    sequence = tables.Column(
-        verbose_name=_("Seq"),
-        linkify=True,
-    )
-    action = columns.ChoiceFieldColumn()
     tags = columns.TagColumn(
         url_name="plugins:netbox_acls:aclextendedrule_list",
     )
     protocol = columns.ChoiceFieldColumn()
 
     # Source
-    source_type = columns.ContentTypeColumn(
-        verbose_name=_("Source Type"),
-    )
-    source = tables.Column(
-        verbose_name=_("Source"),
-        orderable=False,
-        linkify=True,
-    )
     source_port_ranges_list = columns.ArrayColumn(
         verbose_name=_("Source Ports"),
         orderable=False,

@@ -12,17 +12,18 @@ from ...choices import (
     ACLTypeChoices,
 )
 from ...constants import ACL_ASSIGNMENT_MODELS
-from ...forms import ACLAssignmentBulkEditForm, ACLAssignmentForm
+from ...forms import ACLAssignmentBulkEditForm, ACLAssignmentFilterForm, ACLAssignmentForm
 from ...models import AccessList
-from .base import BulkEditFieldsetTestMixin
+from .base import BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin
 
 UNRESOLVABLE_CONTENT_TYPE_ID = 99999999
 
 
-class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, TestCase):
+class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin, TestCase):
     """Form tests for ACLAssignment forms."""
 
     bulk_edit_form = ACLAssignmentBulkEditForm
+    filter_form = ACLAssignmentFilterForm
 
     @classmethod
     def setUpTestData(cls):

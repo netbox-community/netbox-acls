@@ -39,7 +39,7 @@ class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         )
 
         # create() rather than bulk_create(), because save() is what runs
-        # cache_related_source_object() to populate the _source_* shadow columns
+        # cache_related_objects() to populate the _source_* shadow columns
         # that the source_prefix and friends filters actually query.
         ACLStandardRule.objects.create(
             access_list=cls.access_list,
@@ -107,6 +107,21 @@ class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 5)
         params = {"access_list": [self.access_list.name]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 5)
+
+    def test_access_list_filter_accepts_any_acl_type(self):
+        """
+        The standard rule filters accept an extended access list while the extended rule
+        filters reject a standard one. Pinned so the asymmetry cannot change unnoticed.
+        """
+        extended_acl = AccessList.objects.create(
+            name="anextendedacl",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        filterset = self.filterset({}, self.queryset)
+        self.assertIn(extended_acl, filterset.filters["access_list"].queryset)
+        self.assertIn(extended_acl, filterset.filters["access_list_id"].queryset)
 
     def test_sequence(self):
         params = {"sequence": [10, 20]}

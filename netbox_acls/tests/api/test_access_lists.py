@@ -1,4 +1,5 @@
 from django.contrib.contenttypes.models import ContentType
+from rest_framework import status
 
 from dcim.choices import InterfaceTypeChoices
 from dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
@@ -9,9 +10,10 @@ from ...choices import (
     ACLActionChoices,
     ACLAssignmentDirectionChoices,
     ACLFamilyChoices,
+    ACLRuleActionChoices,
     ACLTypeChoices,
 )
-from ...models import AccessList, ACLAssignment
+from ...models import AccessList, ACLAssignment, ACLStandardRule
 
 
 class AccessListAPIViewTestCase(APIViewTestCases.APIViewTestCase):
@@ -71,6 +73,54 @@ class AccessListAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         cls.bulk_update_data = {
             "comments": "Rule bulk update",
         }
+
+    def test_type_change_blocked_when_rules_exist(self):
+        """
+        The rule is created here rather than in setUpTestData, so the generic
+        battery still sees access lists that carry none.
+        """
+        self.add_permissions("netbox_acls.change_accesslist")
+        access_list = AccessList.objects.get(name="testacl1")
+        ACLStandardRule.objects.create(
+            access_list=access_list,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+        )
+        response = self.client.patch(
+            self._get_detail_url(access_list),
+            {"type": ACLTypeChoices.TYPE_EXTENDED},
+            format="json",
+            **self.header,
+        )
+        self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data["type"],
+            ["This ACL has ACL rules associated, CANNOT change ACL type."],
+        )
+
+    def test_simultaneous_type_and_family_change_reports_type_only(self):
+        """
+        The model raises on the type guard before it evaluates family, so a client
+        changing both is told about them one at a time.
+        """
+        self.add_permissions("netbox_acls.change_accesslist")
+        access_list = AccessList.objects.get(name="testacl1")
+        ACLStandardRule.objects.create(
+            access_list=access_list,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+        )
+        response = self.client.patch(
+            self._get_detail_url(access_list),
+            {
+                "type": ACLTypeChoices.TYPE_EXTENDED,
+                "family": ACLFamilyChoices.FAMILY_IPV6,
+            },
+            format="json",
+            **self.header,
+        )
+        self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(list(response.data), ["type"])
 
 
 class ACLAssignmentAPIViewTestCase(APIViewTestCases.APIViewTestCase):

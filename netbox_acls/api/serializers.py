@@ -4,7 +4,6 @@ while Django itself handles the database abstraction.
 """
 
 from django.contrib.contenttypes.models import ContentType
-from django.utils.translation import gettext_lazy as _
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -28,14 +27,9 @@ __all__ = [
     "AccessListSerializer",
 ]
 
-# Sets a standard error message for ACL rules with an action of remark, but no remark set.
-error_message_no_remark = _("Action is set to remark, you MUST add a remark.")
-# Sets a standard error message for ACL rules with an action of remark, but no source is set.
-error_message_action_remark_source_set = _("Action is set to remark, Source CANNOT be set.")
-# Sets a standard error message for ACL rules with an action not set to remark, but no remark is set.
-error_message_remark_without_action_remark = _("CANNOT set remark unless action is set to remark.")
-# Sets a standard error message for ACL rules no associated with an ACL of the same type.
-error_message_acl_type = _("Provided parent Access List is not of right type.")
+#
+# Access Lists
+#
 
 
 class AccessListSerializer(PrimaryModelSerializer):
@@ -73,35 +67,10 @@ class AccessListSerializer(PrimaryModelSerializer):
         )
         brief_fields = ("id", "url", "display", "name")
 
-    def validate(self, data):
-        """
-        Validates api inputs before processing:
-          - Check if Access List has no existing rules before changing the Access List's family.
-          - Check if Access List has no existing rules before changing the Access List's type.
-        """
-        error_message = {}
 
-        if self.instance:
-            target_family = data.get("family", self.instance.family)
-            target_type = data.get("type", self.instance.type)
-            has_rules = getattr(self.instance, "rule_count", 0) > 0
-
-            # Check if Access List has no existing rules before change the Access List's family.
-            if self.instance.family != target_family and has_rules:
-                error_message["family"] = [
-                    _("This ACL has ACL rules associated, CANNOT change ACL family."),
-                ]
-
-            # Check if Access List has no existing rules before change the Access List's type.
-            if self.instance.type != target_type and has_rules:
-                error_message["type"] = [
-                    _("This ACL has ACL rules associated, CANNOT change ACL type."),
-                ]
-
-        if error_message:
-            raise serializers.ValidationError(error_message)
-
-        return super().validate(data)
+#
+# ACL Assignments
+#
 
 
 class ACLAssignmentSerializer(OwnerMixin, NetBoxModelSerializer):
@@ -147,14 +116,19 @@ class ACLAssignmentSerializer(OwnerMixin, NetBoxModelSerializer):
         brief_fields = ("id", "url", "display", "access_list")
 
 
-class ACLStandardRuleSerializer(PrimaryModelSerializer):
+#
+# Access List Rules
+#
+
+
+class ACLRuleSerializerMixin(serializers.Serializer):
     """
-    Defines the serializer for the django ACLStandardRule model and associates it with a view.
+    Fields and brief fields shared by both concrete rule serializers.
+
+    Validation belongs to the models, which full_clean() reaches through
+    ValidatedModelSerializer.
     """
 
-    url = serializers.HyperlinkedIdentityField(
-        view_name="plugins-api:netbox_acls-api:aclstandardrule-detail",
-    )
     access_list = AccessListSerializer(nested=True, required=True)
     source_type = ContentTypeField(
         queryset=ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS),
@@ -170,6 +144,25 @@ class ACLStandardRuleSerializer(PrimaryModelSerializer):
     source = GFKSerializerField(read_only=True)
 
     class Meta:
+        brief_fields = (
+            "id",
+            "url",
+            "display",
+            "access_list",
+            "sequence",
+        )
+
+
+class ACLStandardRuleSerializer(ACLRuleSerializerMixin, PrimaryModelSerializer):
+    """
+    Defines the serializer for the django ACLStandardRule model and associates it with a view.
+    """
+
+    url = serializers.HyperlinkedIdentityField(
+        view_name="plugins-api:netbox_acls-api:aclstandardrule-detail",
+    )
+
+    class Meta(ACLRuleSerializerMixin.Meta):
         """
         Associates the django model ACLStandardRule & fields with the serializer.
         """
@@ -194,41 +187,9 @@ class ACLStandardRuleSerializer(PrimaryModelSerializer):
             "custom_fields",
             "last_updated",
         )
-        brief_fields = (
-            "id",
-            "url",
-            "display",
-            "access_list",
-            "sequence",
-        )
-
-    def validate(self, data):
-        """
-        Validate the ACLStandardRule django model's inputs before allowing it to update the instance:
-          - Check if action set to remark, but no remark set.
-          - Check if action set to remark, but source set.
-        """
-        error_message = {}
-
-        if data.get("action") == "remark":
-            # Check if action set to remark, but no remark set.
-            if data.get("remark") is None:
-                error_message["remark"] = [
-                    error_message_no_remark,
-                ]
-            # Check if action set to remark, but the source set.
-            if data.get("source"):
-                error_message["source"] = [
-                    error_message_action_remark_source_set,
-                ]
-
-        if error_message:
-            raise serializers.ValidationError(error_message)
-
-        return super().validate(data)
 
 
-class ACLExtendedRuleSerializer(PrimaryModelSerializer):
+class ACLExtendedRuleSerializer(ACLRuleSerializerMixin, PrimaryModelSerializer):
     """
     Defines the serializer for the django ACLExtendedRule model and associates it with a view.
     """
@@ -236,19 +197,6 @@ class ACLExtendedRuleSerializer(PrimaryModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name="plugins-api:netbox_acls-api:aclextendedrule-detail",
     )
-    access_list = AccessListSerializer(nested=True, required=True)
-    source_type = ContentTypeField(
-        queryset=ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS),
-        required=False,
-        default=None,
-        allow_null=True,
-    )
-    source_id = serializers.IntegerField(
-        required=False,
-        default=None,
-        allow_null=True,
-    )
-    source = GFKSerializerField(read_only=True)
     source_port_ranges = IntegerRangeSerializer(many=True, required=False)
     source_port_terms = serializers.SerializerMethodField(read_only=True)
     destination_type = ContentTypeField(
@@ -266,7 +214,7 @@ class ACLExtendedRuleSerializer(PrimaryModelSerializer):
     destination_port_ranges = IntegerRangeSerializer(many=True, required=False)
     destination_port_terms = serializers.SerializerMethodField(read_only=True)
 
-    class Meta:
+    class Meta(ACLRuleSerializerMixin.Meta):
         """
         Associates the django model ACLExtendedRule & fields to the serializer.
         """
@@ -299,13 +247,6 @@ class ACLExtendedRuleSerializer(PrimaryModelSerializer):
             "custom_fields",
             "last_updated",
         )
-        brief_fields = (
-            "id",
-            "url",
-            "display",
-            "access_list",
-            "sequence",
-        )
 
     @extend_schema_field({"type": "array", "items": {"type": "string"}})
     def get_destination_port_terms(self, obj):
@@ -320,52 +261,3 @@ class ACLExtendedRuleSerializer(PrimaryModelSerializer):
         Fetches the source port terms for the given object.
         """
         return obj.source_port_ranges_list
-
-    def validate(self, data):
-        """
-        Validate the ACLExtendedRule django model's inputs before allowing it to update the instance:
-          - Check if action set to remark, but no remark set.
-          - Check if action set to remark, but source set.
-          - Check if action set to remark, but source_port_ranges set.
-          - Check if action set to remark, but destination set.
-          - Check if action set to remark, but destination_port_ranges set.
-          - Check if action set to remark, but protocol set.
-        """
-        error_message = {}
-
-        if data.get("action") == "remark":
-            # Check if action set to remark, but no remark set.
-            if data.get("remark") is None:
-                error_message["remark"] = [
-                    error_message_no_remark,
-                ]
-            # Check if action set to remark, but the source set.
-            if data.get("source"):
-                error_message["source"] = [
-                    error_message_action_remark_source_set,
-                ]
-            # Check if action set to remark, but source_port_ranges set.
-            if data.get("source_port_ranges"):
-                error_message["source_port_ranges"] = [
-                    _("Action is set to remark, Source Ports CANNOT be set."),
-                ]
-            # Check if action set to remark, but destination set.
-            if data.get("destination"):
-                error_message["destination"] = [
-                    _("Action is set to remark, Destination Prefix CANNOT be set."),
-                ]
-            # Check if action set to remark, but destination_port_ranges set.
-            if data.get("destination_port_ranges"):
-                error_message["destination_port_ranges"] = [
-                    _("Action is set to remark, Destination Ports CANNOT be set."),
-                ]
-            # Check if action set to remark, but protocol set.
-            if data.get("protocol"):
-                error_message["protocol"] = [
-                    _("Action is set to remark, Protocol CANNOT be set."),
-                ]
-
-        if error_message:
-            raise serializers.ValidationError(error_message)
-
-        return super().validate(data)

@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 
-from ...choices import ACLActionChoices, ACLFamilyChoices, ACLTypeChoices
+from ...choices import ACLActionChoices, ACLFamilyChoices, ACLRuleActionChoices, ACLTypeChoices
 from ...models import AccessList, ACLStandardRule
 from .base import BaseTestCase
 
@@ -388,3 +388,25 @@ class TestACLStandardRule(BaseTestCase):
         )
         with self.assertRaises(ValidationError):
             invalid_rule.full_clean()
+
+    def test_switching_the_source_clears_the_stale_shadow_column(self):
+        """Test that re-saving with a new source type nulls the column the old type filled."""
+        rule = ACLStandardRule.objects.create(
+            access_list=self.standard_acl1,
+            sequence=910,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+        )
+        self.assertEqual(self._cached_sources(rule)["_source_prefix"], self.prefix1.pk)
+
+        rule.source = self.ip_address1
+        rule.save()
+
+        cached = self._cached_sources(rule)
+        self.assertIsNone(cached["_source_prefix"])
+        self.assertEqual(cached["_source_ipaddress"], self.ip_address1.pk)
+
+    @staticmethod
+    def _cached_sources(rule):
+        """Read the shadow columns back from the database, which is what the filters query."""
+        return ACLStandardRule.objects.filter(pk=rule.pk).values("_source_prefix", "_source_ipaddress").get()

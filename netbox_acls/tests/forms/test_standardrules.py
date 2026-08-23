@@ -3,16 +3,17 @@ from django.test import TestCase
 
 from ...choices import ACLActionChoices, ACLFamilyChoices, ACLRuleActionChoices, ACLTypeChoices
 from ...constants import ACL_RULE_SOURCE_DESTINATION_MODELS
-from ...forms import ACLStandardRuleBulkEditForm, ACLStandardRuleForm
-from ...models import AccessList
+from ...forms import ACLStandardRuleBulkEditForm, ACLStandardRuleFilterForm, ACLStandardRuleForm
+from ...models import AccessList, ACLStandardRule
 from ..views.base import build_ipam_objects
-from .base import BulkEditFieldsetTestMixin
+from .base import BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin
 
 
-class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, TestCase):
+class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin, TestCase):
     """Form tests for ACLStandardRule forms."""
 
     bulk_edit_form = ACLStandardRuleBulkEditForm
+    filter_form = ACLStandardRuleFilterForm
 
     @classmethod
     def setUpTestData(cls):
@@ -35,6 +36,49 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, TestCase):
                 "source": source.pk,
             },
         )
+
+    def _rule(self, sequence):
+        return ACLStandardRule.objects.create(
+            access_list=self.access_list,
+            sequence=sequence,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix,
+        )
+
+    def test_instance_seeds_the_source_field(self):
+        """An existing rule's source reaches the form as its initial value."""
+        form = ACLStandardRuleForm(instance=self._rule(10))
+        self.assertEqual(form.initial["source"], self.prefix)
+
+    def test_changing_the_source_type_clears_the_source(self):
+        """Switching type while editing drops the object the old type selected."""
+        rule = self._rule(20)
+        form = ACLStandardRuleForm(
+            data={
+                "access_list": self.access_list.pk,
+                "sequence": 20,
+                "action": ACLRuleActionChoices.ACTION_PERMIT,
+                "source_type": ContentType.objects.get_for_model(self.ip_address).pk,
+            },
+            instance=rule,
+        )
+        self.assertIsNone(form.initial["source"])
+
+    def test_editing_clears_the_source_even_when_the_type_is_unchanged(self):
+        """Test that an edit drops the selected source whether or not its type changed."""
+        # Pins a defect: the posted type is text and never equals the integer id.
+        rule = self._rule(30)
+        form = ACLStandardRuleForm(
+            data={
+                "access_list": str(self.access_list.pk),
+                "sequence": "30",
+                "action": ACLRuleActionChoices.ACTION_PERMIT,
+                "source_type": str(ContentType.objects.get_for_model(self.prefix).pk),
+                "source": str(self.prefix.pk),
+            },
+            instance=rule,
+        )
+        self.assertIsNone(form.initial["source"])
 
     def test_bulkedit_access_list_filtered_to_standard(self):
         """Guard the standard bulk-edit picker the extended form (#360) was copied from."""
@@ -82,3 +126,39 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, TestCase):
         )
         self.assertEqual(form.fields["source"].queryset.model, type(self.prefix))
         self.assertFalse(form.fields["source"].disabled)
+
+    def test_bulkedit_source_type_widget_swaps_the_form_fields(self):
+        """Test that the bulk-edit type picker posts and swaps, unlike the model form's picker."""
+        attrs = ACLStandardRuleBulkEditForm().fields["source_type"].widget.attrs
+        self.assertEqual(attrs["hx-post"], ".")
+        self.assertEqual(attrs["hx-select"], "#form_fields")
+
+    def test_bulkedit_source_label_follows_type(self):
+        """Test that the resolved label names the role and the selected model."""
+        form = ACLStandardRuleBulkEditForm(
+            data={"source_type": ContentType.objects.get_for_model(self.ip_range).pk},
+        )
+        self.assertEqual(form.fields["source"].label, "Source IP Range")
+
+    def test_bulkedit_nullable_fields(self):
+        """Test that the nullable list stays exhaustive for this form."""
+        self.assertEqual(
+            ACLStandardRuleBulkEditForm.nullable_fields,
+            ("remark", "source_type", "source", "description", "comments"),
+        )
+
+    def test_filterform_carries_no_extended_filters(self):
+        """Test that the shared mixin leaks no extended-only filter into the standard form."""
+        form = ACLStandardRuleFilterForm()
+        for name in ("protocol", "source_port", "destination_port"):
+            self.assertNotIn(name, form.fields)
+        for model_name in ("aggregate", "ipaddress", "iprange", "prefix"):
+            self.assertNotIn(f"destination_{model_name}_id", form.fields)
+
+    def test_filterform_access_list_filtered_to_standard(self):
+        """Test that the filter form's Access List picker filters to Standard ACLs."""
+        form = ACLStandardRuleFilterForm()
+        self.assertEqual(
+            form.fields["access_list_id"].query_params,
+            {"type": ACLTypeChoices.TYPE_STANDARD},
+        )

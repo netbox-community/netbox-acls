@@ -12,16 +12,17 @@ from ...choices import (
     ACLTypeChoices,
 )
 from ...constants import ACL_RULE_SOURCE_DESTINATION_MODELS
-from ...forms import ACLExtendedRuleBulkEditForm, ACLExtendedRuleForm
-from ...models import AccessList
+from ...forms import ACLExtendedRuleBulkEditForm, ACLExtendedRuleFilterForm, ACLExtendedRuleForm
+from ...models import AccessList, ACLExtendedRule
 from ..views.base import build_ipam_objects
-from .base import BulkEditFieldsetTestMixin
+from .base import BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin
 
 
-class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, TestCase):
+class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin, TestCase):
     """Form tests for ACLExtendedRule forms."""
 
     bulk_edit_form = ACLExtendedRuleBulkEditForm
+    filter_form = ACLExtendedRuleFilterForm
 
     @classmethod
     def setUpTestData(cls):
@@ -48,6 +49,39 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, TestCase):
         }
         data.update(overrides)
         return ACLExtendedRuleForm(data=data)
+
+    def _rule(self, sequence):
+        return ACLExtendedRule.objects.create(
+            access_list=self.access_list,
+            sequence=sequence,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix,
+            destination=self.destination_prefix,
+        )
+
+    def test_instance_seeds_both_object_fields(self):
+        """Both roles reach the form as initial values, not just the source."""
+        form = ACLExtendedRuleForm(instance=self._rule(10))
+        self.assertEqual(form.initial["source"], self.prefix)
+        self.assertEqual(form.initial["destination"], self.destination_prefix)
+
+    def test_editing_clears_both_object_fields(self):
+        """Test that an edit drops both selected objects, including the unchanged role."""
+        # Pins a defect: the posted type is text and never equals the integer id.
+        rule = self._rule(20)
+        form = ACLExtendedRuleForm(
+            data={
+                "access_list": str(self.access_list.pk),
+                "sequence": "20",
+                "action": ACLRuleActionChoices.ACTION_PERMIT,
+                "source_type": str(ContentType.objects.get_for_model(Prefix).pk),
+                "source": str(self.prefix.pk),
+                "destination_type": str(ContentType.objects.get_for_model(self.ip_address).pk),
+            },
+            instance=rule,
+        )
+        self.assertIsNone(form.initial["destination"])
+        self.assertIsNone(form.initial["source"])
 
     def test_bulkedit_access_list_filtered_to_extended(self):
         """#360: the extended bulk-edit Access List picker must filter to Extended ACLs."""
@@ -135,3 +169,46 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, TestCase):
         )
         self.assertEqual(instance.source_port_ranges_list, ["80-81"])
         self.assertEqual(instance.destination_port_ranges_list, ["8080-8081"])
+
+    def test_bulkedit_type_widgets_swap_the_form_fields(self):
+        """Test that both bulk-edit type pickers post and swap, for either role."""
+        form = ACLExtendedRuleBulkEditForm()
+        for role in ("source", "destination"):
+            with self.subTest(role=role):
+                attrs = form.fields[f"{role}_type"].widget.attrs
+                self.assertEqual(attrs["hx-post"], ".")
+                self.assertEqual(attrs["hx-select"], "#form_fields")
+
+    def test_bulkedit_labels_follow_type(self):
+        """Test that each role's resolved label names that role, so the two cannot be confused."""
+        form = ACLExtendedRuleBulkEditForm(
+            data={
+                "source_type": ContentType.objects.get_for_model(self.ip_range).pk,
+                "destination_type": ContentType.objects.get_for_model(self.aggregate).pk,
+            },
+        )
+        self.assertEqual(form.fields["source"].label, "Source IP Range")
+        self.assertEqual(form.fields["destination"].label, "Destination Aggregate")
+
+    def test_bulkedit_nullable_fields(self):
+        """Test that the nullable list stays exhaustive for this form."""
+        self.assertEqual(
+            ACLExtendedRuleBulkEditForm.nullable_fields,
+            (
+                "remark",
+                "source_type",
+                "source",
+                "destination_type",
+                "destination",
+                "description",
+                "comments",
+            ),
+        )
+
+    def test_filterform_access_list_filtered_to_extended(self):
+        """Test that the filter form's Access List picker filters to Extended ACLs."""
+        form = ACLExtendedRuleFilterForm()
+        self.assertEqual(
+            form.fields["access_list_id"].query_params,
+            {"type": ACLTypeChoices.TYPE_EXTENDED},
+        )

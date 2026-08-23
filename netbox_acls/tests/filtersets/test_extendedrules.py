@@ -10,6 +10,7 @@ from ...choices import (
     ACLFamilyChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
+    ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
 from ...filtersets import ACLExtendedRuleFilterSet
@@ -70,6 +71,8 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
             destination_port_ranges=normalize_port_ranges([NumericRange(80, 80, bounds="[]")]),
             description="permit web",
             comments="reviewed quarterly",
+            log_matches=True,
+            log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG],
         )
         ACLExtendedRule.objects.create(
             access_list=cls.access_list,
@@ -274,4 +277,12 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         params = {"protocol": ACLProtocolChoices.PROTOCOL_TCP}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
         params = {"protocol": ACLProtocolChoices.PROTOCOL_UDP}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_log_matches(self):
+        params = {"log_matches": True}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_log_options(self):
+        params = {"log_options": ["syslog"]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)

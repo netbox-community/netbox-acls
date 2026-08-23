@@ -1,6 +1,12 @@
 from django.core.exceptions import ValidationError
 
-from ...choices import ACLActionChoices, ACLFamilyChoices, ACLRuleActionChoices, ACLTypeChoices
+from ...choices import (
+    ACLActionChoices,
+    ACLFamilyChoices,
+    ACLRuleActionChoices,
+    ACLRuleLogOptionChoices,
+    ACLTypeChoices,
+)
 from ...models import AccessList, ACLStandardRule
 from .base import BaseTestCase
 
@@ -410,3 +416,173 @@ class TestACLStandardRule(BaseTestCase):
     def _cached_sources(rule):
         """Read the shadow columns back from the database, which is what the filters query."""
         return ACLStandardRule.objects.filter(pk=rule.pk).values("_source_prefix", "_source_ipaddress").get()
+
+    def test_logging_defaults_to_disabled(self):
+        """Test that a new rule logs nothing until asked to."""
+        rule = ACLStandardRule(
+            access_list=self.standard_acl1,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+        )
+        self.assertFalse(rule.log_matches)
+        self.assertEqual(rule.log_options, [])
+
+    def test_log_options_require_log_matches(self):
+        """Test that options are rejected while logging is disabled."""
+        rule = ACLStandardRule(
+            access_list=self.standard_acl1,
+            sequence=30,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+            log_matches=False,
+            log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG],
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertIn("log_options", ctx.exception.message_dict)
+
+    def test_remark_rule_rejects_logging(self):
+        """Test that a remark cannot request logging, since it matches nothing."""
+        rule = ACLStandardRule(
+            access_list=self.standard_acl1,
+            sequence=40,
+            action=ACLRuleActionChoices.ACTION_REMARK,
+            remark="Remark",
+            log_matches=True,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertIn("log_matches", ctx.exception.message_dict)
+
+    def test_remark_logging_errors_accumulate_with_other_remark_errors(self):
+        """Test that a malformed remark reports every offending field at once."""
+        rule = ACLStandardRule(
+            access_list=self.standard_acl1,
+            sequence=50,
+            action=ACLRuleActionChoices.ACTION_REMARK,
+            remark="",
+            log_matches=True,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertIn("remark", ctx.exception.message_dict)
+        self.assertIn("log_matches", ctx.exception.message_dict)
+
+    def test_log_matches_without_options_is_valid(self):
+        """Test that enabling logging without naming a destination is allowed."""
+        rule = ACLStandardRule(
+            access_list=self.standard_acl1,
+            sequence=70,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+            log_matches=True,
+        )
+        rule.full_clean()
+
+    def test_logging_defaults_persist_as_disabled(self):
+        """Test that the stored default is disabled with no options."""
+        rule = ACLStandardRule.objects.create(
+            access_list=self.standard_acl1,
+            sequence=80,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+        )
+        rule.refresh_from_db()
+        self.assertFalse(rule.log_matches)
+        self.assertEqual(rule.log_options, [])
+
+    def test_clone_carries_the_logging_state(self):
+        """Test that cloning reproduces the logging values, not just the field names."""
+        rule = ACLStandardRule(
+            access_list=self.standard_acl1,
+            sequence=90,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+            log_matches=True,
+            log_options=[
+                ACLRuleLogOptionChoices.OPTION_SYSLOG,
+                ACLRuleLogOptionChoices.OPTION_CISCO_LOG_INPUT,
+            ],
+        )
+        rule.full_clean()
+        rule.save()
+
+        attrs = rule.clone()
+        self.assertTrue(attrs["log_matches"])
+        self.assertEqual(attrs["log_options"], ["cisco-log-input", "syslog"])
+
+    def test_unsupported_log_option_is_rejected(self):
+        """Test that a value outside the choice set fails validation."""
+        rule = ACLStandardRule(
+            access_list=self.standard_acl1,
+            sequence=95,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+            log_matches=True,
+            log_options=["not-a-real-option"],
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertIn("log_options", ctx.exception.message_dict)
+
+    def test_log_options_list_renders_display_values(self):
+        """Test that the display helper resolves labels and passes through unknown values."""
+        rule = ACLStandardRule(
+            log_options=["syslog", "vendor-x-future-option"],
+        )
+        self.assertEqual(
+            rule.log_options_list,
+            ["Syslog", "vendor-x-future-option"],
+        )
+
+    def test_log_options_badges_pair_labels_with_colors(self):
+        """Test that the badge helper pairs each label with its color, leaving unknown values uncolored."""
+        rule = ACLStandardRule(
+            log_options=["syslog", "vendor-x-future-option"],
+        )
+        self.assertEqual(
+            rule.log_options_badges,
+            [("Syslog", "blue"), ("vendor-x-future-option", None)],
+        )
+
+    def test_remark_rule_rejects_log_options(self):
+        """Test that a remark reports the remark error rather than the master-switch one."""
+        rule = ACLStandardRule(
+            access_list=self.standard_acl1,
+            sequence=45,
+            action=ACLRuleActionChoices.ACTION_REMARK,
+            remark="Remark",
+            log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG],
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertEqual(
+            ctx.exception.message_dict["log_options"],
+            ["When the action is 'remark', Log options must not be set."],
+        )
+
+    def test_log_options_are_composable_and_canonicalized(self):
+        """Test that options combine, deduplicate and reach the database sorted."""
+        rule = ACLStandardRule(
+            access_list=self.standard_acl1,
+            sequence=20,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+            log_matches=True,
+            log_options=[
+                ACLRuleLogOptionChoices.OPTION_SYSLOG,
+                ACLRuleLogOptionChoices.OPTION_CISCO_LOG_INPUT,
+                ACLRuleLogOptionChoices.OPTION_SYSLOG,
+            ],
+        )
+        rule.full_clean()
+        rule.save()
+        rule.refresh_from_db()
+        self.assertEqual(
+            rule.log_options,
+            [
+                ACLRuleLogOptionChoices.OPTION_CISCO_LOG_INPUT,
+                ACLRuleLogOptionChoices.OPTION_SYSLOG,
+            ],
+        )

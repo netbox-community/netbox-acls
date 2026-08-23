@@ -4,7 +4,7 @@ Defines each django model's GUI form to import objects in bulk.
 
 from django import forms
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ValidationError
+from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from netbox.forms import NetBoxModelImportForm, OwnerCSVMixin, PrimaryModelImportForm
@@ -38,7 +38,6 @@ from ..models import AccessList, ACLAssignment, ACLExtendedRule, ACLStandardRule
 __all__ = (
     "ACLAssignmentImportForm",
     "ACLExtendedRuleImportForm",
-    "ACLRuleImportFormMixin",
     "ACLStandardRuleImportForm",
     "AccessListImportForm",
 )
@@ -79,9 +78,155 @@ class AccessListImportForm(PrimaryModelImportForm):
             "comments",
             "tags",
         )
+        help_texts = {
+            "name": _("Name of the access list. Letters, numbers, underscores and hyphens only."),
+        }
 
 
-class ACLAssignmentImportForm(OwnerCSVMixin, NetBoxModelImportForm):
+class ObjectImportMixin(forms.Form):
+    """
+    Resolve <role>_type plus a value column into the <role>_id the model stores.
+
+    The value column is plain text and is resolved in clean(), so nothing depends on the
+    row's content type at build time.
+    """
+
+    object_roles: tuple = ()
+    # role -> {content type: field the value is looked up by, or None when ID only}
+    object_lookups: dict = {}
+    # role -> {content type: query path to the parent that makes the value unique}
+    object_parents: dict = {}
+
+    def clean(self):
+        super().clean()
+
+        for role in self.object_roles:
+            self._resolve_object(role)
+
+        return self.cleaned_data
+
+    def _error_field(self, *candidates):
+        """
+        Pick the first column the row still carries, since add_error rejects a deleted one.
+        """
+        return next((name for name in candidates if name in self.fields), NON_FIELD_ERRORS)
+
+    def _resolve_object(self, role):
+        """
+        Resolve one role's columns into the object ID the model stores.
+        """
+        type_field, id_field = f"{role}_type", f"{role}_id"
+        parent_field = f"{role}_parent"
+        object_type = self.cleaned_data.get(type_field)
+        value = self.cleaned_data.get(role)
+        object_id = self.cleaned_data.get(id_field)
+        parent = self.cleaned_data.get(parent_field)
+
+        if value and object_id:
+            raise ValidationError(
+                {role: _("{role} and {id_field} are mutually exclusive.").format(role=role, id_field=id_field)},
+            )
+
+        if object_id and parent:
+            raise ValidationError(
+                {
+                    parent_field: _("{parent_field} qualifies {role}, so it cannot be given with {id_field}.").format(
+                        parent_field=parent_field,
+                        role=role,
+                        id_field=id_field,
+                    ),
+                },
+            )
+
+        # BulkImportView drops the columns an update row omits, leaving the stored relation alone.
+        if object_type is None:
+            # A supplied but unresolvable type has already reported itself.
+            if self.data.get(type_field):
+                return
+            if value or parent:
+                raise ValidationError(
+                    {
+                        self._error_field(role, parent_field): _(
+                            "{type_field} must be specified when using {role}."
+                        ).format(type_field=type_field, role=role),
+                    },
+                )
+            if object_id and type_field in self.fields:
+                raise ValidationError(
+                    {
+                        type_field: _("{type_field} must be specified when using {id_field}.").format(
+                            type_field=type_field,
+                            id_field=id_field,
+                        ),
+                    },
+                )
+            return
+
+        model = object_type.model_class()
+        name = model._meta.verbose_name
+        label = object_type_identifier(object_type)
+        lookup = self.object_lookups[role][label]
+        parent_lookup = self.object_parents.get(role, {}).get(label)
+
+        if not (value or object_id):
+            raise ValidationError(
+                {
+                    self._error_field(role, type_field): _("Select a {model}, or give its ID in {id_field}.").format(
+                        model=name, id_field=id_field
+                    ),
+                },
+            )
+
+        if parent and not parent_lookup:
+            raise ValidationError(
+                {parent_field: _("{model} objects have no parent qualifier.").format(model=name)},
+            )
+
+        if value and lookup is None:
+            raise ValidationError(
+                {
+                    role: _("{model} objects have no {role} value. Give the ID in {id_field}.").format(
+                        model=name,
+                        role=role,
+                        id_field=id_field,
+                    ),
+                },
+            )
+
+        if not value:
+            return
+
+        query = {lookup: value}
+        if parent:
+            query[parent_lookup] = parent
+
+        try:
+            self.cleaned_data[id_field] = model.objects.get(**query).pk
+        except model.DoesNotExist:
+            if parent:
+                message = _('{model} "{value}" not found on "{parent}".').format(
+                    model=name,
+                    value=value,
+                    parent=parent,
+                )
+            else:
+                message = _('{model} "{value}" not found.').format(model=name, value=value)
+            raise ValidationError({role: message})
+        except ValidationError as error:
+            raise ValidationError({role: error.messages[0]})
+        except model.MultipleObjectsReturned:
+            raise ValidationError(
+                {
+                    role: _('Multiple {model} objects match "{value}". Give the ID in {id_field}.').format(
+                        model=name,
+                        value=value,
+                        id_field=id_field,
+                    ),
+                },
+            )
+
+
+class ACLAssignmentImportForm(ObjectImportMixin, OwnerCSVMixin, NetBoxModelImportForm):
     """
     Import form for ACL Assignments.
     """
@@ -119,6 +264,10 @@ class ACLAssignmentImportForm(OwnerCSVMixin, NetBoxModelImportForm):
         help_text=_("Device, virtual chassis and virtual machine assignments are always stored as none."),
     )
 
+    object_roles = ("assigned_object",)
+    object_lookups = {"assigned_object": ACL_ASSIGNMENT_OBJECT_LOOKUPS}
+    object_parents = {"assigned_object": ACL_ASSIGNMENT_OBJECT_PARENT_LOOKUPS}
+
     class Meta:
         model = ACLAssignment
         # assigned_object is the GenericForeignKey's own name, which Django forbids here.
@@ -133,80 +282,8 @@ class ACLAssignmentImportForm(OwnerCSVMixin, NetBoxModelImportForm):
             "tags",
         )
 
-    def clean(self):
-        super().clean()
 
-        object_type = self.cleaned_data.get("assigned_object_type")
-        name = self.cleaned_data.get("assigned_object")
-        parent = self.cleaned_data.get("assigned_object_parent")
-        object_id = self.cleaned_data.get("assigned_object_id")
-
-        if name and object_id:
-            raise ValidationError(
-                {"assigned_object": _("assigned_object and assigned_object_id are mutually exclusive.")},
-            )
-
-        # BulkImportView drops the columns an update row omits, leaving the stored relation alone.
-        if object_type is None:
-            if name or parent:
-                raise ValidationError(
-                    {"assigned_object": _("assigned_object_type must be specified when using assigned_object.")},
-                )
-            return self.cleaned_data
-
-        model = object_type.model_class()
-        label = object_type_identifier(object_type)
-        parent_lookup = ACL_ASSIGNMENT_OBJECT_PARENT_LOOKUPS.get(label)
-
-        if not (name or object_id):
-            raise ValidationError(
-                {
-                    "assigned_object": _("Select a {model}, or give its ID in assigned_object_id.").format(
-                        model=model._meta.verbose_name,
-                    ),
-                },
-            )
-
-        if parent and not parent_lookup:
-            raise ValidationError(
-                {
-                    "assigned_object_parent": _("{model} objects have no parent qualifier.").format(
-                        model=model._meta.verbose_name,
-                    ),
-                },
-            )
-
-        if not name:
-            return self.cleaned_data
-
-        query = {ACL_ASSIGNMENT_OBJECT_LOOKUPS[label]: name}
-        if parent:
-            query[parent_lookup] = parent
-
-        try:
-            self.cleaned_data["assigned_object_id"] = model.objects.get(**query).pk
-        except model.DoesNotExist:
-            raise ValidationError(
-                {
-                    "assigned_object": _('{model} "{name}" not found.').format(
-                        model=model._meta.verbose_name,
-                        name=name,
-                    ),
-                },
-            )
-        except model.MultipleObjectsReturned:
-            raise ValidationError(
-                {
-                    "assigned_object": _(
-                        'Multiple {model} objects match "{name}". Give the ID in assigned_object_id.'
-                    ).format(model=model._meta.verbose_name, name=name),
-                },
-            )
-
-        return self.cleaned_data
-
-
-class ACLRuleImportFormMixin(forms.Form):
+class ACLRuleImportFormMixin(ObjectImportMixin):
     """
     Columns shared by both rule types.
     """
@@ -225,7 +302,9 @@ class ACLRuleImportFormMixin(forms.Form):
     source = forms.CharField(
         label=_("Source"),
         required=False,
-        help_text=_("Prefix, address or aggregate value. IP ranges are addressable by source_id only."),
+        help_text=_(
+            "Prefix, address or aggregate value, for example 10.0.0.0/8. IP ranges are addressable by source_id only."
+        ),
     )
     source_id = forms.IntegerField(
         label=_("Source ID"),
@@ -237,78 +316,13 @@ class ACLRuleImportFormMixin(forms.Form):
         choices=ACLRuleLogOptionChoices,
         required=False,
         help_text=_(
-            'Log option values separated by commas, encased with double quotes (e.g. "syslog,cisco-log-input").'
+            "Log option values separated by commas, encased with double quotes "
+            '(e.g. "syslog,cisco-log-input"). Requires log_matches.'
         ),
     )
 
     object_roles = ("source",)
-
-    def clean(self):
-        super().clean()
-
-        for role in self.object_roles:
-            self._resolve_object(role)
-
-        return self.cleaned_data
-
-    def _resolve_object(self, role):
-        """
-        Resolve one role's type and value columns into the object ID the model stores.
-        """
-        id_field = f"{role}_id"
-        object_type = self.cleaned_data.get(f"{role}_type")
-        value = self.cleaned_data.get(role)
-        object_id = self.cleaned_data.get(id_field)
-
-        if value and object_id:
-            raise ValidationError(
-                {role: _("{role} and {id_field} are mutually exclusive.").format(role=role, id_field=id_field)},
-            )
-
-        if object_type is None:
-            if value:
-                raise ValidationError(
-                    {role: _("{role}_type must be specified when using {role}.").format(role=role)},
-                )
-            return
-
-        model = object_type.model_class()
-        name = model._meta.verbose_name
-        lookup = ACL_RULE_OBJECT_LOOKUPS[object_type_identifier(object_type)]
-
-        if not (value or object_id):
-            raise ValidationError(
-                {role: _("Select a {model}, or give its ID in {id_field}.").format(model=name, id_field=id_field)},
-            )
-
-        if value and lookup is None:
-            raise ValidationError(
-                {
-                    role: _("{model} objects have no {role} value. Give the ID in {id_field}.").format(
-                        model=name,
-                        role=role,
-                        id_field=id_field,
-                    ),
-                },
-            )
-
-        if not value:
-            return
-
-        try:
-            self.cleaned_data[id_field] = model.objects.get(**{lookup: value}).pk
-        except model.DoesNotExist:
-            raise ValidationError({role: _('{model} "{value}" not found.').format(model=name, value=value)})
-        except model.MultipleObjectsReturned:
-            raise ValidationError(
-                {
-                    role: _('Multiple {model} objects match "{value}". Give the ID in {id_field}.').format(
-                        model=name,
-                        value=value,
-                        id_field=id_field,
-                    ),
-                },
-            )
+    object_lookups = {"source": ACL_RULE_OBJECT_LOOKUPS}
 
 
 class ACLStandardRuleImportForm(ACLRuleImportFormMixin, PrimaryModelImportForm):
@@ -340,6 +354,9 @@ class ACLStandardRuleImportForm(ACLRuleImportFormMixin, PrimaryModelImportForm):
             "comments",
             "tags",
         )
+        help_texts = {
+            "sequence": _("Rule order within the access list. Never assigned automatically on import."),
+        }
 
 
 class ACLExtendedRuleImportForm(ACLRuleImportFormMixin, PrimaryModelImportForm):
@@ -369,7 +386,10 @@ class ACLExtendedRuleImportForm(ACLRuleImportFormMixin, PrimaryModelImportForm):
     destination = forms.CharField(
         label=_("Destination"),
         required=False,
-        help_text=_("Prefix, address or aggregate value. IP ranges are addressable by destination_id only."),
+        help_text=_(
+            "Prefix, address or aggregate value, for example 10.0.0.0/8. "
+            "IP ranges are addressable by destination_id only."
+        ),
     )
     destination_id = forms.IntegerField(
         label=_("Destination ID"),
@@ -379,6 +399,10 @@ class ACLExtendedRuleImportForm(ACLRuleImportFormMixin, PrimaryModelImportForm):
     destination_port_ranges = NumericRangeArrayField(required=False)
 
     object_roles = ("source", "destination")
+    object_lookups = {
+        "source": ACL_RULE_OBJECT_LOOKUPS,
+        "destination": ACL_RULE_OBJECT_LOOKUPS,
+    }
 
     class Meta:
         model = ACLExtendedRule
@@ -402,3 +426,6 @@ class ACLExtendedRuleImportForm(ACLRuleImportFormMixin, PrimaryModelImportForm):
             "comments",
             "tags",
         )
+        help_texts = {
+            "sequence": _("Rule order within the access list. Never assigned automatically on import."),
+        }

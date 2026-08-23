@@ -393,6 +393,12 @@ class ACLAssignmentImportFormTestCase(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("Invalid object type", str(form.errors["assigned_object_type"]))
 
+    def test_a_rejected_type_does_not_also_accuse_the_object_column(self):
+        """Test that a failed type column is the only error, since the row did supply one."""
+        form = self._form(assigned_object_type="ipam.prefix")
+        self.assertFalse(form.is_valid())
+        self.assertEqual(set(form.errors), {"assigned_object_type"})
+
     def test_unknown_object_id_is_rejected(self):
         """Test that an ID matching no object is rejected."""
         form = self._form(assigned_object=None, assigned_object_id=str(UNRESOLVABLE_CONTENT_TYPE_ID))
@@ -459,4 +465,4 @@ class ACLAssignmentImportFormTestCase(TestCase):
             del form.fields[name]
 
         self.assertFalse(form.is_valid())
-        self.assertTrue(form.errors)
+        self.assertIn("assigned_object_parent", form.errors)

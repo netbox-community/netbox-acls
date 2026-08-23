@@ -461,6 +461,13 @@ class ACLStandardRuleImportFormTestCase(TestCase):
         self.assertTrue(form.is_valid(), form.errors)
         self.assertIsNone(form.save().source)
 
+    def test_a_malformed_source_value_names_the_source_column(self):
+        """A value the lookup field cannot parse is a column error, not a non-field error."""
+        form = self._form(source="not-an-ip")
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("Invalid IP address format", str(form.errors["source"]))
+
     def test_update_with_a_type_and_no_object_reports_a_field_error(self):
         """An update row naming a type but no object must be a field error, not an exception."""
         rule = self._form().save()
@@ -474,4 +481,4 @@ class ACLStandardRuleImportFormTestCase(TestCase):
             del form.fields[name]
 
         self.assertFalse(form.is_valid())
-        self.assertTrue(form.errors)
+        self.assertIn("source_type", form.errors)

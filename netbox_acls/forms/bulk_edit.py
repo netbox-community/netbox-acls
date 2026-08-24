@@ -14,7 +14,7 @@ from netbox.forms.mixins import OwnerMixin
 from utilities.forms.fields import CommentField, ContentTypeChoiceField, DynamicModelChoiceField, NumericRangeArrayField
 from utilities.forms.rendering import FieldSet
 from utilities.forms.utils import add_blank_choice, get_field_value
-from utilities.forms.widgets import HTMXSelect
+from utilities.forms.widgets import BulkEditNullBooleanSelect, HTMXSelect
 from utilities.templatetags.builtins.filters import bettertitle
 from virtualization.models import VMInterface
 
@@ -24,10 +24,15 @@ from ..choices import (
     ACLFamilyChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
+    ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
 from ..constants import ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
 from ..models import AccessList, ACLAssignment, ACLExtendedRule, ACLStandardRule
+from ..models.access_list_rules import (
+    ERROR_MESSAGE_LOG_OPTIONS_WITHOUT_LOG_MATCHES,
+    HELP_TEXT_ACL_RULE_LOG_OPTIONS,
+)
 
 __all__ = (
     "ACLAssignmentBulkEditForm",
@@ -35,6 +40,8 @@ __all__ = (
     "ACLStandardRuleBulkEditForm",
     "AccessListBulkEditForm",
 )
+
+ERROR_MESSAGE_CLEAR_LOG_OPTIONS_WITH_SELECTION = _("Clear log options cannot be combined with a log option selection.")
 
 
 class AccessListBulkEditForm(PrimaryModelBulkEditForm):
@@ -147,7 +154,54 @@ class ACLAssignmentBulkEditForm(OwnerMixin, NetBoxModelBulkEditForm):
                 pass
 
 
-class ACLStandardRuleBulkEditForm(PrimaryModelBulkEditForm):
+class ACLRuleLoggingBulkEditMixin(forms.Form):
+    """
+    Logging controls shared by both rule bulk edit forms.
+    """
+
+    log_matches = forms.NullBooleanField(
+        required=False,
+        widget=BulkEditNullBooleanSelect(),
+        label=_("Log matches"),
+        help_text=_("Setting this to No also removes every log option from the selected rules."),
+    )
+    log_options = forms.MultipleChoiceField(
+        choices=ACLRuleLogOptionChoices,
+        required=False,
+        label=_("Log options"),
+        help_text=HELP_TEXT_ACL_RULE_LOG_OPTIONS,
+    )
+    clear_log_options = forms.BooleanField(
+        required=False,
+        label=_("Clear log options"),
+        help_text=_("Remove every log option while leaving Log matches as it is."),
+    )
+
+    def clean(self):
+        """
+        Apply the clear control, which exists because a blank selection means unchanged.
+        """
+        cleaned_data = super().clean()
+
+        if cleaned_data.get("log_options"):
+            if cleaned_data.get("clear_log_options"):
+                raise forms.ValidationError(
+                    {"clear_log_options": ERROR_MESSAGE_CLEAR_LOG_OPTIONS_WITH_SELECTION},
+                )
+            if cleaned_data.get("log_matches") is False:
+                raise forms.ValidationError(
+                    {"log_options": ERROR_MESSAGE_LOG_OPTIONS_WITHOUT_LOG_MATCHES},
+                )
+
+        if cleaned_data.get("log_matches") is False or cleaned_data.get("clear_log_options"):
+            cleaned_data["log_options"] = []
+            if "log_options" not in self.changed_data:
+                self.changed_data.append("log_options")
+
+        return cleaned_data
+
+
+class ACLStandardRuleBulkEditForm(ACLRuleLoggingBulkEditMixin, PrimaryModelBulkEditForm):
     """
     Form for bulk editing multiple ACLStandardRule instances.
     """
@@ -210,6 +264,12 @@ class ACLStandardRuleBulkEditForm(PrimaryModelBulkEditForm):
             "source",
             name=_("Source Definition"),
         ),
+        FieldSet(
+            "log_matches",
+            "log_options",
+            "clear_log_options",
+            name=_("Logging"),
+        ),
     )
     nullable_fields = (
         "remark",
@@ -240,7 +300,7 @@ class ACLStandardRuleBulkEditForm(PrimaryModelBulkEditForm):
                 pass
 
 
-class ACLExtendedRuleBulkEditForm(PrimaryModelBulkEditForm):
+class ACLExtendedRuleBulkEditForm(ACLRuleLoggingBulkEditMixin, PrimaryModelBulkEditForm):
     """
     Form for bulk editing multiple ACLExtendedRule instances.
     """
@@ -343,6 +403,12 @@ class ACLExtendedRuleBulkEditForm(PrimaryModelBulkEditForm):
             "destination",
             "destination_port_ranges",
             name=_("Destination Definition"),
+        ),
+        FieldSet(
+            "log_matches",
+            "log_options",
+            "clear_log_options",
+            name=_("Logging"),
         ),
     )
     nullable_fields = (

@@ -10,7 +10,6 @@ __all__ = (
     "ACLAssignmentDirectionUIChoices",
     "ACLFamilyChoices",
     "ACLProtocolChoices",
-    "ACLProtocolChoices",
     "ACLRuleActionChoices",
     "ACLRuleLogOptionChoices",
     "ACLTypeChoices",
@@ -138,14 +137,35 @@ class ACLProtocolChoices(ChoiceSet):
     Defines the choices available for the Access Lists plugin specific to ACL Rule protocol.
     """
 
+    key = "ACLExtendedRule.protocol"
+
+    PROTOCOL_EIGRP = "eigrp"
+    PROTOCOL_GRE = "gre"
     PROTOCOL_ICMP = "icmp"
     PROTOCOL_IP = "ip"
+    PROTOCOL_OSPF = "ospf"
+    PROTOCOL_PIM = "pim"
     PROTOCOL_TCP = "tcp"
     PROTOCOL_UDP = "udp"
 
+    # The second group follows the IP protocol numbers 47, 88, 89 and 103.
     CHOICES = [
-        (PROTOCOL_ICMP, "ICMP", "purple"),
-        (PROTOCOL_IP, "IP", "cyan"),
-        (PROTOCOL_TCP, "TCP", "blue"),
-        (PROTOCOL_UDP, "UDP", "orange"),
+        (
+            "Common",
+            (
+                (PROTOCOL_ICMP, "ICMP", "purple"),
+                (PROTOCOL_IP, "IP", "cyan"),
+                (PROTOCOL_TCP, "TCP", "blue"),
+                (PROTOCOL_UDP, "UDP", "orange"),
+            ),
+        ),
+        (
+            "Routing and tunneling",
+            (
+                (PROTOCOL_GRE, "GRE", "teal"),
+                (PROTOCOL_EIGRP, "EIGRP", "yellow"),
+                (PROTOCOL_OSPF, "OSPF", "green"),
+                (PROTOCOL_PIM, "PIM", "indigo"),
+            ),
+        ),
     ]

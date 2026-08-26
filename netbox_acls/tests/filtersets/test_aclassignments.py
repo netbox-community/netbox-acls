@@ -13,6 +13,7 @@ from dcim.models import (
     SiteGroup,
     VirtualChassis,
 )
+from ipam.models import Prefix
 from utilities.testing import ChangeLoggedFilterSetTestMixin
 from virtualization.models import Cluster, ClusterType, VirtualMachine, VMInterface
 
@@ -167,6 +168,55 @@ class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin):
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
         params = {"access_list": [self.acl2.name]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_assigned_object_type(self):
+        params = {"assigned_object_type": ["dcim.interface"]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+        params = {"assigned_object_type": ["dcim.interface", "virtualization.vminterface"]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+        params = {
+            "assigned_object_type": [
+                "dcim.device",
+                "dcim.virtualchassis",
+                "virtualization.virtualmachine",
+            ],
+        }
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+
+    def test_assigned_object_type_id(self):
+        params = {"assigned_object_type_id": [ContentType.objects.get_for_model(Interface).pk]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+        params = {
+            "assigned_object_type_id": [
+                ContentType.objects.get_for_model(Device).pk,
+                ContentType.objects.get_for_model(VirtualMachine).pk,
+            ],
+        }
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_assigned_object_type_outside_whitelist_matches_nothing(self):
+        """limit_choices_to keeps unassignable types off the model, so none can ever match."""
+        filterset = self.filterset({"assigned_object_type": ["ipam.prefix"]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 0)
+
+    def test_assigned_object_type_id_outside_whitelist_matches_nothing(self):
+        """The pk filter is unrestricted, so an unassignable type matches nothing rather than erroring."""
+        params = {"assigned_object_type_id": [ContentType.objects.get_for_model(Prefix).pk]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 0)
+
+    def test_assigned_object_type_drops_unparseable_values(self):
+        """A key that is not <app_label>.<model> is skipped, and the remaining keys still filter."""
+        for params, expected in (
+            ({"assigned_object_type": ["dcim"]}, 0),
+            ({"assigned_object_type": ["dcim.interface", "dcim"]}, 2),
+        ):
+            with self.subTest(params=params):
+                filterset = self.filterset(params, self.queryset)
+                self.assertEqual(filterset.errors, {})
+                self.assertEqual(filterset.qs.count(), expected)
 
     def test_interface(self):
         params = {"interface_id": [self.interface1.pk]}

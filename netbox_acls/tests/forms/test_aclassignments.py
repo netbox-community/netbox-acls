@@ -122,6 +122,28 @@ class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTes
             transform=lambda ct: ct,
         )
 
+    def test_filterform_assigned_object_type_choices_limited(self):
+        """Test that the filter form's type picker offers only the assignable models."""
+        form = ACLAssignmentFilterForm()
+        self.assertQuerySetEqual(
+            form.fields["assigned_object_type_id"].queryset.order_by("pk"),
+            ContentType.objects.filter(ACL_ASSIGNMENT_MODELS).order_by("pk"),
+            transform=lambda ct: ct,
+        )
+
+    def test_filterform_assigned_object_type_cleans_to_content_types(self):
+        """Test that the filter form's type picker resolves primary keys, not natural keys."""
+        interface_type = ContentType.objects.get_for_model(Interface)
+        vminterface_type = ContentType.objects.get_for_model(VMInterface)
+        form = ACLAssignmentFilterForm(
+            data={"assigned_object_type_id": [interface_type.pk, vminterface_type.pk]},
+        )
+        self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+        self.assertCountEqual(
+            form.cleaned_data["assigned_object_type_id"],
+            [interface_type, vminterface_type],
+        )
+
     def test_unresolvable_content_type_is_survivable(self):
         """
         Test that a content type id which no longer resolves leaves the form usable.

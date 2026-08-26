@@ -3,6 +3,7 @@ Defines each django model's GUI filter/search options.
 """
 
 from django import forms
+from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
@@ -11,6 +12,7 @@ from netbox.forms import NetBoxModelFilterSetForm, PrimaryModelFilterSetForm
 from netbox.forms.mixins import OwnerFilterMixin
 from utilities.forms.constants import BOOLEAN_WITH_BLANK_CHOICES
 from utilities.forms.fields import (
+    ContentTypeMultipleChoiceField,
     DynamicModelChoiceField,
     DynamicModelMultipleChoiceField,
     TagFilterField,
@@ -28,6 +30,7 @@ from ..choices import (
     ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
+from ..constants import ACL_ASSIGNMENT_MODELS
 from ..models import (
     AccessList,
     ACLAssignment,
@@ -104,6 +107,7 @@ class ACLAssignmentFilterForm(OwnerFilterMixin, NetBoxModelFilterSetForm):
         ),
         FieldSet(
             "access_list_id",
+            "assigned_object_type_id",
             "family",
             "direction",
             name=_("ACL Details"),
@@ -137,6 +141,11 @@ class ACLAssignmentFilterForm(OwnerFilterMixin, NetBoxModelFilterSetForm):
         queryset=AccessList.objects.all(),
         required=False,
         label=_("Access List"),
+    )
+    assigned_object_type_id = ContentTypeMultipleChoiceField(
+        queryset=ContentType.objects.filter(ACL_ASSIGNMENT_MODELS),
+        required=False,
+        label=_("Assigned Object Type"),
     )
     family = forms.ChoiceField(
         choices=add_blank_choice(ACLFamilyChoices),

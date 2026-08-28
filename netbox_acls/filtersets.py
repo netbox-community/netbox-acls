@@ -13,7 +13,7 @@ from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChass
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.filtersets import NetBoxModelFilterSet, PrimaryModelFilterSet
 from users.filterset_mixins import OwnerFilterMixin
-from utilities.filters import ContentTypeFilter, MultiValueCharFilter, MultiValueNumberFilter
+from utilities.filters import ContentTypeFilter, MultiValueBigNumberFilter, MultiValueCharFilter
 from utilities.filtersets import register_filterset
 from virtualization.models import VirtualMachine, VMInterface
 
@@ -81,7 +81,7 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
     )
 
     # Organization
-    region_id = MultiValueNumberFilter(
+    region_id = MultiValueBigNumberFilter(
         field_name="pk",
         method="filter_region",
         label=_("Region (ID)"),
@@ -91,7 +91,7 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
         method="filter_region",
         label=_("Region (slug)"),
     )
-    site_group_id = MultiValueNumberFilter(
+    site_group_id = MultiValueBigNumberFilter(
         field_name="pk",
         method="filter_site_group",
         label=_("Site group (ID)"),
@@ -101,7 +101,7 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
         method="filter_site_group",
         label=_("Site group (slug)"),
     )
-    site_id = MultiValueNumberFilter(
+    site_id = MultiValueBigNumberFilter(
         field_name="pk",
         method="filter_site",
         label=_("Site (ID)"),

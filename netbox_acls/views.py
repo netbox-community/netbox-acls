@@ -134,8 +134,12 @@ class AccessListView(generic.ObjectView):
             table = None
 
         if table:
-            table.columns.hide("access_list")
             table.configure(request)
+            # Visibility is set after configure(), which resets columns from the user's
+            # preference or the table defaults.
+            table.columns.hide("access_list")
+            table.columns.show("log_matches")
+            table.columns.show("log_options_list")
 
             return {
                 "rules_table": table,

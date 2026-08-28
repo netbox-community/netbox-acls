@@ -14,6 +14,7 @@ try:
 except ImportError:  # NetBox < 4.5.2 keeps it alongside the filter set forms
     from netbox.forms.filtersets import OwnerFilterMixin
 
+from utilities.forms.constants import BOOLEAN_WITH_BLANK_CHOICES
 from utilities.forms.fields import (
     DynamicModelChoiceField,
     DynamicModelMultipleChoiceField,
@@ -29,6 +30,7 @@ from ..choices import (
     ACLFamilyChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
+    ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
 from ..models import (
@@ -239,6 +241,18 @@ class ACLRuleFilterFormMixin(forms.Form):
         label=_("Remark"),
     )
 
+    # Logging
+    log_matches = forms.NullBooleanField(
+        required=False,
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+        label=_("Log matches"),
+    )
+    log_options = forms.MultipleChoiceField(
+        choices=ACLRuleLogOptionChoices,
+        required=False,
+        label=_("Log options"),
+    )
+
     # Source selectors
     source_aggregate_id = DynamicModelMultipleChoiceField(
         queryset=Aggregate.objects.all(),
@@ -287,6 +301,11 @@ class ACLStandardRuleFilterForm(ACLRuleFilterFormMixin, PrimaryModelFilterSetFor
             "source_iprange_id",
             "source_prefix_id",
             name=_("Source Details"),
+        ),
+        FieldSet(
+            "log_matches",
+            "log_options",
+            name=_("Logging"),
         ),
         FieldSet(
             "owner_group_id",
@@ -343,6 +362,11 @@ class ACLExtendedRuleFilterForm(ACLRuleFilterFormMixin, PrimaryModelFilterSetFor
             "destination_prefix_id",
             "destination_port",
             name=_("Destination Details"),
+        ),
+        FieldSet(
+            "log_matches",
+            "log_options",
+            name=_("Logging"),
         ),
         FieldSet(
             "owner_group_id",

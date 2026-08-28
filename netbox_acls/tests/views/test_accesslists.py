@@ -132,3 +132,6 @@ class AccessListViewTestCase(PluginTestCases.ObjectViewTestCase):
                 # The column is redundant on an access list's own detail page.
                 visible = [column.name for column in table.columns.itervisible()]
                 self.assertNotIn("access_list", visible)
+                # The embedded table is the page's subject, so it shows the full logging state.
+                self.assertIn("log_matches", visible)
+                self.assertIn("log_options_list", visible)

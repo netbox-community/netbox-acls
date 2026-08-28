@@ -1,7 +1,13 @@
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 
-from ...choices import ACLActionChoices, ACLFamilyChoices, ACLRuleActionChoices, ACLTypeChoices
+from ...choices import (
+    ACLActionChoices,
+    ACLFamilyChoices,
+    ACLRuleActionChoices,
+    ACLRuleLogOptionChoices,
+    ACLTypeChoices,
+)
 from ...constants import ACL_RULE_SOURCE_DESTINATION_MODELS
 from ...forms import ACLStandardRuleBulkEditForm, ACLStandardRuleFilterForm, ACLStandardRuleForm
 from ...models import AccessList, ACLStandardRule
@@ -162,3 +168,70 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
             form.fields["access_list_id"].query_params,
             {"type": ACLTypeChoices.TYPE_STANDARD},
         )
+
+    def test_logging_fields_are_present(self):
+        """Test that the model form exposes both logging fields."""
+        form = ACLStandardRuleForm()
+        self.assertIn("log_matches", form.fields)
+        self.assertIn("log_options", form.fields)
+
+    def test_log_options_group_vendor_specific_choices(self):
+        """Test that a vendor-specific option is offered under its vendor's group."""
+        form = ACLStandardRuleForm()
+        groups = {
+            group: [value for value, _label in options]
+            for group, options in form.fields["log_options"].choices
+            if isinstance(options, (list, tuple))
+        }
+        self.assertEqual(
+            groups["Cisco"],
+            [ACLRuleLogOptionChoices.OPTION_CISCO_LOG_INPUT],
+        )
+
+    def test_form_rejects_options_without_log_matches(self):
+        """Test that the model form surfaces the consistency error per field."""
+        form = ACLStandardRuleForm(
+            data={
+                "access_list": self.access_list.pk,
+                "sequence": 10,
+                "action": ACLRuleActionChoices.ACTION_PERMIT,
+                "source_type": ContentType.objects.get_for_model(type(self.prefix)).pk,
+                "source": self.prefix.pk,
+                "log_options": [ACLRuleLogOptionChoices.OPTION_SYSLOG],
+            },
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("log_options", form.errors)
+
+    def test_bulkedit_disabling_logging_clears_the_options(self):
+        """Test that turning logging off also drops the options."""
+        form = ACLStandardRuleBulkEditForm(
+            data={"log_matches": "False", "pk": [self._rule(10).pk]},
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["log_options"], [])
+        self.assertIn("log_options", form.changed_data)
+
+    def test_bulkedit_clear_rejects_an_explicit_selection(self):
+        """Test that clearing and selecting log options at once is rejected."""
+        form = ACLStandardRuleBulkEditForm(
+            data={
+                "clear_log_options": True,
+                "log_options": [ACLRuleLogOptionChoices.OPTION_SYSLOG],
+                "pk": [self._rule(20).pk],
+            },
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("clear_log_options", form.errors)
+
+    def test_bulkedit_disabling_logging_rejects_a_selection(self):
+        """Test that disabling logging while selecting options is rejected."""
+        form = ACLStandardRuleBulkEditForm(
+            data={
+                "log_matches": "False",
+                "log_options": [ACLRuleLogOptionChoices.OPTION_SYSLOG],
+                "pk": [self._rule(30).pk],
+            },
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("log_options", form.errors)

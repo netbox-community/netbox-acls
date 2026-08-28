@@ -1,6 +1,29 @@
+from ...models import ACLExtendedRule
 from ...tables import ACLExtendedRuleTable
 from . import base
 
 
 class ACLExtendedRuleTableTestCase(base.StandardTableTestCase):
     table = ACLExtendedRuleTable
+
+    def test_logging_columns_are_available_and_log_matches_is_default(self):
+        """Test that both logging columns exist and only the master switch shows by default."""
+        self.assertIn("log_matches", ACLExtendedRuleTable.base_columns)
+        self.assertIn("log_options_list", ACLExtendedRuleTable.base_columns)
+        self.assertIn("log_matches", ACLExtendedRuleTable.Meta.default_columns)
+        self.assertNotIn("log_options_list", ACLExtendedRuleTable.Meta.default_columns)
+
+    def test_log_options_column_renders_colored_badges(self):
+        """Test that the column badges each option and exports the plain labels."""
+        rule = ACLExtendedRule(log_options=["syslog", "cisco-log-input"])
+        table = ACLExtendedRuleTable([rule])
+        cell = table.rows[0].get_cell("log_options_list")
+        self.assertInHTML('<span class="badge text-bg-blue">Syslog</span>', cell)
+        self.assertInHTML(
+            '<span class="badge text-bg-purple">Log-input</span>',
+            cell,
+        )
+        self.assertEqual(
+            table.rows[0].get_cell_value("log_options_list"),
+            "Syslog, Log-input",
+        )

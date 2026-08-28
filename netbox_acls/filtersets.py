@@ -307,6 +307,12 @@ class ACLRuleFilterSetMixin(django_filters.FilterSet):
         label=_("Access List (ID)"),
     )
 
+    # Logging
+    log_options = MultiValueCharFilter(
+        method="filter_log_options",
+        label=_("Log Options"),
+    )
+
     # Source
     source_type = ContentTypeFilter(
         label=_("Source Type"),
@@ -377,6 +383,12 @@ class ACLRuleFilterSetMixin(django_filters.FilterSet):
             query |= Q(sequence=int(value.strip()))
         return queryset.filter(query)
 
+    def filter_log_options(self, queryset, name, value):
+        """
+        Match rules carrying any of the given log options.
+        """
+        return queryset.filter(log_options__overlap=value)
+
 
 @register_filterset
 class ACLStandardRuleFilterSet(ACLRuleFilterSetMixin, PrimaryModelFilterSet):
@@ -398,6 +410,7 @@ class ACLStandardRuleFilterSet(ACLRuleFilterSetMixin, PrimaryModelFilterSet):
             "remark",
             "source_type",
             "source_id",
+            "log_matches",
             "description",
             "comments",
         )
@@ -506,6 +519,7 @@ class ACLExtendedRuleFilterSet(ACLRuleFilterSetMixin, PrimaryModelFilterSet):
             "destination_type",
             "destination_id",
             "destination_port",
+            "log_matches",
             "description",
             "comments",
         )

@@ -17,10 +17,11 @@ from ..choices import (
     ACLFamilyChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
+    ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
 from ..constants import ACL_RULE_SOURCE_DESTINATION_MODELS
-from ..utils import infer_family_from_object, normalize_port_ranges
+from ..utils import infer_family_from_object, normalize_log_options, normalize_port_ranges
 from ..validators import validate_port_ranges
 from .access_lists import AccessList
 from .managers import ACLRuleManager
@@ -49,6 +50,15 @@ ERROR_MESSAGE_ACTION_REMARK_DESTINATION_PORTS_SET = _("When the action is 'remar
 # Error message when the action is 'remark', but the protocol is set.
 ERROR_MESSAGE_ACTION_REMARK_PROTOCOL_SET = _("When the action is 'remark', Protocol must not be set.")
 
+# Error message when log options are set but logging is disabled.
+ERROR_MESSAGE_LOG_OPTIONS_WITHOUT_LOG_MATCHES = _("Log options require Log matches to be enabled.")
+
+# Error message when the action is 'remark', but logging is enabled.
+ERROR_MESSAGE_ACTION_REMARK_LOG_MATCHES_SET = _("When the action is 'remark', Log matches must not be enabled.")
+
+# Error message when the action is 'remark', but log options are set.
+ERROR_MESSAGE_ACTION_REMARK_LOG_OPTIONS_SET = _("When the action is 'remark', Log options must not be set.")
+
 # Error message when the protocol is not 'TCP' or 'UDP', but the source ports are set.
 ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_SOURCE_PORTS_SET = _(
     "Source Ports can only be set when the protocol is TCP or UDP."
@@ -57,6 +67,12 @@ ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_SOURCE_PORTS_SET = _(
 # Error message when the protocol is not 'TCP' or 'UDP', but the destination ports are set.
 ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_DESTINATION_PORTS_SET = _(
     "Destination Ports can only be set when the protocol is TCP or UDP."
+)
+
+# Help text for the log options field, shared by the model and both form modules.
+HELP_TEXT_ACL_RULE_LOG_OPTIONS = _(
+    "Optional logging attributes. Leave empty for the target platform's default. "
+    "Vendor-specific options are grouped by vendor and are platform-dependent."
 )
 
 
@@ -146,6 +162,23 @@ class ACLRule(PrimaryModel):
         null=True,
     )
 
+    # Logging
+    log_matches = models.BooleanField(
+        verbose_name=_("Log matches"),
+        default=False,
+        help_text=_("Request logging for packets matching this rule."),
+    )
+    log_options = ArrayField(
+        base_field=models.CharField(
+            max_length=100,
+            choices=ACLRuleLogOptionChoices,
+        ),
+        verbose_name=_("Log options"),
+        default=list,
+        blank=True,
+        help_text=HELP_TEXT_ACL_RULE_LOG_OPTIONS,
+    )
+
     objects = ACLRuleManager()
 
     clone_fields = (
@@ -153,6 +186,8 @@ class ACLRule(PrimaryModel):
         "action",
         "source_id",
         "source_type",
+        "log_matches",
+        "log_options",
     )
     prerequisite_models: tuple = ("netbox_acls.AccessList",)
 
@@ -289,6 +324,39 @@ class ACLRule(PrimaryModel):
         objectchange.related_object = self.access_list
         return objectchange
 
+    @property
+    def log_options_badges(self) -> list[tuple[str, str | None]]:
+        """
+        Return the display label and badge color of each stored log option.
+        """
+        labels = dict(self._meta.get_field("log_options").base_field.flatchoices)
+        colors = ACLRuleLogOptionChoices.colors
+        return [(str(labels.get(value, value)), colors.get(value)) for value in self.log_options]
+
+    @property
+    def log_options_list(self) -> list[str]:
+        """
+        Return the display labels, passing through values no longer configured.
+        """
+        return [label for label, _color in self.log_options_badges]
+
+    def _validate_logging(self):
+        """
+        Return field errors for an inconsistent logging state.
+        """
+        errors = {}
+
+        if not self.log_matches and self.log_options:
+            errors["log_options"] = ERROR_MESSAGE_LOG_OPTIONS_WITHOUT_LOG_MATCHES
+
+        if self.action == ACLRuleActionChoices.ACTION_REMARK:
+            if self.log_matches:
+                errors["log_matches"] = ERROR_MESSAGE_ACTION_REMARK_LOG_MATCHES_SET
+            if self.log_options:
+                errors["log_options"] = ERROR_MESSAGE_ACTION_REMARK_LOG_OPTIONS_SET
+
+        return errors
+
 
 class ACLStandardRule(ACLRule):
     """
@@ -325,6 +393,9 @@ class ACLStandardRule(ACLRule):
 
         super().clean()
         errors = {}
+
+        self.log_options = normalize_log_options(self.log_options or [])
+        errors.update(self._validate_logging())
 
         # Validate that only the remark field is filled
         if self.action == ACLRuleActionChoices.ACTION_REMARK:
@@ -430,11 +501,7 @@ class ACLExtendedRule(ACLRule):
         null=True,
     )
 
-    clone_fields = (
-        "access_list",
-        "action",
-        "source_id",
-        "source_type",
+    clone_fields = ACLRule.clone_fields + (
         "source_port_ranges",
         "destination_id",
         "destination_type",
@@ -484,6 +551,9 @@ class ACLExtendedRule(ACLRule):
         super().clean()
 
         errors = {}
+
+        self.log_options = normalize_log_options(self.log_options or [])
+        errors.update(self._validate_logging())
 
         # Validate that only the remark field is filled
         if self.action == ACLRuleActionChoices.ACTION_REMARK:

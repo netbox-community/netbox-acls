@@ -4,7 +4,13 @@ from netaddr import IPNetwork
 from ipam.models import RIR, Aggregate, IPAddress, IPRange, Prefix
 from utilities.testing import ChangeLoggedFilterSetTests
 
-from ...choices import ACLActionChoices, ACLFamilyChoices, ACLRuleActionChoices, ACLTypeChoices
+from ...choices import (
+    ACLActionChoices,
+    ACLFamilyChoices,
+    ACLRuleActionChoices,
+    ACLRuleLogOptionChoices,
+    ACLTypeChoices,
+)
 from ...filtersets import ACLStandardRuleFilterSet
 from ...models import AccessList, ACLStandardRule
 
@@ -48,6 +54,8 @@ class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
             source=cls.prefix,
             description="permit the prefix",
             comments="reviewed quarterly",
+            log_matches=True,
+            log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG],
         )
         ACLStandardRule.objects.create(
             access_list=cls.access_list,
@@ -183,4 +191,12 @@ class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         params = {"action": ACLRuleActionChoices.ACTION_PERMIT}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
         params = {"action": ACLRuleActionChoices.ACTION_REMARK}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_log_matches(self):
+        params = {"log_matches": True}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_log_options(self):
+        params = {"log_options": ["syslog"]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)

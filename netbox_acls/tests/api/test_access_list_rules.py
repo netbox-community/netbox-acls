@@ -1,3 +1,5 @@
+from django.test import override_settings
+from django.urls import reverse
 from rest_framework import status
 
 from ipam.models import Prefix
@@ -6,6 +8,7 @@ from netbox_acls.choices import (
     ACLFamilyChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
+    ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
 from utilities.testing import APIViewTestCases
@@ -162,6 +165,172 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
             **self.header,
         )
         self.assertHttpStatus(response, status.HTTP_201_CREATED)
+
+    def test_create_with_logging(self):
+        """Test that a rule can be created with logging enabled."""
+        self.add_permissions("netbox_acls.add_aclstandardrule")
+        data = {**self.create_data[0], "sequence": 500, "log_matches": True, "log_options": ["syslog"]}
+        response = self.client.post(self._get_list_url(), data, format="json", **self.header)
+        self.assertHttpStatus(response, status.HTTP_201_CREATED)
+        self.assertTrue(response.data["log_matches"])
+        self.assertEqual(response.data["log_options"], ["syslog"])
+
+    def test_create_rejects_options_without_log_matches(self):
+        """Test that the API rejects options while logging is disabled."""
+        self.add_permissions("netbox_acls.add_aclstandardrule")
+        data = {**self.create_data[0], "sequence": 510, "log_matches": False, "log_options": ["syslog"]}
+        response = self.client.post(self._get_list_url(), data, format="json", **self.header)
+        self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
+
+    def test_patch_disabling_logging_requires_clearing_options(self):
+        """Test that disabling logging does not silently discard the options."""
+        rule = ACLStandardRule.objects.create(
+            access_list=self.access_list_device,
+            sequence=520,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            log_matches=True,
+            log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG],
+        )
+        self.add_permissions("netbox_acls.change_aclstandardrule")
+        url = self._get_detail_url(rule)
+        self.assertHttpStatus(
+            self.client.patch(url, {"log_matches": False}, format="json", **self.header),
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertHttpStatus(
+            self.client.patch(url, {"log_matches": False, "log_options": []}, format="json", **self.header),
+            status.HTTP_200_OK,
+        )
+
+    def test_create_normalizes_duplicate_and_unordered_options(self):
+        """Test that REST create stores options canonically, as model clean does."""
+        self.add_permissions("netbox_acls.add_aclstandardrule")
+        data = {
+            **self.create_data[0],
+            "sequence": 530,
+            "log_matches": True,
+            "log_options": [
+                ACLRuleLogOptionChoices.OPTION_SYSLOG,
+                ACLRuleLogOptionChoices.OPTION_CISCO_LOG_INPUT,
+                ACLRuleLogOptionChoices.OPTION_SYSLOG,
+            ],
+        }
+        response = self.client.post(self._get_list_url(), data, format="json", **self.header)
+        self.assertHttpStatus(response, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["log_options"], ["cisco-log-input", "syslog"])
+
+        rule = ACLStandardRule.objects.get(pk=response.data["id"])
+        self.assertEqual(rule.log_options, ["cisco-log-input", "syslog"])
+
+    def test_patch_normalizes_duplicate_and_unordered_options(self):
+        """Test that REST update stores options canonically rather than as posted."""
+        rule = ACLStandardRule.objects.create(
+            access_list=self.access_list_device,
+            sequence=540,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            log_matches=True,
+            log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG],
+        )
+        self.add_permissions("netbox_acls.change_aclstandardrule")
+        response = self.client.patch(
+            self._get_detail_url(rule),
+            {
+                "log_options": [
+                    ACLRuleLogOptionChoices.OPTION_SYSLOG,
+                    ACLRuleLogOptionChoices.OPTION_CISCO_LOG_INPUT,
+                    ACLRuleLogOptionChoices.OPTION_SYSLOG,
+                ]
+            },
+            format="json",
+            **self.header,
+        )
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+
+        rule.refresh_from_db()
+        self.assertEqual(rule.log_options, ["cisco-log-input", "syslog"])
+
+    def _post_graphql_query(self, query):
+        """Return the data payload of a successful GraphQL query."""
+        response = self.client.post(
+            reverse("graphql"),
+            data={"query": query},
+            format="json",
+            **self.header,
+        )
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertNotIn("errors", payload)
+        return payload["data"]
+
+    @override_settings(LOGIN_REQUIRED=True)
+    def test_graphql_filters_narrow_by_logging_state(self):
+        """Test that each logging filter narrows the result set on its own."""
+        self.add_permissions("netbox_acls.view_aclstandardrule")
+
+        # Negative control, logging disabled.
+        ACLStandardRule.objects.create(
+            access_list=self.access_list_device,
+            sequence=600,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+        )
+        default_logging_rule = ACLStandardRule.objects.create(
+            access_list=self.access_list_device,
+            sequence=610,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            log_matches=True,
+        )
+        syslog_rule = ACLStandardRule.objects.create(
+            access_list=self.access_list_device,
+            sequence=620,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            log_matches=True,
+            log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG],
+        )
+        cisco_rule = ACLStandardRule.objects.create(
+            access_list=self.access_list_device,
+            sequence=630,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            log_matches=True,
+            log_options=[ACLRuleLogOptionChoices.OPTION_CISCO_LOG_INPUT],
+        )
+
+        with self.subTest(filter="log_matches"):
+            data = self._post_graphql_query(
+                """
+                {
+                    acl_standard_rule_list(filters: {log_matches: {exact: true}}) {
+                        id
+                    }
+                }
+                """
+            )
+            self.assertEqual(
+                sorted(rule["id"] for rule in data["acl_standard_rule_list"]),
+                sorted(str(rule.pk) for rule in (default_logging_rule, syslog_rule, cisco_rule)),
+            )
+
+        with self.subTest(filter="log_options"):
+            data = self._post_graphql_query(
+                """
+                {
+                    acl_standard_rule_list(filters: {log_options: {overlap: ["syslog"]}}) {
+                        id
+                        log_matches
+                        log_options
+                    }
+                }
+                """
+            )
+            self.assertEqual(
+                data["acl_standard_rule_list"],
+                [
+                    {
+                        "id": str(syslog_rule.pk),
+                        "log_matches": True,
+                        "log_options": [ACLRuleLogOptionChoices.OPTION_SYSLOG],
+                    },
+                ],
+            )
 
 
 class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
@@ -346,3 +515,86 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
             response.data["source_port_ranges"],
             ["When the action is 'remark', Source Ports must not be set."],
         )
+
+    def test_create_with_logging(self):
+        """Test that a rule can be created with logging enabled."""
+        self.add_permissions("netbox_acls.add_aclextendedrule")
+        data = {**self.create_data[0], "sequence": 500, "log_matches": True, "log_options": ["syslog"]}
+        response = self.client.post(self._get_list_url(), data, format="json", **self.header)
+        self.assertHttpStatus(response, status.HTTP_201_CREATED)
+        self.assertTrue(response.data["log_matches"])
+        self.assertEqual(response.data["log_options"], ["syslog"])
+
+    def test_create_rejects_options_without_log_matches(self):
+        """Test that the API rejects options while logging is disabled."""
+        self.add_permissions("netbox_acls.add_aclextendedrule")
+        data = {**self.create_data[0], "sequence": 510, "log_matches": False, "log_options": ["syslog"]}
+        response = self.client.post(self._get_list_url(), data, format="json", **self.header)
+        self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
+
+    def test_patch_disabling_logging_requires_clearing_options(self):
+        """Test that disabling logging does not silently discard the options."""
+        rule = ACLExtendedRule.objects.create(
+            access_list=self.access_list_device,
+            sequence=520,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            log_matches=True,
+            log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG],
+        )
+        self.add_permissions("netbox_acls.change_aclextendedrule")
+        url = self._get_detail_url(rule)
+        self.assertHttpStatus(
+            self.client.patch(url, {"log_matches": False}, format="json", **self.header),
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertHttpStatus(
+            self.client.patch(url, {"log_matches": False, "log_options": []}, format="json", **self.header),
+            status.HTTP_200_OK,
+        )
+
+    def test_create_normalizes_duplicate_and_unordered_options(self):
+        """Test that REST create stores options canonically, as model clean does."""
+        self.add_permissions("netbox_acls.add_aclextendedrule")
+        data = {
+            **self.create_data[0],
+            "sequence": 530,
+            "log_matches": True,
+            "log_options": [
+                ACLRuleLogOptionChoices.OPTION_SYSLOG,
+                ACLRuleLogOptionChoices.OPTION_CISCO_LOG_INPUT,
+                ACLRuleLogOptionChoices.OPTION_SYSLOG,
+            ],
+        }
+        response = self.client.post(self._get_list_url(), data, format="json", **self.header)
+        self.assertHttpStatus(response, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["log_options"], ["cisco-log-input", "syslog"])
+
+        rule = ACLExtendedRule.objects.get(pk=response.data["id"])
+        self.assertEqual(rule.log_options, ["cisco-log-input", "syslog"])
+
+    def test_patch_normalizes_duplicate_and_unordered_options(self):
+        """Test that REST update stores options canonically rather than as posted."""
+        rule = ACLExtendedRule.objects.create(
+            access_list=self.access_list_device,
+            sequence=540,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            log_matches=True,
+            log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG],
+        )
+        self.add_permissions("netbox_acls.change_aclextendedrule")
+        response = self.client.patch(
+            self._get_detail_url(rule),
+            {
+                "log_options": [
+                    ACLRuleLogOptionChoices.OPTION_SYSLOG,
+                    ACLRuleLogOptionChoices.OPTION_CISCO_LOG_INPUT,
+                    ACLRuleLogOptionChoices.OPTION_SYSLOG,
+                ]
+            },
+            format="json",
+            **self.header,
+        )
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+
+        rule.refresh_from_db()
+        self.assertEqual(rule.log_options, ["cisco-log-input", "syslog"])

@@ -12,6 +12,7 @@ __all__ = (
     "ACLProtocolChoices",
     "ACLProtocolChoices",
     "ACLRuleActionChoices",
+    "ACLRuleLogOptionChoices",
     "ACLTypeChoices",
 )
 
@@ -63,6 +64,28 @@ class ACLRuleActionChoices(ChoiceSet):
         (ACTION_DENY, "Deny", "red"),
         (ACTION_PERMIT, "Permit", "green"),
         (ACTION_REMARK, "Remark", "blue"),
+    ]
+
+
+class ACLRuleLogOptionChoices(ChoiceSet):
+    """
+    Logging options available to ACL rules.
+    """
+
+    key = "ACLRule.log_options"
+
+    OPTION_SYSLOG = "syslog"
+    OPTION_CISCO_LOG_INPUT = "cisco-log-input"
+
+    CHOICES = [
+        (
+            "Generic",
+            ((OPTION_SYSLOG, "Syslog", "blue"),),
+        ),
+        (
+            "Cisco",
+            ((OPTION_CISCO_LOG_INPUT, "Log-input", "purple"),),
+        ),
     ]
 
 

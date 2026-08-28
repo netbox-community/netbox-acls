@@ -30,6 +30,7 @@ from virtualization.models import VMInterface
 from ..choices import (
     ACLAssignmentDirectionChoices,
     ACLAssignmentDirectionUIChoices,
+    ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
 from ..constants import ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
@@ -39,6 +40,7 @@ from ..models import (
     ACLExtendedRule,
     ACLStandardRule,
 )
+from ..models.access_list_rules import HELP_TEXT_ACL_RULE_LOG_OPTIONS
 
 __all__ = (
     "ACLAssignmentForm",
@@ -260,6 +262,13 @@ class ACLStandardRuleForm(PrimaryModelForm):
         disabled=True,
     )
 
+    log_options = forms.MultipleChoiceField(
+        choices=ACLRuleLogOptionChoices,
+        required=False,
+        label=_("Log options"),
+        help_text=HELP_TEXT_ACL_RULE_LOG_OPTIONS,
+    )
+
     fieldsets = (
         FieldSet(
             "access_list",
@@ -281,6 +290,11 @@ class ACLStandardRuleForm(PrimaryModelForm):
             "source",
             name=_("Source Definition"),
         ),
+        FieldSet(
+            "log_matches",
+            "log_options",
+            name=_("Logging"),
+        ),
     )
 
     class Meta:
@@ -291,6 +305,8 @@ class ACLStandardRuleForm(PrimaryModelForm):
             "action",
             "remark",
             "source_type",
+            "log_matches",
+            "log_options",
             "description",
             "owner",
             "comments",
@@ -410,6 +426,13 @@ class ACLExtendedRuleForm(PrimaryModelForm):
         help_text=(help_text_acl_rule_port_logic + " " + help_text_acl_rule_port_ranges),
     )
 
+    log_options = forms.MultipleChoiceField(
+        choices=ACLRuleLogOptionChoices,
+        required=False,
+        label=_("Log options"),
+        help_text=HELP_TEXT_ACL_RULE_LOG_OPTIONS,
+    )
+
     fieldsets = (
         FieldSet(
             "access_list",
@@ -442,6 +465,11 @@ class ACLExtendedRuleForm(PrimaryModelForm):
             "destination_port_ranges",
             name=_("Destination Definition"),
         ),
+        FieldSet(
+            "log_matches",
+            "log_options",
+            name=_("Logging"),
+        ),
     )
 
     class Meta:
@@ -456,6 +484,8 @@ class ACLExtendedRuleForm(PrimaryModelForm):
             "destination_type",
             "destination_port_ranges",
             "protocol",
+            "log_matches",
+            "log_options",
             "description",
             "owner",
             "comments",

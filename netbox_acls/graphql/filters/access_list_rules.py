@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Annotated
 import strawberry
 import strawberry_django
 from strawberry.scalars import ID
-from strawberry_django import BaseFilterLookup
+from strawberry_django import BaseFilterLookup, FilterLookup
 
 from core.graphql.filters import ContentTypeFilter
 from netbox.graphql.filters import PrimaryModelFilter
@@ -17,7 +17,7 @@ except ImportError:
 from ... import models
 
 if TYPE_CHECKING:
-    from netbox.graphql.filter_lookups import IntegerLookup, IntegerRangeArrayLookup
+    from netbox.graphql.filter_lookups import IntegerLookup, IntegerRangeArrayLookup, StringArrayLookup
 
     from ..enums import (
         ACLProtocolEnum,
@@ -57,6 +57,12 @@ class ACLRuleFilterMixin(PrimaryModelFilter):
         strawberry_django.filter_field()
     )
     source_id: ID | None = strawberry_django.filter_field()
+
+    # Logging
+    log_matches: FilterLookup[bool] | None = strawberry_django.filter_field()
+    log_options: Annotated["StringArrayLookup", strawberry.lazy("netbox.graphql.filter_lookups")] | None = (
+        strawberry_django.filter_field()
+    )
 
 
 @strawberry_django.filter_type(models.ACLStandardRule, lookups=True)

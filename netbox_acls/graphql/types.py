@@ -101,6 +101,7 @@ class ACLStandardRuleType(PrimaryObjectType):
         ]
         | None
     )
+    log_options: list[str] | None
 
     # Cached related source objects
     _source_aggregate: Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")] | None
@@ -151,6 +152,7 @@ class ACLExtendedRuleType(PrimaryObjectType):
         | None
     )
     destination_port_ranges: list[str] | None
+    log_options: list[str] | None
 
     # Cached related source objects
     _source_aggregate: Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")] | None

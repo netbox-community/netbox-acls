@@ -19,6 +19,7 @@ from ..models import (
     ACLExtendedRule,
     ACLStandardRule,
 )
+from ..utils import normalize_log_options
 
 __all__ = [
     "ACLAssignmentSerializer",
@@ -152,6 +153,14 @@ class ACLRuleSerializerMixin(serializers.Serializer):
             "sequence",
         )
 
+    def validate_log_options(self, value):
+        """
+        Store log options canonically.
+        """
+        # ValidatedModelSerializer does not copy the cleaned instance back, so the model's
+        # normalization never reaches validated_data.
+        return normalize_log_options(value)
+
 
 class ACLStandardRuleSerializer(ACLRuleSerializerMixin, PrimaryModelSerializer):
     """
@@ -179,6 +188,8 @@ class ACLStandardRuleSerializer(ACLRuleSerializerMixin, PrimaryModelSerializer):
             "source_type",
             "source_id",
             "source",
+            "log_matches",
+            "log_options",
             "description",
             "owner",
             "comments",
@@ -239,6 +250,8 @@ class ACLExtendedRuleSerializer(ACLRuleSerializerMixin, PrimaryModelSerializer):
             "destination",
             "destination_port_ranges",
             "destination_port_terms",
+            "log_matches",
+            "log_options",
             "description",
             "owner",
             "comments",

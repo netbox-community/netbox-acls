@@ -7,6 +7,7 @@ from ...choices import (
     ACLActionChoices,
     ACLFamilyChoices,
     ACLRuleActionChoices,
+    ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
 from ...models import AccessList, ACLStandardRule
@@ -83,6 +84,8 @@ class ACLStandardRuleViewTestCase(ACLRuleSequenceTestsMixin, PluginTestCases.Obj
             "remark": "",
             "source_type": ContentType.objects.get_for_model(Prefix).pk,
             "source": cls.prefix.pk,
+            "log_matches": True,
+            "log_options": [ACLRuleLogOptionChoices.OPTION_SYSLOG],
             "description": "A new standard rule",
             "comments": "",
             "tags": [t.pk for t in tags],
@@ -91,3 +94,82 @@ class ACLStandardRuleViewTestCase(ACLRuleSequenceTestsMixin, PluginTestCases.Obj
         cls.bulk_edit_data = {
             "description": "Bulk edited",
         }
+
+    def test_detail_view_renders_log_option_labels(self):
+        """Test that the detail page shows option labels rather than stored values."""
+        rule = ACLStandardRule.objects.create(
+            access_list=self.access_list,
+            sequence=200,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix,
+            log_matches=True,
+            log_options=[
+                ACLRuleLogOptionChoices.OPTION_SYSLOG,
+                ACLRuleLogOptionChoices.OPTION_CISCO_LOG_INPUT,
+            ],
+        )
+        self.add_permissions("netbox_acls.view_aclstandardrule")
+
+        response = self.client.get(rule.get_absolute_url())
+        self.assertHttpStatus(response, 200)
+        self.assertContains(response, "Syslog")
+        self.assertContains(response, "Log-input")
+        self.assertContains(response, 'class="badge text-bg-blue"')
+        self.assertContains(response, 'class="badge text-bg-purple"')
+
+    def test_bulk_edit_clears_options_while_logging_stays_enabled(self):
+        """Test that options can be cleared without also disabling logging."""
+        rules = [
+            ACLStandardRule.objects.create(
+                access_list=self.access_list,
+                sequence=sequence,
+                action=ACLRuleActionChoices.ACTION_PERMIT,
+                source=self.prefix,
+                log_matches=True,
+                log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG],
+            )
+            for sequence in (210, 220)
+        ]
+        self.add_permissions("netbox_acls.change_aclstandardrule", "netbox_acls.view_aclstandardrule")
+
+        response = self.client.post(
+            self._get_url("bulk_edit"),
+            {
+                "pk": [rule.pk for rule in rules],
+                "_apply": True,
+                "clear_log_options": True,
+            },
+        )
+        self.assertHttpStatus(response, 302)
+
+        for rule in rules:
+            rule.refresh_from_db()
+            self.assertTrue(rule.log_matches)
+            self.assertEqual(rule.log_options, [])
+
+    def test_bulk_edit_cannot_enable_logging_on_a_remark(self):
+        """Test that the model's remark guard survives the bulk edit path."""
+        rule = ACLStandardRule.objects.create(
+            access_list=self.access_list,
+            sequence=230,
+            action=ACLRuleActionChoices.ACTION_REMARK,
+            remark="Remark",
+        )
+        self.add_permissions(
+            "netbox_acls.change_aclstandardrule",
+            "netbox_acls.view_aclstandardrule",
+        )
+
+        response = self.client.post(
+            self._get_url("bulk_edit"),
+            {
+                "pk": [rule.pk],
+                "_apply": True,
+                "log_matches": "True",
+            },
+        )
+        self.assertHttpStatus(response, 200)
+        self.assertContains(response, "Log matches must not be enabled")
+
+        rule.refresh_from_db()
+        self.assertFalse(rule.log_matches)

@@ -57,6 +57,22 @@
             <th scope="row">Destination Port Ranges</th>
             <td>{{ object.destination_port_ranges_list|join:", "|placeholder }}</td>
           </tr>
+          <tr>
+            <th scope="row">Log Matches</th>
+            <td>{% checkmark object.log_matches %}</td>
+          </tr>
+          <tr>
+            <th scope="row">Log Options</th>
+            <td>
+              <div class="d-flex flex-wrap gap-1">
+                {% for label, color in object.log_options_badges %}
+                  {% badge label bg_color=color %}
+                {% empty %}
+                  {{ ''|placeholder }}
+                {% endfor %}
+              </div>
+            </td>
+          </tr>
         </table>
       </div>
     </div>

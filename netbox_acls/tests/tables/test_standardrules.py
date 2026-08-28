@@ -1,9 +1,10 @@
+from utilities.testing import TableTestCases
+
 from ...models import ACLStandardRule
 from ...tables import ACLStandardRuleTable
-from . import base
 
 
-class ACLStandardRuleTableTestCase(base.StandardTableTestCase):
+class ACLStandardRuleTableTestCase(TableTestCases.StandardTableTestCase):
     table = ACLStandardRuleTable
 
     def test_logging_columns_are_available_and_log_matches_is_default(self):

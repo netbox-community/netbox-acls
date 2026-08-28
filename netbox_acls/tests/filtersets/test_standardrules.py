@@ -2,7 +2,7 @@ from django.test import TestCase
 from netaddr import IPNetwork
 
 from ipam.models import RIR, Aggregate, IPAddress, IPRange, Prefix
-from utilities.testing import ChangeLoggedFilterSetTests
+from utilities.testing import ChangeLoggedFilterSetTestMixin
 
 from ...choices import (
     ACLActionChoices,
@@ -15,7 +15,7 @@ from ...filtersets import ACLStandardRuleFilterSet
 from ...models import AccessList, ACLStandardRule
 
 
-class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
+class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin):
     """FilterSet tests for ACLStandardRule."""
 
     queryset = ACLStandardRule.objects.all()

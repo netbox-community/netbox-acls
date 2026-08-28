@@ -13,7 +13,7 @@ from dcim.models import (
     SiteGroup,
     VirtualChassis,
 )
-from utilities.testing import ChangeLoggedFilterSetTests
+from utilities.testing import ChangeLoggedFilterSetTestMixin
 from virtualization.models import Cluster, ClusterType, VirtualMachine, VMInterface
 
 from ...choices import (
@@ -26,7 +26,7 @@ from ...filtersets import ACLAssignmentFilterSet
 from ...models import AccessList, ACLAssignment
 
 
-class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
+class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin):
     """FilterSet tests for ACLAssignment."""
 
     queryset = ACLAssignment.objects.all()

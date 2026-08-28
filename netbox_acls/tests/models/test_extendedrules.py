@@ -471,6 +471,39 @@ class TestACLExtendedRule(BaseTestCase):
         self.assertEqual(isinstance(created_rule.access_list, AccessList), True)
         self.assertEqual(created_rule.access_list.type, self.acl_type)
 
+    def test_acl_extended_rule_routing_protocol_creation_success(self):
+        """
+        Test that ACLExtendedRule with a routing or tunneling protocol passes validation.
+        """
+        routing_protocols = (
+            ACLProtocolChoices.PROTOCOL_GRE,
+            ACLProtocolChoices.PROTOCOL_EIGRP,
+            ACLProtocolChoices.PROTOCOL_OSPF,
+            ACLProtocolChoices.PROTOCOL_PIM,
+        )
+
+        for protocol in routing_protocols:
+            with self.subTest(protocol=protocol):
+                created_rule = ACLExtendedRule(
+                    access_list=self.extended_acl1,
+                    sequence=140,
+                    action="permit",
+                    remark="",
+                    source=self.prefix1,
+                    source_port_ranges=None,
+                    destination=self.prefix2,
+                    destination_port_ranges=None,
+                    protocol=protocol,
+                    description=f"Created rule with {protocol} protocol",
+                )
+                created_rule.full_clean()
+
+                self.assertEqual(created_rule.protocol, protocol)
+                self.assertEqual(created_rule.source, self.prefix1)
+                self.assertEqual(created_rule.destination, self.prefix2)
+                self.assertEqual(created_rule.source_port_ranges, [])
+                self.assertEqual(created_rule.destination_port_ranges, [])
+
     def test_acl_extended_rule_complete_params_creation_success(self):
         """
         Test that ACLExtendedRule with complete parameters creation passes validation.
@@ -748,43 +781,32 @@ class TestACLExtendedRule(BaseTestCase):
         with self.assertRaises(ValidationError):
             invalid_rule.full_clean()
 
-    def test_acl_extended_rule_protocol_ip_with_source_port_ranges_fail(self):
+    def test_non_tcp_udp_protocols_reject_ports(self):
         """
-        Test that ACLExtendedRule with protocol 'ip' and source ports fails validation.
+        Test that ACLExtendedRule rejects ports on every protocol except TCP and UDP.
         """
-        invalid_rule = ACLExtendedRule(
-            access_list=self.extended_acl1,
-            sequence=10,
-            action="permit",
-            remark="",
-            source=None,
-            source_port_ranges=string_to_ranges("80, 443"),
-            destination=None,
-            destination_port_ranges=None,
-            protocol=ACLProtocolChoices.PROTOCOL_IP,
-            description="Invalid rule with protocol 'ip' and source ports set",
-        )
-        with self.assertRaises(ValidationError):
-            invalid_rule.full_clean()
+        portless_protocols = [
+            protocol
+            for protocol in ACLProtocolChoices.values()
+            if protocol not in {ACLProtocolChoices.PROTOCOL_TCP, ACLProtocolChoices.PROTOCOL_UDP}
+        ]
+        for new_protocol in ("gre", "eigrp", "ospf", "pim"):
+            self.assertIn(new_protocol, portless_protocols)
 
-    def test_acl_extended_rule_protocol_icmp_with_destination_port_ranges_fail(self):
-        """
-        Test that ACLExtendedRule with protocol 'icmp' and destination ports fails validation.
-        """
-        invalid_rule = ACLExtendedRule(
-            access_list=self.extended_acl1,
-            sequence=10,
-            action="permit",
-            remark="",
-            source=None,
-            source_port_ranges=None,
-            destination=None,
-            destination_port_ranges=string_to_ranges("80, 443"),
-            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
-            description="Invalid rule with protocol 'icmp' and destination ports set",
-        )
-        with self.assertRaises(ValidationError):
-            invalid_rule.full_clean()
+        for protocol in portless_protocols:
+            for field_name in ("source_port_ranges", "destination_port_ranges"):
+                with self.subTest(protocol=protocol, field=field_name):
+                    invalid_rule = ACLExtendedRule(
+                        access_list=self.extended_acl1,
+                        sequence=10,
+                        action="permit",
+                        remark="",
+                        protocol=protocol,
+                        description=f"Invalid rule with protocol '{protocol}' and {field_name} set",
+                        **{field_name: string_to_ranges("80, 443")},
+                    )
+                    with self.assertRaises(ValidationError):
+                        invalid_rule.full_clean()
 
     def test_acl_extended_rule_with_invalid_source_port_ranges_fail(self):
         """
@@ -898,17 +920,18 @@ class TestACLExtendedRule(BaseTestCase):
         """
         Test ACLExtendedRule protocol choices using VALID choices.
         """
-        valid_acl_rule_protocol_choices = ["icmp", "ip", "tcp", "udp"]
+        valid_acl_rule_protocol_choices = ["icmp", "ip", "tcp", "udp", "gre", "eigrp", "ospf", "pim"]
 
         for protocol_choice in valid_acl_rule_protocol_choices:
-            valid_acl_rule_protocol = ACLExtendedRule(
-                access_list=self.extended_acl1,
-                sequence=10,
-                action=self.default_action,
-                protocol=protocol_choice,
-                description=f"VALID ACL RULE PROTOCOL CHOICES USED: protocol={protocol_choice}",
-            )
-            valid_acl_rule_protocol.full_clean()
+            with self.subTest(protocol=protocol_choice):
+                valid_acl_rule_protocol = ACLExtendedRule(
+                    access_list=self.extended_acl1,
+                    sequence=10,
+                    action=self.default_action,
+                    protocol=protocol_choice,
+                    description=f"VALID ACL RULE PROTOCOL CHOICES USED: protocol={protocol_choice}",
+                )
+                valid_acl_rule_protocol.full_clean()
 
     def test_invalid_acl_rule_protocol_choices(self):
         """

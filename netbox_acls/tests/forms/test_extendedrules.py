@@ -214,6 +214,12 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
             {"type": ACLTypeChoices.TYPE_EXTENDED},
         )
 
+    def test_protocol_filter_form_accepts_a_grouped_value(self):
+        """add_blank_choice concatenates tuples, so the optgroups must survive into the field."""
+        form = ACLExtendedRuleFilterForm(data={"protocol": ACLProtocolChoices.PROTOCOL_GRE})
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["protocol"], ACLProtocolChoices.PROTOCOL_GRE)
+
     def test_logging_fields_are_present(self):
         """Test that the model form exposes both logging fields."""
         form = ACLExtendedRuleForm()

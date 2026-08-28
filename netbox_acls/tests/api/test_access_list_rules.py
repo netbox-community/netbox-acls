@@ -436,6 +436,17 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 "action": ACLRuleActionChoices.ACTION_REMARK,
                 "remark": "Remark 2",
             },
+            {
+                "access_list": access_list_vm.id,
+                "sequence": 40,
+                "description": "Rule 40",
+                "action": ACLRuleActionChoices.ACTION_PERMIT,
+                "protocol": ACLProtocolChoices.PROTOCOL_GRE,
+                "source_type": "ipam.prefix",
+                "source_id": prefix1.id,
+                "destination_type": "ipam.prefix",
+                "destination_id": prefix2.id,
+            },
         ]
         cls.bulk_update_data = {
             "description": "Rule bulk update",

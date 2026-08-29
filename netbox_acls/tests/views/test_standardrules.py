@@ -173,3 +173,16 @@ class ACLStandardRuleViewTestCase(ACLRuleSequenceTestsMixin, PluginTestCases.Obj
 
         rule.refresh_from_db()
         self.assertFalse(rule.log_matches)
+
+    def test_detail_view_renders_the_rule_attributes(self):
+        """Test that the detail view renders the rule attributes."""
+        self.add_permissions("netbox_acls.view_aclstandardrule")
+        rule = ACLStandardRule.objects.get(access_list=self.access_list, sequence=10)
+
+        response = self.client.get(rule.get_absolute_url())
+
+        self.assertHttpStatus(response, 200)
+        self.assertContains(response, rule.access_list.get_absolute_url())
+        self.assertContains(response, rule.get_action_display())
+        self.assertContains(response, rule.source.get_absolute_url())
+        self.assertContains(response, rule.description)

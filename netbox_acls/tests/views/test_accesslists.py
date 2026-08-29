@@ -1,3 +1,5 @@
+from django.urls import reverse
+
 from utilities.testing import create_tags
 
 from ...choices import (
@@ -135,3 +137,17 @@ class AccessListViewTestCase(PluginTestCases.ObjectViewTestCase):
                 # The embedded table is the page's subject, so it shows the full logging state.
                 self.assertIn("log_matches", visible)
                 self.assertIn("log_options_list", visible)
+
+    def test_detail_view_renders_the_access_list_attributes(self):
+        """Test that the detail view renders the access list attributes."""
+        self.add_permissions("netbox_acls.view_accesslist")
+        access_list = AccessList.objects.get(name="testacl1")
+        rule_list_url = reverse("plugins:netbox_acls:aclstandardrule_list")
+
+        response = self.client.get(access_list.get_absolute_url())
+
+        self.assertHttpStatus(response, 200)
+        self.assertContains(response, access_list.get_type_display())
+        self.assertContains(response, access_list.get_family_display())
+        self.assertContains(response, access_list.get_default_action_display())
+        self.assertContains(response, f"{rule_list_url}?access_list_id={access_list.pk}")

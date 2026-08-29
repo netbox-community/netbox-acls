@@ -66,8 +66,8 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         self.assertEqual(form.initial["source"], self.prefix)
         self.assertEqual(form.initial["destination"], self.destination_prefix)
 
-    def test_editing_keeps_the_unchanged_role_and_clears_the_switched_one(self):
-        """Test that an edit holds the role whose type is unchanged and drops the switched one."""
+    def test_editing_keeps_a_complete_role_and_rejects_an_incomplete_one(self):
+        """Test that the two roles are validated independently on an edit."""
         # Values arrive as text, the way a browser posts them.
         rule = self._rule(20)
         form = ACLExtendedRuleForm(
@@ -82,10 +82,11 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
             instance=rule,
         )
         self.assertIs(form.fields["source"].selected_model, Prefix)
-        self.assertTrue(form.fields["source"].object_field.queryset.exists())
-        destination = form.fields["destination"]
-        self.assertIs(destination.selected_model, type(self.ip_address))
-        self.assertFalse(destination.object_field.queryset.exists())
+        self.assertIs(form.fields["destination"].selected_model, type(self.ip_address))
+        # A type with no object is a validation error rather than a silent clear.
+        self.assertFalse(form.is_valid())
+        self.assertIn("destination", form.errors)
+        self.assertNotIn("source", form.errors)
 
     def test_bulkedit_access_list_filtered_to_extended(self):
         """#360: the extended bulk-edit Access List picker must filter to Extended ACLs."""

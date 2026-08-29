@@ -13,7 +13,7 @@ from ...choices import (
 )
 from ...constants import ACL_ASSIGNMENT_MODELS
 from ...forms import ACLAssignmentBulkEditForm, ACLAssignmentFilterForm, ACLAssignmentForm
-from ...models import AccessList
+from ...models import AccessList, ACLAssignment
 from .base import BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin
 
 UNRESOLVABLE_CONTENT_TYPE_ID = 99999999
@@ -63,6 +63,29 @@ class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTes
                 "assigned_object_object_id": obj.pk,
                 "direction": direction,
             },
+        )
+
+    def test_direction_defaults_to_none_on_an_add_form(self):
+        """ObjectEditView passes an unsaved instance on add, not None, so cover that shape."""
+        for kwargs in ({}, {"instance": ACLAssignment()}):
+            with self.subTest(instance="unsaved" if kwargs else "absent"):
+                form = ACLAssignmentForm(**kwargs)
+                self.assertEqual(
+                    form.initial["direction"],
+                    ACLAssignmentDirectionChoices.DIRECTION_NONE,
+                )
+
+    def test_edit_form_keeps_the_stored_direction(self):
+        """Seeding the default must not overwrite a saved value."""
+        assignment = ACLAssignment.objects.create(
+            access_list=self.access_list,
+            assigned_object=self.interface,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_EGRESS,
+        )
+        form = ACLAssignmentForm(instance=assignment)
+        self.assertEqual(
+            form.initial["direction"],
+            ACLAssignmentDirectionChoices.DIRECTION_EGRESS,
         )
 
     def test_assigned_object_queryset_follows_type(self):

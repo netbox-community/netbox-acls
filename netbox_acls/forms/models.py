@@ -167,9 +167,10 @@ class ACLAssignmentForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelForm):
         """
         Initialize the ACL Assignment form.
         """
+        # The add view passes an unsaved instance rather than None, so test the pk.
         # BaseModelForm applies initial over model_to_dict(instance), so seeding
         # unconditionally would reset a stored direction.
-        if kwargs.get("instance") is None:
+        if (instance := kwargs.get("instance")) is None or instance.pk is None:
             initial = kwargs.get("initial", {}).copy()
             initial.setdefault("direction", ACLAssignmentDirectionChoices.DIRECTION_NONE)
             kwargs["initial"] = initial

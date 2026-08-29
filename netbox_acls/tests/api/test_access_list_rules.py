@@ -110,6 +110,9 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         cls.bulk_update_data = {
             "description": "Rule bulk update",
         }
+        cls.bulk_update_invalid_data = {
+            "action": "sideways",
+        }
 
     def test_remark_action_requires_a_remark(self):
         """
@@ -450,6 +453,9 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         ]
         cls.bulk_update_data = {
             "description": "Rule bulk update",
+        }
+        cls.bulk_update_invalid_data = {
+            "action": "sideways",
         }
 
     def test_remark_action_requires_a_remark(self):

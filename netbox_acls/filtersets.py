@@ -259,12 +259,17 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
             objects = self._resolve_scope_objects(model, values)
         else:
             objects = model.objects.filter(pk__in=values)
-        pks = set()
-        for obj in objects:
-            pks.update(obj.get_descendants(include_self=True).values_list("pk", flat=True))
+
+        subtree = Q()
+        for ltree_path in objects.values_list("path", flat=True):
+            # An unpopulated path would match the whole table.
+            if ltree_path:
+                subtree |= Q(path__descendant_or_equal=ltree_path)
         # A value matching no object has to match no assignment either.
-        if not pks:
+        if not subtree:
             return queryset.none()
+
+        pks = model.objects.filter(subtree).values_list("pk", flat=True)
         return self._filter_scope(queryset, f"{path}__pk", pks)
 
     def filter_site(self, queryset, name, value):

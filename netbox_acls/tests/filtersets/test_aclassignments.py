@@ -35,7 +35,12 @@ class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin):
 
     @classmethod
     def setUpTestData(cls):
-        cls.parent_region = Region.objects.create(name="Region 0", slug="region-0")
+        cls.grandparent_region = Region.objects.create(name="Region 00", slug="region-00")
+        cls.parent_region = Region.objects.create(
+            name="Region 0",
+            slug="region-0",
+            parent=cls.grandparent_region,
+        )
         cls.region = Region.objects.create(name="Region 1", slug="region-1", parent=cls.parent_region)
         cls.site_group = SiteGroup.objects.create(name="Site Group 1", slug="site-group-1")
         cls.site = Site.objects.create(
@@ -224,14 +229,16 @@ class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin):
         self.assertEqual(filterset.qs.count(), 6)
 
     def test_region_matches_descendants(self):
-        """Selecting a parent region matches assignments sited in its children."""
-        filterset = self.filterset({"region": [self.parent_region.slug]}, self.queryset)
-        self.assertEqual(filterset.errors, {})
-        self.assertEqual(filterset.qs.count(), 6)
+        """Selecting an ancestor region matches assignments sited anywhere below it."""
+        for region in (self.parent_region, self.grandparent_region):
+            with self.subTest(region=region.slug):
+                filterset = self.filterset({"region": [region.slug]}, self.queryset)
+                self.assertEqual(filterset.errors, {})
+                self.assertEqual(filterset.qs.count(), 6)
 
-        filterset = self.filterset({"region_id": [self.parent_region.pk]}, self.queryset)
-        self.assertEqual(filterset.errors, {})
-        self.assertEqual(filterset.qs.count(), 6)
+                filterset = self.filterset({"region_id": [region.pk]}, self.queryset)
+                self.assertEqual(filterset.errors, {})
+                self.assertEqual(filterset.qs.count(), 6)
 
     # Deprecated: the bare names took a primary key from 2.0.0 to 2.0.2, so both forms resolve.
 

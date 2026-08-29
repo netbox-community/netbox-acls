@@ -18,7 +18,6 @@ from utilities.forms.fields import (
     TagFilterField,
 )
 from utilities.forms.rendering import FieldSet
-from utilities.forms.utils import add_blank_choice
 from virtualization.models import VirtualMachine, VMInterface
 
 from ..choices import (
@@ -73,18 +72,18 @@ class AccessListFilterForm(PrimaryModelFilterSetForm):
     )
 
     # ACL selector
-    type = forms.ChoiceField(
-        choices=add_blank_choice(ACLTypeChoices),
+    type = forms.MultipleChoiceField(
+        choices=ACLTypeChoices,
         required=False,
         label=_("Type"),
     )
-    family = forms.ChoiceField(
-        choices=add_blank_choice(ACLFamilyChoices),
+    family = forms.MultipleChoiceField(
+        choices=ACLFamilyChoices,
         required=False,
         label=_("Family"),
     )
-    default_action = forms.ChoiceField(
-        choices=add_blank_choice(ACLActionChoices),
+    default_action = forms.MultipleChoiceField(
+        choices=ACLActionChoices,
         required=False,
         label=_("Default Action"),
     )
@@ -147,13 +146,13 @@ class ACLAssignmentFilterForm(OwnerFilterMixin, NetBoxModelFilterSetForm):
         required=False,
         label=_("Assigned Object Type"),
     )
-    family = forms.ChoiceField(
-        choices=add_blank_choice(ACLFamilyChoices),
+    family = forms.MultipleChoiceField(
+        choices=ACLFamilyChoices,
         required=False,
         label=_("Family"),
     )
-    direction = forms.ChoiceField(
-        choices=add_blank_choice(ACLAssignmentDirectionChoices),
+    direction = forms.MultipleChoiceField(
+        choices=ACLAssignmentDirectionChoices,
         required=False,
         label=_("Direction"),
     )
@@ -235,8 +234,8 @@ class ACLRuleFilterFormMixin(forms.Form):
         required=False,
         label=_("Sequence"),
     )
-    action = forms.ChoiceField(
-        choices=add_blank_choice(ACLRuleActionChoices),
+    action = forms.MultipleChoiceField(
+        choices=ACLRuleActionChoices,
         required=False,
         label=_("Action"),
     )
@@ -387,8 +386,8 @@ class ACLExtendedRuleFilterForm(ACLRuleFilterFormMixin, PrimaryModelFilterSetFor
         required=False,
         label=_("Access List"),
     )
-    protocol = forms.ChoiceField(
-        choices=add_blank_choice(ACLProtocolChoices),
+    protocol = forms.MultipleChoiceField(
+        choices=ACLProtocolChoices,
         required=False,
         label=_("Protocol"),
     )

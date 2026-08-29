@@ -265,19 +265,31 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin)
         params = {"destination_port": 81}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 0)
 
-    # action and protocol are single-valued ChoiceFilters, so assert one value at a time.
-
     def test_action(self):
-        params = {"action": ACLRuleActionChoices.ACTION_PERMIT}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
-        params = {"action": ACLRuleActionChoices.ACTION_DENY}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+        params = {"action": [ACLRuleActionChoices.ACTION_PERMIT]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 2)
+        params = {"action": [ACLRuleActionChoices.ACTION_PERMIT, ACLRuleActionChoices.ACTION_DENY]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 4)
 
     def test_protocol(self):
-        params = {"protocol": ACLProtocolChoices.PROTOCOL_TCP}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
-        params = {"protocol": ACLProtocolChoices.PROTOCOL_UDP}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+        params = {"protocol": [ACLProtocolChoices.PROTOCOL_TCP]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 1)
+        params = {"protocol": [ACLProtocolChoices.PROTOCOL_TCP, ACLProtocolChoices.PROTOCOL_UDP]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 2)
+
+    def test_protocol_accepts_a_grouped_value(self):
+        """ACLProtocolChoices is optgrouped, so the flattened values must still validate."""
+        filterset = self.filterset({"protocol": [ACLProtocolChoices.PROTOCOL_GRE]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 0)
 
     def test_log_matches(self):
         params = {"log_matches": True}

@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 
@@ -183,3 +184,10 @@ class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTes
         )
         self.assertIs(form.fields["assigned_object"].selected_model, Device)
         self.assertTrue(form.fields["direction"].disabled)
+
+    def test_choice_filters_accept_multiple_values(self):
+        """The filter form's choice fields must be multi-selects, matching the filter set."""
+        form = ACLAssignmentFilterForm()
+        for field_name in ("family", "direction"):
+            with self.subTest(field_name=field_name):
+                self.assertIsInstance(form.fields[field_name], forms.MultipleChoiceField)

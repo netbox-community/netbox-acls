@@ -74,24 +74,37 @@ class AccessListFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin):
         params = {"comments__ic": "managed by"}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
-    # type, family and default_action are single-valued ChoiceFilters, matching the
-    # single-select widgets in AccessListFilterForm. Passing a list silently matches
-    # everything, so these must be asserted one value at a time.
+    # Assert errors too: an invalid value is dropped rather than applied, so a count that
+    # equals the whole fixture would pass for the wrong reason.
 
     def test_type(self):
-        params = {"type": ACLTypeChoices.TYPE_EXTENDED}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
-        params = {"type": ACLTypeChoices.TYPE_STANDARD}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+        filterset = self.filterset({"type": [ACLTypeChoices.TYPE_EXTENDED]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 2)
+        params = {"type": [ACLTypeChoices.TYPE_STANDARD, ACLTypeChoices.TYPE_EXTENDED]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 3)
 
     def test_family(self):
-        params = {"family": ACLFamilyChoices.FAMILY_IPV4}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
-        params = {"family": ACLFamilyChoices.FAMILY_DUAL}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+        filterset = self.filterset({"family": [ACLFamilyChoices.FAMILY_IPV4]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 1)
+        params = {"family": [ACLFamilyChoices.FAMILY_IPV4, ACLFamilyChoices.FAMILY_IPV6]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 2)
 
     def test_default_action(self):
-        params = {"default_action": ACLActionChoices.ACTION_DENY}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
-        params = {"default_action": ACLActionChoices.ACTION_PERMIT}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+        filterset = self.filterset({"default_action": [ACLActionChoices.ACTION_DENY]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 1)
+        params = {"default_action": [ACLActionChoices.ACTION_DENY, ACLActionChoices.ACTION_PERMIT]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 2)
+
+    def test_choice_filters_reject_an_unknown_value(self):
+        """An unknown value must fail validation rather than widen the result set."""
+        filterset = self.filterset({"type": ["sideways"]}, self.queryset)
+        self.assertIn("type", filterset.errors)

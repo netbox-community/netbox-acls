@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from netaddr import IPNetwork
@@ -212,11 +213,18 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
             {"type": ACLTypeChoices.TYPE_EXTENDED},
         )
 
+    def test_choice_filters_accept_multiple_values(self):
+        """The filter form's choice fields must be multi-selects, matching the filter set."""
+        form = ACLExtendedRuleFilterForm()
+        for field_name in ("action", "protocol"):
+            with self.subTest(field_name=field_name):
+                self.assertIsInstance(form.fields[field_name], forms.MultipleChoiceField)
+
     def test_protocol_filter_form_accepts_a_grouped_value(self):
-        """add_blank_choice concatenates tuples, so the optgroups must survive into the field."""
-        form = ACLExtendedRuleFilterForm(data={"protocol": ACLProtocolChoices.PROTOCOL_GRE})
+        """ACLProtocolChoices is optgrouped, so the groups must survive into the field."""
+        form = ACLExtendedRuleFilterForm(data={"protocol": [ACLProtocolChoices.PROTOCOL_GRE]})
         self.assertTrue(form.is_valid(), form.errors)
-        self.assertEqual(form.cleaned_data["protocol"], ACLProtocolChoices.PROTOCOL_GRE)
+        self.assertEqual(form.cleaned_data["protocol"], [ACLProtocolChoices.PROTOCOL_GRE])
 
     def test_logging_fields_are_present(self):
         """Test that the model form exposes both logging fields."""

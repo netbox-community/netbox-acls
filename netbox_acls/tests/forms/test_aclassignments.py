@@ -120,16 +120,22 @@ class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTes
     def test_bulkedit_assigned_object_queryset_follows_type(self):
         """Test that the bulk-edit object picker's queryset is resolved from the posted type."""
         form = ACLAssignmentBulkEditForm(
-            data={"assigned_object_type": ContentType.objects.get_for_model(Interface).pk},
+            data={"assigned_object_content_type": ContentType.objects.get_for_model(Interface).pk},
         )
+        self.assertIs(form.fields["assigned_object"].selected_model, Interface)
         self.assertEqual(form.fields["assigned_object"].queryset.model, Interface)
-        self.assertFalse(form.fields["assigned_object"].disabled)
+        self.assertFalse(form.fields["direction"].disabled)
+
+    def test_bulkedit_direction_enabled_with_no_type_chosen(self):
+        """A bulk edit with no type picked must still be able to change direction alone."""
+        form = ACLAssignmentBulkEditForm(data={})
+        self.assertIsNone(form.fields["assigned_object"].selected_model)
         self.assertFalse(form.fields["direction"].disabled)
 
     def test_bulkedit_direction_disabled_for_host_types(self):
         """Test that the bulk-edit direction is disabled for host assignments."""
         form = ACLAssignmentBulkEditForm(
-            data={"assigned_object_type": ContentType.objects.get_for_model(Device).pk},
+            data={"assigned_object_content_type": ContentType.objects.get_for_model(Device).pk},
         )
-        self.assertEqual(form.fields["assigned_object"].queryset.model, Device)
+        self.assertIs(form.fields["assigned_object"].selected_model, Device)
         self.assertTrue(form.fields["direction"].disabled)

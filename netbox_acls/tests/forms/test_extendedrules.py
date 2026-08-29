@@ -156,12 +156,12 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         """Test that the bulk-edit pickers' querysets are resolved from the posted types."""
         prefix_type = ContentType.objects.get_for_model(Prefix).pk
         form = ACLExtendedRuleBulkEditForm(
-            data={"source_type": prefix_type, "destination_type": prefix_type},
+            data={"source_content_type": prefix_type, "destination_content_type": prefix_type},
         )
-        self.assertEqual(form.fields["source"].queryset.model, Prefix)
-        self.assertFalse(form.fields["source"].disabled)
-        self.assertEqual(form.fields["destination"].queryset.model, Prefix)
-        self.assertFalse(form.fields["destination"].disabled)
+        for role in ("source", "destination"):
+            with self.subTest(role=role):
+                self.assertIs(form.fields[role].selected_model, Prefix)
+                self.assertEqual(form.fields[role].queryset.model, Prefix)
 
     def test_port_ranges_round_trip_inclusive(self):
         """Test that port ranges posted inclusively are stored half-open and shown inclusively."""
@@ -181,34 +181,26 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         form = ACLExtendedRuleBulkEditForm()
         for role in ("source", "destination"):
             with self.subTest(role=role):
-                attrs = form.fields[f"{role}_type"].widget.attrs
+                attrs = form.fields[role].content_type_field.widget.attrs
                 self.assertEqual(attrs["hx-post"], ".")
                 self.assertEqual(attrs["hx-select"], "#form_fields")
 
-    def test_bulkedit_labels_follow_type(self):
-        """Test that each role's resolved label names that role, so the two cannot be confused."""
+    def test_bulkedit_labels_name_the_role(self):
+        """Test that each label names its role, so the two pickers cannot be confused."""
         form = ACLExtendedRuleBulkEditForm(
             data={
-                "source_type": ContentType.objects.get_for_model(self.ip_range).pk,
-                "destination_type": ContentType.objects.get_for_model(self.aggregate).pk,
+                "source_content_type": ContentType.objects.get_for_model(self.ip_range).pk,
+                "destination_content_type": ContentType.objects.get_for_model(self.aggregate).pk,
             },
         )
-        self.assertEqual(form.fields["source"].label, "Source IP Range")
-        self.assertEqual(form.fields["destination"].label, "Destination Aggregate")
+        self.assertEqual(form.fields["source"].label, "Source")
+        self.assertEqual(form.fields["destination"].label, "Destination")
 
     def test_bulkedit_nullable_fields(self):
         """Test that the nullable list stays exhaustive for this form."""
         self.assertEqual(
             ACLExtendedRuleBulkEditForm.nullable_fields,
-            (
-                "remark",
-                "source_type",
-                "source",
-                "destination_type",
-                "destination",
-                "description",
-                "comments",
-            ),
+            ("remark", "source", "destination", "description", "comments"),
         )
 
     def test_filterform_access_list_filtered_to_extended(self):

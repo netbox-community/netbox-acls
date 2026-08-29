@@ -133,29 +133,29 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
     def test_bulkedit_source_queryset_follows_type(self):
         """Test that the bulk-edit source picker's queryset is resolved from the posted type."""
         form = ACLStandardRuleBulkEditForm(
-            data={"source_type": ContentType.objects.get_for_model(type(self.prefix)).pk},
+            data={"source_content_type": ContentType.objects.get_for_model(type(self.prefix)).pk},
         )
+        self.assertIs(form.fields["source"].selected_model, type(self.prefix))
         self.assertEqual(form.fields["source"].queryset.model, type(self.prefix))
-        self.assertFalse(form.fields["source"].disabled)
 
     def test_bulkedit_source_type_widget_swaps_the_form_fields(self):
         """Test that the bulk-edit type picker posts and swaps, unlike the model form's picker."""
-        attrs = ACLStandardRuleBulkEditForm().fields["source_type"].widget.attrs
+        attrs = ACLStandardRuleBulkEditForm().fields["source"].content_type_field.widget.attrs
         self.assertEqual(attrs["hx-post"], ".")
         self.assertEqual(attrs["hx-select"], "#form_fields")
 
-    def test_bulkedit_source_label_follows_type(self):
-        """Test that the resolved label names the role and the selected model."""
+    def test_bulkedit_source_label_names_the_role(self):
+        """Test that the label names the role, since the type picker sits inside the field."""
         form = ACLStandardRuleBulkEditForm(
-            data={"source_type": ContentType.objects.get_for_model(self.ip_range).pk},
+            data={"source_content_type": ContentType.objects.get_for_model(self.ip_range).pk},
         )
-        self.assertEqual(form.fields["source"].label, "Source IP Range")
+        self.assertEqual(form.fields["source"].label, "Source")
 
     def test_bulkedit_nullable_fields(self):
         """Test that the nullable list stays exhaustive for this form."""
         self.assertEqual(
             ACLStandardRuleBulkEditForm.nullable_fields,
-            ("remark", "source_type", "source", "description", "comments"),
+            ("remark", "source", "description", "comments"),
         )
 
     def test_filterform_carries_no_extended_filters(self):

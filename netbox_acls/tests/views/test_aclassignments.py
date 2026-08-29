@@ -154,3 +154,16 @@ class ACLAssignmentViewTestCase(PluginTestCases.ObjectViewTestCase):
                 self.assertHttpStatus(response, 200)
                 self.assertContains(response, assignment.assigned_object.get_absolute_url())
                 self.assertContains(response, parent.get_absolute_url())
+
+    def test_detail_view_renders_the_panel_attributes(self):
+        """Test that the detail view renders the panel's own attribute anchors."""
+        self.add_permissions("netbox_acls.view_aclassignment")
+        assignment = ACLAssignment.objects.get(
+            access_list=self.acl1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        response = self.client.get(assignment.get_absolute_url())
+
+        self.assertHttpStatus(response, 200)
+        self.assertContains(response, 'id="attr_assigned_object"')

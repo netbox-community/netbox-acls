@@ -151,3 +151,15 @@ class AccessListViewTestCase(PluginTestCases.ObjectViewTestCase):
         self.assertContains(response, access_list.get_family_display())
         self.assertContains(response, access_list.get_default_action_display())
         self.assertContains(response, f"{rule_list_url}?access_list_id={access_list.pk}")
+
+    def test_detail_view_renders_the_panel_attributes(self):
+        """Test that the detail view renders the panel's own attribute anchors."""
+        self.add_permissions("netbox_acls.view_accesslist")
+        access_list = AccessList.objects.get(name="testacl1")
+
+        response = self.client.get(access_list.get_absolute_url())
+
+        self.assertHttpStatus(response, 200)
+        # Only text, numeric, array and generic foreign key attributes emit an
+        # anchor. Choice and related object attributes are pinned by _attrs order.
+        self.assertContains(response, 'id="attr_rules"')

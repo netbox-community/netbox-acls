@@ -8,13 +8,17 @@ from django.db.models import Case, CharField, Count, Q, Value, When
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device, Interface, VirtualChassis
+from extras.ui.panels import CustomFieldsPanel, TagsPanel
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.object_actions import AddObject, BulkDelete, BulkEdit, BulkExport
+from netbox.ui import layout
+from netbox.ui.breadcrumbs import Breadcrumb, filtered_list_url
+from netbox.ui.panels import CommentsPanel
 from netbox.views import generic
 from utilities.views import ViewTab, register_model_view
 from virtualization.models import VirtualMachine, VMInterface
 
-from . import choices, filtersets, forms, models, tables
+from . import choices, filtersets, forms, models, object_actions, tables, ui
 
 __all__ = (
     "ACLAssignmentBulkDeleteView",
@@ -220,6 +224,21 @@ class AccessListView(generic.ObjectView):
     """
 
     queryset = models.AccessList.objects.select_related("owner").prefetch_related("tags")
+    template_name = "generic/object.html"
+    actions = (object_actions.AddRule, *generic.ObjectView.actions)
+    layout = layout.SimpleLayout(
+        left_panels=[
+            ui.AccessListPanel(),
+            CustomFieldsPanel(),
+        ],
+        right_panels=[
+            TagsPanel(),
+            CommentsPanel(),
+        ],
+        bottom_panels=[
+            ui.AccessListRulesPanel(),
+        ],
+    )
 
     def get_extra_context(self, request, instance):
         """
@@ -358,6 +377,23 @@ class ACLAssignmentView(generic.ObjectView):
         "access_list",
         "assigned_object",
         "tags",
+    )
+    template_name = "generic/object.html"
+    layout = layout.SimpleLayout(
+        left_panels=[
+            ui.ACLAssignmentPanel(),
+            CustomFieldsPanel(),
+        ],
+        right_panels=[
+            TagsPanel(),
+            CommentsPanel(),
+        ],
+        breadcrumbs=[
+            Breadcrumb(
+                "access_list",
+                url=filtered_list_url("plugins:netbox_acls:aclassignment_list", "access_list_id"),
+            ),
+        ],
     )
 
 
@@ -580,6 +616,24 @@ class ACLStandardRuleView(generic.ObjectView):
         "source",
         "tags",
     )
+    template_name = "generic/object.html"
+    layout = layout.SimpleLayout(
+        left_panels=[
+            ui.ACLStandardRulePanel(),
+            ui.ACLStandardRuleDetailsPanel(),
+        ],
+        right_panels=[
+            CustomFieldsPanel(),
+            TagsPanel(),
+            CommentsPanel(),
+        ],
+        breadcrumbs=[
+            Breadcrumb(
+                "access_list",
+                url=filtered_list_url("plugins:netbox_acls:aclstandardrule_list", "access_list_id"),
+            ),
+        ],
+    )
 
 
 @register_model_view(models.ACLStandardRule, "list", path="", detail=False)
@@ -706,6 +760,24 @@ class ACLExtendedRuleView(generic.ObjectView):
         "source",
         "destination",
         "tags",
+    )
+    template_name = "generic/object.html"
+    layout = layout.SimpleLayout(
+        left_panels=[
+            ui.ACLExtendedRulePanel(),
+            ui.ACLExtendedRuleDetailsPanel(),
+        ],
+        right_panels=[
+            CustomFieldsPanel(),
+            TagsPanel(),
+            CommentsPanel(),
+        ],
+        breadcrumbs=[
+            Breadcrumb(
+                "access_list",
+                url=filtered_list_url("plugins:netbox_acls:aclextendedrule_list", "access_list_id"),
+            ),
+        ],
     )
 
 

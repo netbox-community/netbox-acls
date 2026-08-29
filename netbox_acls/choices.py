@@ -12,6 +12,7 @@ __all__ = (
     "ACLProtocolChoices",
     "ACLRuleActionChoices",
     "ACLRuleLogOptionChoices",
+    "ACLRuleUsageChoices",
     "ACLTypeChoices",
 )
 
@@ -85,6 +86,22 @@ class ACLRuleLogOptionChoices(ChoiceSet):
             "Cisco",
             ((OPTION_CISCO_LOG_INPUT, "Log-input", "purple"),),
         ),
+    ]
+
+
+class ACLRuleUsageChoices(ChoiceSet):
+    """
+    Defines how an ACL Extended Rule references an object listed against it.
+    """
+
+    USAGE_SOURCE = "source"
+    USAGE_DESTINATION = "destination"
+    USAGE_BOTH = "both"
+
+    CHOICES = [
+        (USAGE_SOURCE, "Source", "blue"),
+        (USAGE_DESTINATION, "Destination", "purple"),
+        (USAGE_BOTH, "Source and destination", "teal"),
     ]
 
 

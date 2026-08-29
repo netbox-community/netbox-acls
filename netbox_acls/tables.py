@@ -3,10 +3,12 @@ Define the object lists / table view for each of the plugin models.
 """
 
 import django_tables2 as tables
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from netbox.tables import NetBoxTable, PrimaryModelTable, columns
 
+from .choices import ACLRuleUsageChoices
 from .models import AccessList, ACLAssignment, ACLExtendedRule, ACLStandardRule
 
 
@@ -31,9 +33,29 @@ class LogOptionsColumn(columns.TemplateColumn):
         return ", ".join(value)
 
 
+class UsedAsColumn(tables.Column):
+    """
+    Display which end of an extended rule references the viewed object.
+    """
+
+    labels = dict(ACLRuleUsageChoices)
+
+    def render(self, value):
+        return format_html(
+            '<span class="badge text-bg-{}">{}</span>',
+            ACLRuleUsageChoices.colors.get(value, "secondary"),
+            self.labels.get(value, value),
+        )
+
+    def value(self, value):
+        """Export the label rather than the rendered badge."""
+        return self.labels.get(value, value)
+
+
 __all__ = (
     "ACLAssignmentTable",
     "ACLExtendedRuleTable",
+    "ACLExtendedRuleUsageTable",
     "ACLStandardRuleTable",
     "AccessListTable",
 )
@@ -271,6 +293,32 @@ class ACLExtendedRuleTable(ACLRuleTable):
             "sequence",
             "action",
             "remark",
+            "protocol",
+            "source",
+            "source_port_ranges_list",
+            "destination",
+            "destination_port_ranges_list",
+            "log_matches",
+        )
+
+
+class ACLExtendedRuleUsageTable(ACLExtendedRuleTable):
+    """
+    Defines the table view for extended rules listed against a referenced object.
+    """
+
+    used_as = UsedAsColumn(
+        verbose_name=_("Used As"),
+    )
+
+    class Meta(ACLExtendedRuleTable.Meta):
+        fields = ACLExtendedRuleTable.Meta.fields + ("used_as",)
+        default_columns = (
+            "access_list",
+            "sequence",
+            "action",
+            "remark",
+            "used_as",
             "protocol",
             "source",
             "source_port_ranges_list",

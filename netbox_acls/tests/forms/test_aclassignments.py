@@ -59,8 +59,8 @@ class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTes
         return ACLAssignmentForm(
             data={
                 "access_list": self.access_list.pk,
-                "assigned_object_type": ContentType.objects.get_for_model(model).pk,
-                "assigned_object": obj.pk,
+                "assigned_object_content_type": ContentType.objects.get_for_model(model).pk,
+                "assigned_object_object_id": obj.pk,
                 "direction": direction,
             },
         )
@@ -68,8 +68,10 @@ class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTes
     def test_assigned_object_queryset_follows_type(self):
         """Test that the object picker's queryset is resolved from the posted content type."""
         form = self._bound_form(Interface, self.interface)
-        self.assertEqual(form.fields["assigned_object"].queryset.model, Interface)
-        self.assertFalse(form.fields["assigned_object"].disabled)
+        field = form.fields["assigned_object"]
+        self.assertIs(field.selected_model, Interface)
+        self.assertEqual(field.queryset.model, Interface)
+        self.assertNotIn("disabled", field.object_field.widget.attrs)
 
     def test_direction_enabled_for_interface_types(self):
         """Test that the direction is enabled and required for both interface types."""
@@ -92,7 +94,7 @@ class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTes
         """Test that the assignment type picker offers only the assignable models."""
         form = ACLAssignmentForm()
         self.assertQuerySetEqual(
-            form.fields["assigned_object_type"].queryset.order_by("pk"),
+            form.fields["assigned_object"].content_type_field.queryset.order_by("pk"),
             ContentType.objects.filter(ACL_ASSIGNMENT_MODELS).order_by("pk"),
             transform=lambda ct: ct,
         )
@@ -101,11 +103,13 @@ class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTes
         """
         Test that a content type id which no longer resolves leaves the form usable.
 
-        The id arrives through initial, not posted data, which is validated against
-        the field's queryset and discarded before __init__ looks it up.
+        The id is constrained to the field's own content type queryset, so an
+        out-of-set value resolves to no model and the object picker stays disabled.
         """
-        form = ACLAssignmentForm(initial={"assigned_object_type": UNRESOLVABLE_CONTENT_TYPE_ID})
-        self.assertTrue(form.fields["assigned_object"].disabled)
+        form = ACLAssignmentForm(initial={"assigned_object_content_type": UNRESOLVABLE_CONTENT_TYPE_ID})
+        field = form.fields["assigned_object"]
+        self.assertIsNone(field.selected_model)
+        self.assertEqual(field.object_field.widget.attrs.get("disabled"), "disabled")
 
     def test_clean_assigns_object(self):
         """Test that a valid form assigns the selected object to the instance."""

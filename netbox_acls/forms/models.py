@@ -4,27 +4,21 @@ Defines each django model's GUI form to add or edit objects for each django mode
 
 from django import forms
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ObjectDoesNotExist
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
-from dcim.models import Device, Interface
-from ipam.models import Prefix
+from dcim.models import Interface
 from netbox.forms import NetBoxModelForm, PrimaryModelForm
 from netbox.forms.mixins import OwnerMixin
-from utilities.forms import (
-    add_blank_choice,
-    get_field_value,
-)
+from utilities.forms import add_blank_choice
 from utilities.forms.fields import (
     CommentField,
-    ContentTypeChoiceField,
     DynamicModelChoiceField,
+    GenericObjectChoiceField,
     NumericRangeArrayField,
 )
+from utilities.forms.mixins import GenericObjectFormMixin
 from utilities.forms.rendering import FieldSet
-from utilities.forms.widgets import HTMXSelect
-from utilities.templatetags.builtins.filters import bettertitle
 from virtualization.models import VMInterface
 
 from ..choices import (
@@ -111,7 +105,7 @@ class AccessListForm(PrimaryModelForm):
         }
 
 
-class ACLAssignmentForm(OwnerMixin, NetBoxModelForm):
+class ACLAssignmentForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelForm):
     """
     GUI form to add or edit ACL assignments
     Requires an access_list, a name, a type, and a default_action.
@@ -124,16 +118,11 @@ class ACLAssignmentForm(OwnerMixin, NetBoxModelForm):
             "<b>*Note:</b> Access List must be present on the device already.",
         ),
     )
-    assigned_object_type = ContentTypeChoiceField(
-        queryset=ContentType.objects.filter(ACL_ASSIGNMENT_MODELS),
-        widget=HTMXSelect(),
-        label=_("Assignment Object Type"),
-    )
-    assigned_object = DynamicModelChoiceField(
-        queryset=Device.objects.none(),  # Initial queryset
+    assigned_object = GenericObjectChoiceField(
+        content_type_queryset=ContentType.objects.filter(ACL_ASSIGNMENT_MODELS),
         selector=True,
         label=_("Assignment Object"),
-        disabled=True,
+        hx_target_id="acl-assignment",
     )
     direction = forms.ChoiceField(
         choices=add_blank_choice(ACLAssignmentDirectionChoices),
@@ -157,10 +146,10 @@ class ACLAssignmentForm(OwnerMixin, NetBoxModelForm):
             name=_("Access List Details"),
         ),
         FieldSet(
-            "assigned_object_type",
             "assigned_object",
             "direction",
             name=_("Assignment"),
+            html_id="acl-assignment",
         ),
     )
 
@@ -168,7 +157,6 @@ class ACLAssignmentForm(OwnerMixin, NetBoxModelForm):
         model = ACLAssignment
         fields = (
             "access_list",
-            "assigned_object_type",
             "direction",
             "owner",
             "comments",
@@ -179,55 +167,27 @@ class ACLAssignmentForm(OwnerMixin, NetBoxModelForm):
         """
         Initialize the ACL Assignment form.
         """
-
-        # Initialize fields with initial values
-        instance = kwargs.get("instance")
-        initial = kwargs.get("initial", {}).copy()
-        initial["direction"] = ACLAssignmentDirectionChoices.DIRECTION_NONE
-
-        if instance is not None and instance.assigned_object:
-            # Initialize the assigned object field
-            initial["assigned_object"] = instance.assigned_object
-            initial["direction"] = instance.direction
-
-        kwargs["initial"] = initial
+        # BaseModelForm applies initial over model_to_dict(instance), so seeding
+        # unconditionally would reset a stored direction.
+        if kwargs.get("instance") is None:
+            initial = kwargs.get("initial", {}).copy()
+            initial.setdefault("direction", ACLAssignmentDirectionChoices.DIRECTION_NONE)
+            kwargs["initial"] = initial
 
         super().__init__(*args, **kwargs)
 
-        if assigned_object_type_id := get_field_value(self, "assigned_object_type"):
-            try:
-                # Retrieve the ContentType model class based on the assigned object type
-                assigned_object_type = ContentType.objects.get(pk=assigned_object_type_id)
-                assigned_object_model = assigned_object_type.model_class()
-
-                # Configure the queryset and label for the assigned_object field
-                self.fields["assigned_object"].queryset = assigned_object_model.objects.all()
-                self.fields["assigned_object"].widget.attrs["selector"] = assigned_object_model._meta.label_lower
-                self.fields["assigned_object"].disabled = False
-                self.fields["assigned_object"].label = _(bettertitle(assigned_object_model._meta.verbose_name))
-                if assigned_object_model in (Interface, VMInterface):
-                    self.fields["direction"].disabled = False
-                    self.fields["direction"].required = True
-                    self.fields["direction"].choices = add_blank_choice(ACLAssignmentDirectionUIChoices)
-                else:
-                    self.fields["direction"].disabled = True
-                    self.fields["direction"].widget.attrs["value"] = "None"
-            except ObjectDoesNotExist:
-                pass
-
-            # Clears the assigned_object field if the selected type changes
-            if self.instance and self.instance.pk and assigned_object_type_id != self.instance.assigned_object_type_id:
-                self.initial["assigned_object"] = None
-
-    def clean(self) -> None:
-        """Validate form fields for the ACL Assignment form."""
-        super().clean()
-
-        # Ensure the selected object gets assigned
-        self.instance.assigned_object = self.cleaned_data.get("assigned_object")
+        # With no type chosen the field keeps its declared disabled state.
+        if (model := self.fields["assigned_object"].selected_model) is not None:
+            if model in (Interface, VMInterface):
+                self.fields["direction"].disabled = False
+                self.fields["direction"].required = True
+                self.fields["direction"].choices = add_blank_choice(ACLAssignmentDirectionUIChoices)
+            else:
+                self.fields["direction"].disabled = True
+                self.fields["direction"].widget.attrs["value"] = "None"
 
 
-class ACLStandardRuleForm(PrimaryModelForm):
+class ACLStandardRuleForm(GenericObjectFormMixin, PrimaryModelForm):
     """
     GUI form to add or edit Standard Access List.
     Requires an access_list, a sequence, and ACL rule type.
@@ -246,20 +206,13 @@ class ACLStandardRuleForm(PrimaryModelForm):
     )
 
     # Source
-    source_type = ContentTypeChoiceField(
-        queryset=ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS),
+    source = GenericObjectChoiceField(
+        content_type_queryset=ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS),
         required=False,
-        widget=HTMXSelect(),
-        label=_("Source Type"),
-        help_text=help_text_acl_rule_logic,
-    )
-    source = DynamicModelChoiceField(
-        queryset=Prefix.objects.none(),  # Initial queryset
         selector=True,
-        required=False,
         label=_("Source"),
         help_text=help_text_acl_rule_logic,
-        disabled=True,
+        hx_target_id="source-definition",
     )
 
     log_options = forms.MultipleChoiceField(
@@ -286,9 +239,9 @@ class ACLStandardRuleForm(PrimaryModelForm):
             name=_("Remark"),
         ),
         FieldSet(
-            "source_type",
             "source",
             name=_("Source Definition"),
+            html_id="source-definition",
         ),
         FieldSet(
             "log_matches",
@@ -304,7 +257,6 @@ class ACLStandardRuleForm(PrimaryModelForm):
             "sequence",
             "action",
             "remark",
-            "source_type",
             "log_matches",
             "log_options",
             "description",
@@ -319,52 +271,8 @@ class ACLStandardRuleForm(PrimaryModelForm):
             "remark": help_text_acl_remark,
         }
 
-    def __init__(self, *args, **kwargs) -> None:
-        """
-        Initialize the ACLStandardRuleForm.
-        """
 
-        # Initialize fields with initial values
-        instance = kwargs.get("instance")
-        initial = kwargs.get("initial", {}).copy()
-
-        if instance is not None and instance.source:
-            # Initialize the source object field
-            initial["source"] = instance.source
-
-        kwargs["initial"] = initial
-
-        super().__init__(*args, **kwargs)
-
-        if source_type_id := get_field_value(self, "source_type"):
-            try:
-                # Retrieve the ContentType model class based on the source type
-                source_type = ContentType.objects.get(pk=source_type_id)
-                source_model = source_type.model_class()
-
-                # Configure the queryset and label for the source field
-                self.fields["source"].queryset = source_model.objects.all()
-                self.fields["source"].widget.attrs["selector"] = source_model._meta.label_lower
-                self.fields["source"].disabled = False
-                self.fields["source"].label = _("Source " + bettertitle(source_model._meta.verbose_name))
-            except ObjectDoesNotExist:
-                pass
-
-            # Clears the source field if the selected type changes
-            if self.instance and self.instance.pk and source_type_id != self.instance.source_type_id:
-                self.initial["source"] = None
-
-    def clean(self):
-        """
-        Validate form fields for the ACL Standard Rule form.
-        """
-        super().clean()
-
-        # Ensure the selected source object gets assigned
-        self.instance.source = self.cleaned_data.get("source")
-
-
-class ACLExtendedRuleForm(PrimaryModelForm):
+class ACLExtendedRuleForm(GenericObjectFormMixin, PrimaryModelForm):
     """
     GUI form to add or edit Extended Access List.
     Requires an access_list, a sequence, and ACL rule type.
@@ -383,20 +291,13 @@ class ACLExtendedRuleForm(PrimaryModelForm):
     )
 
     # Source
-    source_type = ContentTypeChoiceField(
-        queryset=ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS),
+    source = GenericObjectChoiceField(
+        content_type_queryset=ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS),
         required=False,
-        widget=HTMXSelect(),
-        label=_("Source Type"),
-        help_text=help_text_acl_rule_logic,
-    )
-    source = DynamicModelChoiceField(
-        queryset=Prefix.objects.none(),  # Initial queryset
         selector=True,
-        required=False,
         label=_("Source"),
         help_text=help_text_acl_rule_logic,
-        disabled=True,
+        hx_target_id="source-definition",
     )
     source_port_ranges = NumericRangeArrayField(
         required=False,
@@ -405,20 +306,13 @@ class ACLExtendedRuleForm(PrimaryModelForm):
     )
 
     # Destination
-    destination_type = ContentTypeChoiceField(
-        queryset=ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS),
+    destination = GenericObjectChoiceField(
+        content_type_queryset=ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS),
         required=False,
-        widget=HTMXSelect(),
-        label=_("Destination Type"),
-        help_text=help_text_acl_rule_logic,
-    )
-    destination = DynamicModelChoiceField(
-        queryset=Prefix.objects.none(),  # Initial queryset
         selector=True,
-        required=False,
         label=_("Destination"),
         help_text=help_text_acl_rule_logic,
-        disabled=True,
+        hx_target_id="destination-definition",
     )
     destination_port_ranges = NumericRangeArrayField(
         required=False,
@@ -454,16 +348,16 @@ class ACLExtendedRuleForm(PrimaryModelForm):
             name=_("Protocol"),
         ),
         FieldSet(
-            "source_type",
             "source",
             "source_port_ranges",
             name=_("Source Definition"),
+            html_id="source-definition",
         ),
         FieldSet(
-            "destination_type",
             "destination",
             "destination_port_ranges",
             name=_("Destination Definition"),
+            html_id="destination-definition",
         ),
         FieldSet(
             "log_matches",
@@ -479,9 +373,7 @@ class ACLExtendedRuleForm(PrimaryModelForm):
             "sequence",
             "action",
             "remark",
-            "source_type",
             "source_port_ranges",
-            "destination_type",
             "destination_port_ranges",
             "protocol",
             "log_matches",
@@ -498,73 +390,3 @@ class ACLExtendedRuleForm(PrimaryModelForm):
             "protocol": help_text_acl_rule_logic,
             "remark": help_text_acl_remark,
         }
-
-    def __init__(self, *args, **kwargs) -> None:
-        """
-        Initialize the ACLExtendedRuleForm.
-        """
-
-        # Initialize fields with initial values
-        instance = kwargs.get("instance")
-        initial = kwargs.get("initial", {}).copy()
-
-        if instance is not None and instance.source:
-            # Initialize the source object field
-            initial["source"] = instance.source
-        if instance is not None and instance.destination:
-            # Initialize the destination object field
-            initial["destination"] = instance.destination
-
-        kwargs["initial"] = initial
-
-        super().__init__(*args, **kwargs)
-
-        # Source
-        if source_type_id := get_field_value(self, "source_type"):
-            try:
-                # Retrieve the ContentType model class based on the source type
-                source_type = ContentType.objects.get(pk=source_type_id)
-                source_model = source_type.model_class()
-
-                # Configure the queryset and label for the source field
-                self.fields["source"].queryset = source_model.objects.all()
-                self.fields["source"].widget.attrs["selector"] = source_model._meta.label_lower
-                self.fields["source"].disabled = False
-                self.fields["source"].label = _("Source " + bettertitle(source_model._meta.verbose_name))
-            except ObjectDoesNotExist:
-                pass
-
-            # Clears the source field if the selected type changes
-            if self.instance and self.instance.pk and source_type_id != self.instance.source_type_id:
-                self.initial["source"] = None
-
-        # Destination
-        if destination_type_id := get_field_value(self, "destination_type"):
-            try:
-                # Retrieve the ContentType model class based on the destination type
-                destination_type = ContentType.objects.get(pk=destination_type_id)
-                destination_model = destination_type.model_class()
-
-                # Configure the queryset and label for the destination field
-                self.fields["destination"].queryset = destination_model.objects.all()
-                self.fields["destination"].widget.attrs["selector"] = destination_model._meta.label_lower
-                self.fields["destination"].disabled = False
-                self.fields["destination"].label = _("Destination " + bettertitle(destination_model._meta.verbose_name))
-            except ObjectDoesNotExist:
-                pass
-
-            # Clears the destination field if the selected type changes
-            if self.instance and self.instance.pk and destination_type_id != self.instance.destination_type_id:
-                self.initial["destination"] = None
-
-    def clean(self):
-        """
-        Validate form fields for the ACL Extended Rule form.
-        """
-        super().clean()
-
-        # Ensure the selected source object gets assigned
-        self.instance.source = self.cleaned_data.get("source")
-
-        # Ensure the selected destination object gets assigned
-        self.instance.destination = self.cleaned_data.get("destination")

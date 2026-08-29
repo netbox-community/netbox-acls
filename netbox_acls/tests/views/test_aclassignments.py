@@ -108,8 +108,8 @@ class ACLAssignmentViewTestCase(PluginTestCases.ObjectViewTestCase):
         # have to arrive together.
         cls.form_data = {
             "access_list": cls.acl1.pk,
-            "assigned_object_type": ContentType.objects.get_for_model(Interface).pk,
-            "assigned_object": cls.interface3.pk,
+            "assigned_object_content_type": ContentType.objects.get_for_model(Interface).pk,
+            "assigned_object_object_id": cls.interface3.pk,
             "direction": ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
             "comments": "",
             "tags": [t.pk for t in tags],

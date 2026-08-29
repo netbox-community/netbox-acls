@@ -184,8 +184,7 @@ class ACLRule(PrimaryModel):
     clone_fields = (
         "access_list",
         "action",
-        "source_id",
-        "source_type",
+        "source",
         "log_matches",
         "log_options",
     )
@@ -503,8 +502,7 @@ class ACLExtendedRule(ACLRule):
 
     clone_fields = ACLRule.clone_fields + (
         "source_port_ranges",
-        "destination_id",
-        "destination_type",
+        "destination",
         "destination_port_ranges",
         "protocol",
     )

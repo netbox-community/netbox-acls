@@ -1,0 +1,5 @@
+<div class="d-flex flex-wrap gap-1"{% if name %} id="attr_{{ name }}"{% endif %}>
+  {% for label, color in badges %}
+    {% badge label bg_color=color %}
+  {% endfor %}
+</div>

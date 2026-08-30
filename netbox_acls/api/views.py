@@ -29,9 +29,11 @@ class AccessListViewSet(NetBoxModelViewSet):
     Defines the view set for the django AccessList model and associates it with a view.
     """
 
-    queryset = models.AccessList.objects.annotate(
-        rule_count=Count("aclextendedrules") + Count("aclstandardrules")
-    ).prefetch_related("owner", "tags")
+    queryset = (
+        models.AccessList.objects.annotate(rule_count=Count("aclextendedrules") + Count("aclstandardrules"))
+        .select_related("owner")
+        .prefetch_related("tags")
+    )
     serializer_class = AccessListSerializer
     filterset_class = filtersets.AccessListFilterSet
 
@@ -41,9 +43,9 @@ class ACLAssignmentViewSet(NetBoxModelViewSet):
     Defines the view set for the django ACLInterfaceAssignment model and associates it with a view.
     """
 
-    queryset = models.ACLAssignment.objects.prefetch_related(
+    queryset = models.ACLAssignment.objects.select_related("owner").prefetch_related(
         "access_list",
-        "owner",
+        "assigned_object",
         "tags",
     )
     serializer_class = ACLAssignmentSerializer
@@ -55,10 +57,9 @@ class ACLStandardRuleViewSet(NetBoxModelViewSet):
     Defines the view set for the django ACLStandardRule model and associates it with a view.
     """
 
-    queryset = models.ACLStandardRule.objects.prefetch_related(
+    queryset = models.ACLStandardRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
-        "owner",
         "tags",
     )
     serializer_class = ACLStandardRuleSerializer
@@ -70,11 +71,10 @@ class ACLExtendedRuleViewSet(NetBoxModelViewSet):
     Defines the view set for the django ACLExtendedRule model and associates it with a view.
     """
 
-    queryset = models.ACLExtendedRule.objects.prefetch_related(
+    queryset = models.ACLExtendedRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
         "destination",
-        "owner",
         "tags",
     )
     serializer_class = ACLExtendedRuleSerializer

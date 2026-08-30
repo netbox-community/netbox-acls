@@ -2,8 +2,8 @@
 
 from django.utils.translation import gettext_lazy as _
 
-from netbox.ui import attrs
-from netbox.ui.panels import ContextTablePanel, ObjectAttributesPanel
+from netbox.ui import actions, attrs
+from netbox.ui.panels import ObjectAttributesPanel, ObjectsTablePanel
 
 from .attrs import AssignedObjectAttr, LogOptionsAttr, RuleCountAttr
 
@@ -11,10 +11,11 @@ __all__ = (
     "ACLAssignmentPanel",
     "ACLExtendedRuleDetailsPanel",
     "ACLExtendedRulePanel",
+    "ACLRuleLoggingPanel",
     "ACLStandardRuleDetailsPanel",
     "ACLStandardRulePanel",
     "AccessListPanel",
-    "AccessListRulesPanel",
+    "RuleTablePanel",
 )
 
 
@@ -30,19 +31,32 @@ class AccessListPanel(ObjectAttributesPanel):
     description = attrs.TextAttr("description", label=_("Description"))
 
 
-class AccessListRulesPanel(ContextTablePanel):
-    """Rules table for an access list, titled for the list's type."""
+class RuleTablePanel(ObjectsTablePanel):
+    """Rules of one type, shown only on an access list of that type."""
 
-    def __init__(self, **kwargs):
-        super().__init__("rules_table", **kwargs)
+    def __init__(self, acl_type, model, title):
+        self.acl_type = acl_type
+        super().__init__(
+            model,
+            filters={"access_list_id": lambda context: context["object"].pk},
+            exclude_columns=["access_list"],
+            include_columns=["log_matches", "log_options_list"],
+            title=title,
+            actions=[
+                actions.AddObject(
+                    model,
+                    url_params={"access_list": lambda context: context["object"].pk},
+                    label=_("Add Rule"),
+                ),
+            ],
+        )
 
-    def get_context(self, context):
-        """Title the card for the access list's own type."""
-        panel_context = super().get_context(context)
-        panel_context["title"] = _("%(type)s Rules") % {
-            "type": panel_context["object"].get_type_display(),
-        }
-        return panel_context
+    def should_render(self, context):
+        """Render only on an access list whose type matches these rules."""
+        access_list = context.get("object")
+        if access_list is None or access_list.type != self.acl_type:
+            return False
+        return super().should_render(context)
 
 
 class ACLAssignmentPanel(ObjectAttributesPanel):
@@ -66,15 +80,13 @@ class ACLStandardRulePanel(ObjectAttributesPanel):
 
 
 class ACLStandardRuleDetailsPanel(ObjectAttributesPanel):
-    """Match criteria and logging of a standard ACL rule."""
+    """Match criteria of a standard ACL rule."""
 
     title = _("Details")
 
     action = attrs.ChoiceAttr("action", label=_("Action"))
     remark = attrs.TextAttr("remark", label=_("Remark"))
     source = attrs.GenericForeignKeyAttr("source", linkify=True, label=_("Source"))
-    log_matches = attrs.BooleanAttr("log_matches", label=_("Log Matches"))
-    log_options = LogOptionsAttr("log_options_badges", label=_("Log Options"))
 
 
 class ACLExtendedRulePanel(ACLStandardRulePanel):
@@ -84,7 +96,7 @@ class ACLExtendedRulePanel(ACLStandardRulePanel):
 
 
 class ACLExtendedRuleDetailsPanel(ObjectAttributesPanel):
-    """Match criteria and logging of an extended ACL rule.
+    """Match criteria of an extended ACL rule.
 
     Declares every attribute rather than extending the standard panel,
     since the metaclass places inherited attributes before local ones
@@ -103,5 +115,12 @@ class ACLExtendedRuleDetailsPanel(ObjectAttributesPanel):
         "destination_port_ranges_list",
         label=_("Destination Port Ranges"),
     )
+
+
+class ACLRuleLoggingPanel(ObjectAttributesPanel):
+    """Logging controls of an ACL rule, shared by both rule types."""
+
+    title = _("Logging")
+
     log_matches = attrs.BooleanAttr("log_matches", label=_("Log Matches"))
     log_options = LogOptionsAttr("log_options_badges", label=_("Log Options"))

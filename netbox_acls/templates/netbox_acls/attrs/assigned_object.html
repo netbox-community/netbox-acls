@@ -1,4 +1,3 @@
-{% load helpers %}
 <div{% if name %} id="attr_{{ name }}"{% endif %}>
   {% if parent %}{{ parent|linkify }} / {% endif %}
   {% if linkify %}{{ value|linkify }}{% else %}{{ value }}{% endif %}

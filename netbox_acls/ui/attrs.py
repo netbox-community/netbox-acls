@@ -15,7 +15,10 @@ __all__ = (
 
 
 class AssignedObjectAttr(attrs.GenericForeignKeyAttr):
-    """Prefixes an interface assignment with its parent device or virtual machine."""
+    """Prefixes an interface assignment with its parent device or virtual machine.
+
+    Renders no ancestors, so the inherited nested argument is inert.
+    """
 
     template_name = "netbox_acls/attrs/assigned_object.html"
 

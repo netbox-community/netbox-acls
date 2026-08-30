@@ -12,6 +12,7 @@ from ...ui.panels import (
     ACLAssignmentPanel,
     ACLExtendedRuleDetailsPanel,
     ACLExtendedRulePanel,
+    ACLRuleLoggingPanel,
     ACLStandardRuleDetailsPanel,
     ACLStandardRulePanel,
 )
@@ -26,8 +27,6 @@ EXPECTED_ORDER = {
         "action",
         "remark",
         "source",
-        "log_matches",
-        "log_options",
     ],
     ACLExtendedRuleDetailsPanel: [
         "action",
@@ -37,9 +36,8 @@ EXPECTED_ORDER = {
         "source_port_ranges",
         "destination",
         "destination_port_ranges",
-        "log_matches",
-        "log_options",
     ],
+    ACLRuleLoggingPanel: ["log_matches", "log_options"],
 }
 
 

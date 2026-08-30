@@ -1,3 +1,6 @@
+import html
+import re
+
 from django.urls import reverse
 
 from utilities.testing import create_tags
@@ -9,7 +12,6 @@ from ...choices import (
     ACLTypeChoices,
 )
 from ...models import AccessList, ACLExtendedRule, ACLStandardRule
-from ...tables import ACLExtendedRuleTable, ACLStandardRuleTable
 from .base import PluginTestCases
 
 
@@ -40,10 +42,9 @@ class AccessListViewTestCase(PluginTestCases.ObjectViewTestCase):
                     family=ACLFamilyChoices.FAMILY_IPV6,
                     default_action=ACLActionChoices.ACTION_DENY,
                 ),
-                # A second list of each type, so both branches of the rules table have
-                # same-relation rules to exclude. Both sort after testacl4, which
-                # form_data creates, so the name-ordered first() that the inherited view
-                # tests act on stays testacl1.
+                # A second list of each type, carrying rules the embedded table must
+                # exclude. Both sort after testacl4, which form_data creates, so the
+                # name-ordered first() the inherited view tests act on stays testacl1.
                 AccessList(
                     name="testacl5",
                     type=ACLTypeChoices.TYPE_STANDARD,
@@ -112,31 +113,48 @@ class AccessListViewTestCase(PluginTestCases.ObjectViewTestCase):
         }
 
     def test_rules_table_matches_access_list_type(self):
-        """Test that the detail view renders the rule table matching the ACL's type."""
-        self.add_permissions("netbox_acls.view_accesslist")
+        """Test that the embedded rule table holds this ACL's rules and no others."""
+        self.add_permissions(
+            "netbox_acls.view_accesslist",
+            "netbox_acls.view_aclstandardrule",
+            "netbox_acls.view_aclextendedrule",
+        )
+        standard_url = reverse("plugins:netbox_acls:aclstandardrule_list")
+        extended_url = reverse("plugins:netbox_acls:aclextendedrule_list")
 
-        for name, table_class, expected_rules in (
-            ("testacl1", ACLStandardRuleTable, self.standard_rules),
-            ("testacl2", ACLExtendedRuleTable, self.extended_rules),
+        for name, list_url, expected_rules in (
+            ("testacl1", standard_url, self.standard_rules),
+            ("testacl2", extended_url, self.extended_rules),
         ):
             with self.subTest(access_list=name):
                 access_list = AccessList.objects.get(name=name)
-                response = self.client.get(access_list.get_absolute_url())
-                self.assertHttpStatus(response, 200)
 
-                table = response.context["rules_table"]
-                self.assertIsInstance(table, table_class)
-                # Scoped to this list, not every rule of that type.
+                response = self.client.get(access_list.get_absolute_url())
+
+                self.assertHttpStatus(response, 200)
+                content = response.content.decode()
+                self.assertIn("exclude_columns=access_list", content)
+                self.assertIn("include_columns=log_matches%2Clog_options_list", content)
+
+                # Exactly one rules card renders, for the matching model. Other
+                # hx-get URLs on the page belong to core, such as notifications.
+                embeds = [
+                    html.unescape(url)
+                    for url in re.findall(r'hx-get="([^"]+)"', content)
+                    if url.startswith((standard_url, extended_url))
+                ]
+                self.assertEqual(len(embeds), 1, embeds)
+                embed_url = embeds[0]
+                self.assertTrue(embed_url.startswith(list_url), embed_url)
+
+                # Follow it, or nothing pins which rows the card actually lists.
+                embedded = self.client.get(embed_url, headers={"hx-request": "true"})
+
+                self.assertHttpStatus(embedded, 200)
                 self.assertEqual(
-                    {rule.pk for rule in table.data},
+                    {rule.pk for rule in embedded.context["table"].data},
                     {rule.pk for rule in expected_rules},
                 )
-                # The column is redundant on an access list's own detail page.
-                visible = [column.name for column in table.columns.itervisible()]
-                self.assertNotIn("access_list", visible)
-                # The embedded table is the page's subject, so it shows the full logging state.
-                self.assertIn("log_matches", visible)
-                self.assertIn("log_options_list", visible)
 
     def test_detail_view_renders_the_access_list_attributes(self):
         """Test that the detail view renders the access list attributes."""
@@ -147,7 +165,10 @@ class AccessListViewTestCase(PluginTestCases.ObjectViewTestCase):
         response = self.client.get(access_list.get_absolute_url())
 
         self.assertHttpStatus(response, 200)
-        self.assertContains(response, access_list.get_type_display())
+        self.assertInHTML(
+            f'<span class="badge text-bg-{access_list.get_type_color()}">{access_list.get_type_display()}</span>',
+            response.content.decode(),
+        )
         self.assertContains(response, access_list.get_family_display())
         self.assertContains(response, access_list.get_default_action_display())
         self.assertContains(response, f"{rule_list_url}?access_list_id={access_list.pk}")

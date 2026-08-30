@@ -18,7 +18,7 @@ from netbox.views import generic
 from utilities.views import ViewTab, register_model_view
 from virtualization.models import VirtualMachine, VMInterface
 
-from . import choices, filtersets, forms, models, object_actions, tables, ui
+from . import choices, filtersets, forms, models, tables, ui
 
 __all__ = (
     "ACLAssignmentBulkDeleteView",
@@ -225,7 +225,6 @@ class AccessListView(generic.ObjectView):
 
     queryset = models.AccessList.objects.select_related("owner").prefetch_related("tags")
     template_name = "generic/object.html"
-    actions = (object_actions.AddRule, *generic.ObjectView.actions)
     layout = layout.SimpleLayout(
         left_panels=[
             ui.AccessListPanel(),
@@ -236,35 +235,18 @@ class AccessListView(generic.ObjectView):
             CommentsPanel(),
         ],
         bottom_panels=[
-            ui.AccessListRulesPanel(),
+            ui.RuleTablePanel(
+                choices.ACLTypeChoices.TYPE_STANDARD,
+                "netbox_acls.aclstandardrule",
+                _("Standard Rules"),
+            ),
+            ui.RuleTablePanel(
+                choices.ACLTypeChoices.TYPE_EXTENDED,
+                "netbox_acls.aclextendedrule",
+                _("Extended Rules"),
+            ),
         ],
     )
-
-    def get_extra_context(self, request, instance):
-        """
-        Depending on the Access List type, the list view will return
-        the required ACL Rule using the previously defined tables in tables.py.
-        """
-
-        if instance.type == choices.ACLTypeChoices.TYPE_EXTENDED:
-            table = tables.ACLExtendedRuleTable(instance.aclextendedrules.all())
-        elif instance.type == choices.ACLTypeChoices.TYPE_STANDARD:
-            table = tables.ACLStandardRuleTable(instance.aclstandardrules.all())
-        else:
-            table = None
-
-        if table:
-            table.configure(request)
-            # Visibility is set after configure(), which resets columns from the user's
-            # preference or the table defaults.
-            table.columns.hide("access_list")
-            table.columns.show("log_matches")
-            table.columns.show("log_options_list")
-
-            return {
-                "rules_table": table,
-            }
-        return {}
 
 
 @register_model_view(models.AccessList, "list", path="", detail=False)
@@ -621,6 +603,7 @@ class ACLStandardRuleView(generic.ObjectView):
         left_panels=[
             ui.ACLStandardRulePanel(),
             ui.ACLStandardRuleDetailsPanel(),
+            ui.ACLRuleLoggingPanel(),
         ],
         right_panels=[
             CustomFieldsPanel(),
@@ -766,6 +749,7 @@ class ACLExtendedRuleView(generic.ObjectView):
         left_panels=[
             ui.ACLExtendedRulePanel(),
             ui.ACLExtendedRuleDetailsPanel(),
+            ui.ACLRuleLoggingPanel(),
         ],
         right_panels=[
             CustomFieldsPanel(),

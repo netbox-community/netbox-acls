@@ -15,7 +15,7 @@ from django.test import SimpleTestCase
 
 from extras.ui.panels import CustomFieldsPanel, TagsPanel
 from netbox.ui.layout import SimpleLayout
-from netbox.ui.panels import CommentsPanel, PluginContentPanel
+from netbox.ui.panels import CommentsPanel, ObjectsTablePanel, PluginContentPanel
 from utilities.views import get_view
 
 MODELS = tuple(
@@ -113,16 +113,35 @@ class UIConventionTestCase(SimpleTestCase):
                     self.assertIsInstance(column[-1], PluginContentPanel)
 
     def test_panel_templates_resolve(self):
-        """Test every panel names a template that exists.
+        """Test every panel and attribute names a template that exists.
 
         A mistyped path renders nothing and raises nothing, so the page
-        still returns 200 with the card silently missing.
+        still returns 200 with the card silently missing. Every panel
+        template here comes from core, so the attribute templates are
+        the only ones this plugin can typo.
         """
         for model, panel in self._panels():
-            if panel.template_name is None:
+            names = [panel.template_name]
+            names += [attr.template_name for attr in getattr(panel, "_attrs", {}).values()]
+            for name in names:
+                if name is None:
+                    continue
+                with self.subTest(model=model.__name__, template=name):
+                    get_template(name)
+
+    def test_table_panel_filters_are_real_filterset_fields(self):
+        """Test every embedded table filter exists on its filterset.
+
+        An unknown filter is ignored, so the card would list every rule
+        of that type rather than the access list's own.
+        """
+        for model, panel in self._panels():
+            if not isinstance(panel, ObjectsTablePanel):
                 continue
-            with self.subTest(model=model.__name__, template=panel.template_name):
-                get_template(panel.template_name)
+            filterset = get_view(panel.model, "list").filterset
+            for key in panel.filters:
+                with self.subTest(model=model.__name__, key=key):
+                    self.assertIn(key, filterset.base_filters)
 
     def test_primary_panel_titles_match_the_retired_headers(self):
         """Test each card header still reads as the retired template did."""

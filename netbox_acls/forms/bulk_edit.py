@@ -130,13 +130,10 @@ class ACLAssignmentBulkEditForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelB
         super().__init__(*args, **kwargs)
 
         # Direction is declared enabled here, so with no type chosen a bulk edit can still change it alone.
-        if (model := self.fields["assigned_object"].selected_model) is not None:
-            if model in (Interface, VMInterface):
-                self.fields["direction"].disabled = False
-                self.fields["direction"].choices = add_blank_choice(ACLAssignmentDirectionUIChoices)
-            else:
-                self.fields["direction"].disabled = True
-                self.fields["direction"].widget.attrs["value"] = "None"
+        model = self.fields["assigned_object"].selected_model
+        if model is not None and model not in (Interface, VMInterface):
+            self.fields["direction"].disabled = True
+            self.fields["direction"].widget.attrs["value"] = "None"
 
 
 class ACLRuleLoggingBulkEditMixin(forms.Form):

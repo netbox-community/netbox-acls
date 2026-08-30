@@ -29,11 +29,9 @@ class AccessListViewSet(NetBoxModelViewSet):
     Defines the view set for the django AccessList model and associates it with a view.
     """
 
-    queryset = (
-        models.AccessList.objects.annotate(rule_count=Count("aclextendedrules") + Count("aclstandardrules"))
-        .select_related("owner")
-        .prefetch_related("tags")
-    )
+    queryset = models.AccessList.objects.annotate(
+        rule_count=Count("aclextendedrules") + Count("aclstandardrules")
+    ).select_related("owner")
     serializer_class = AccessListSerializer
     filterset_class = filtersets.AccessListFilterSet
 
@@ -43,11 +41,7 @@ class ACLAssignmentViewSet(NetBoxModelViewSet):
     Defines the view set for the django ACLInterfaceAssignment model and associates it with a view.
     """
 
-    queryset = models.ACLAssignment.objects.select_related("owner").prefetch_related(
-        "access_list",
-        "assigned_object",
-        "tags",
-    )
+    queryset = models.ACLAssignment.objects.select_related("owner")
     serializer_class = ACLAssignmentSerializer
     filterset_class = filtersets.ACLAssignmentFilterSet
 
@@ -57,11 +51,7 @@ class ACLStandardRuleViewSet(NetBoxModelViewSet):
     Defines the view set for the django ACLStandardRule model and associates it with a view.
     """
 
-    queryset = models.ACLStandardRule.objects.select_related("owner").prefetch_related(
-        "access_list",
-        "source",
-        "tags",
-    )
+    queryset = models.ACLStandardRule.objects.select_related("owner")
     serializer_class = ACLStandardRuleSerializer
     filterset_class = filtersets.ACLStandardRuleFilterSet
 
@@ -71,11 +61,6 @@ class ACLExtendedRuleViewSet(NetBoxModelViewSet):
     Defines the view set for the django ACLExtendedRule model and associates it with a view.
     """
 
-    queryset = models.ACLExtendedRule.objects.select_related("owner").prefetch_related(
-        "access_list",
-        "source",
-        "destination",
-        "tags",
-    )
+    queryset = models.ACLExtendedRule.objects.select_related("owner")
     serializer_class = ACLExtendedRuleSerializer
     filterset_class = filtersets.ACLExtendedRuleFilterSet

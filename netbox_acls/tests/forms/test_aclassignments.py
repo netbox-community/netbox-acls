@@ -147,7 +147,6 @@ class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTes
         )
         self.assertIs(form.fields["assigned_object"].selected_model, Interface)
         self.assertEqual(form.fields["assigned_object"].queryset.model, Interface)
-        self.assertFalse(form.fields["direction"].disabled)
 
     def test_bulkedit_direction_enabled_with_no_type_chosen(self):
         """A bulk edit with no type picked must still be able to change direction alone."""

@@ -262,16 +262,49 @@ class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin):
         )
         self.assertEqual(self.queryset.count(), 7)
 
+        # The slug and the id take different branches of _filter_nested_scope.
         for region in (self.region, self.parent_region, self.grandparent_region):
-            with self.subTest(region=region.slug):
-                filterset = self.filterset({"region": [region.slug]}, self.queryset)
-                self.assertEqual(filterset.errors, {})
-                self.assertNotIn(outside_assignment, filterset.qs)
-                self.assertEqual(filterset.qs.count(), 6)
+            for name, value in (("region", region.slug), ("region_id", region.pk)):
+                with self.subTest(region=region.slug, filter=name):
+                    filterset = self.filterset({name: [value]}, self.queryset)
+                    self.assertEqual(filterset.errors, {})
+                    self.assertNotIn(outside_assignment, filterset.qs)
+                    self.assertEqual(filterset.qs.count(), 6)
 
-        filterset = self.filterset({"region": [outside_region.slug]}, self.queryset)
-        self.assertEqual(filterset.errors, {})
-        self.assertEqual(list(filterset.qs), [outside_assignment])
+        for name, value in (("region", outside_region.slug), ("region_id", outside_region.pk)):
+            with self.subTest(filter=name):
+                filterset = self.filterset({name: [value]}, self.queryset)
+                self.assertEqual(filterset.errors, {})
+                self.assertEqual(list(filterset.qs), [outside_assignment])
+
+    def test_site_group_matches_descendants_and_excludes_a_sibling(self):
+        """Test a site group ancestor matches its own subtree and nothing outside it."""
+        parent_group = SiteGroup.objects.create(name="Site Group 0", slug="site-group-0")
+        self.site_group.parent = parent_group
+        self.site_group.save()
+
+        outside_group = SiteGroup.objects.create(name="Site Group 9", slug="site-group-9")
+        outside_site = Site.objects.create(name="Site 9", slug="site-9", group=outside_group)
+        outside_device = Device.objects.create(
+            name="Device 9",
+            site=outside_site,
+            device_type=self.device.device_type,
+            role=self.device.role,
+        )
+        outside_assignment = ACLAssignment.objects.create(
+            access_list=self.acl1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+            assigned_object=outside_device,
+        )
+        self.assertEqual(self.queryset.count(), 7)
+
+        for group in (self.site_group, parent_group):
+            for name, value in (("site_group", group.slug), ("site_group_id", group.pk)):
+                with self.subTest(group=group.slug, filter=name):
+                    filterset = self.filterset({name: [value]}, self.queryset)
+                    self.assertEqual(filterset.errors, {})
+                    self.assertNotIn(outside_assignment, filterset.qs)
+                    self.assertEqual(filterset.qs.count(), 6)
 
     # Deprecated: the bare names took a primary key from 2.0.0 to 2.0.2, so both forms resolve.
 

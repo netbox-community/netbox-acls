@@ -122,7 +122,7 @@ class AccessListView(generic.ObjectView):
     Defines the view for the AccessLists django model.
     """
 
-    queryset = models.AccessList.objects.prefetch_related("tags")
+    queryset = models.AccessList.objects.select_related("owner").prefetch_related("tags")
 
     def get_extra_context(self, request, instance):
         """

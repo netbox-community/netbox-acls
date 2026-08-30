@@ -240,6 +240,39 @@ class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin):
                 self.assertEqual(filterset.errors, {})
                 self.assertEqual(filterset.qs.count(), 6)
 
+    def test_region_excludes_a_sibling_subtree(self):
+        """Test an ancestor match stops at its own subtree instead of matching everything.
+
+        The shared fixture sites every assignment under one region, so a filter
+        returning the whole table also counts six. This builds one assignment
+        outside that tree so over-matching becomes visible.
+        """
+        outside_region = Region.objects.create(name="Region 9", slug="region-9")
+        outside_site = Site.objects.create(name="Site 9", slug="site-9", region=outside_region)
+        outside_device = Device.objects.create(
+            name="Device 9",
+            site=outside_site,
+            device_type=self.device.device_type,
+            role=self.device.role,
+        )
+        outside_assignment = ACLAssignment.objects.create(
+            access_list=self.acl1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+            assigned_object=outside_device,
+        )
+        self.assertEqual(self.queryset.count(), 7)
+
+        for region in (self.region, self.parent_region, self.grandparent_region):
+            with self.subTest(region=region.slug):
+                filterset = self.filterset({"region": [region.slug]}, self.queryset)
+                self.assertEqual(filterset.errors, {})
+                self.assertNotIn(outside_assignment, filterset.qs)
+                self.assertEqual(filterset.qs.count(), 6)
+
+        filterset = self.filterset({"region": [outside_region.slug]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(list(filterset.qs), [outside_assignment])
+
     # Deprecated: the bare names took a primary key from 2.0.0 to 2.0.2, so both forms resolve.
 
     def test_scope_filters_accept_legacy_primary_keys(self):

@@ -56,8 +56,8 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         form = ACLStandardRuleForm(instance=self._rule(10))
         self.assertEqual(form.initial["source"], self.prefix)
 
-    def test_changing_the_source_type_clears_the_source(self):
-        """Switching type while editing drops the object the old type selected."""
+    def test_source_queryset_follows_the_posted_type(self):
+        """Test that switching type while editing re-scopes the object picker."""
         rule = self._rule(20)
         form = ACLStandardRuleForm(
             data={
@@ -70,7 +70,24 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         )
         field = form.fields["source"]
         self.assertIs(field.selected_model, type(self.ip_address))
-        self.assertFalse(field.object_field.queryset.exists())
+        self.assertEqual(field.queryset.model, type(self.ip_address))
+
+    def test_editing_rejects_a_type_change_that_names_no_object(self):
+        """Test that switching type without picking an object fails validation."""
+        # Values arrive as text, the way a browser posts them.
+        rule = self._rule(25)
+        form = ACLStandardRuleForm(
+            data={
+                "access_list": str(self.access_list.pk),
+                "sequence": "25",
+                "action": ACLRuleActionChoices.ACTION_PERMIT,
+                "source_content_type": str(ContentType.objects.get_for_model(self.ip_address).pk),
+            },
+            instance=rule,
+        )
+        # A type with no object is a validation error rather than a silent clear.
+        self.assertFalse(form.is_valid())
+        self.assertIn("source", form.errors)
 
     def test_editing_keeps_the_source_when_the_type_is_unchanged(self):
         """Test that an edit holds on to the selected source when its type did not change."""

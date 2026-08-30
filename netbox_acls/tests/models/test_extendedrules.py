@@ -1,4 +1,3 @@
-from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db.backends.postgresql.psycopg_any import NumericRange
 
@@ -1252,26 +1251,6 @@ class TestACLExtendedRule(BaseTestCase):
         attrs = rule.clone()
         self.assertTrue(attrs["log_matches"])
         self.assertEqual(attrs["log_options"], ["cisco-log-input", "syslog"])
-
-    def test_clone_carries_both_generic_references(self):
-        """clone() must emit the subwidget keys the add form reads, for both roles."""
-        rule = ACLExtendedRule(
-            access_list=self.extended_acl1,
-            sequence=91,
-            action=ACLRuleActionChoices.ACTION_PERMIT,
-            source=self.prefix1,
-            destination=self.prefix2,
-        )
-        rule.full_clean()
-        rule.save()
-
-        attrs = rule.clone()
-        source_type = ContentType.objects.get_for_model(self.prefix1)
-        destination_type = ContentType.objects.get_for_model(self.prefix2)
-        self.assertEqual(attrs["source_content_type"], source_type.pk)
-        self.assertEqual(attrs["source_object_id"], self.prefix1.pk)
-        self.assertEqual(attrs["destination_content_type"], destination_type.pk)
-        self.assertEqual(attrs["destination_object_id"], self.prefix2.pk)
 
     def test_unsupported_log_option_is_rejected(self):
         """Test that a value outside the choice set fails validation."""

@@ -214,7 +214,8 @@ class ACLAssignmentTabTestCase(TestCase):
     def test_add_link_carries_the_generic_object_params(self):
         """Test the link uses the subwidget names the assignment form reads."""
         for _view_class, url_name, parent, _expected in self.tab_cases():
-            # The access list tab renders a different template and has no add link.
+            # The access list tab prefills access_list instead, so it carries
+            # neither generic object parameter.
             if url_name.startswith("plugins:netbox_acls:accesslist"):
                 continue
             with self.subTest(view=url_name, parent=parent):

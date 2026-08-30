@@ -177,7 +177,7 @@ class ACLAssignmentForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelForm):
 
         super().__init__(*args, **kwargs)
 
-        # With no type chosen the field keeps its declared disabled state.
+        # With no type chosen, direction keeps its declared disabled state.
         if (model := self.fields["assigned_object"].selected_model) is not None:
             if model in (Interface, VMInterface):
                 self.fields["direction"].disabled = False

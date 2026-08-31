@@ -87,6 +87,10 @@ class AccessListFilterForm(PrimaryModelFilterSetForm):
         required=False,
         label=_("Default Action"),
     )
+    description = forms.CharField(
+        required=False,
+        label=_("Description"),
+    )
 
     # Tag selector
     tag = TagFilterField(model)

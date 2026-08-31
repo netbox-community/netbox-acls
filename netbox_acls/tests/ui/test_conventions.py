@@ -12,11 +12,16 @@ from django.apps import apps
 from django.template import TemplateDoesNotExist
 from django.template.loader import get_template
 from django.test import SimpleTestCase
+from django.urls import reverse
 
 from extras.ui.panels import CustomFieldsPanel, TagsPanel
+from netbox.object_actions import AddObject
+from netbox.registry import registry
 from netbox.ui.layout import SimpleLayout
 from netbox.ui.panels import CommentsPanel, ObjectsTablePanel, PluginContentPanel
 from utilities.views import get_view
+
+from ... import object_actions
 
 MODELS = tuple(
     sorted(
@@ -89,11 +94,20 @@ class UIConventionTestCase(SimpleTestCase):
             with self.subTest(model=model.__name__), self.assertRaises(TemplateDoesNotExist):
                 get_template(name)
 
-    def test_template_directory_holds_only_surviving_partials(self):
-        """Test the plugin template directory holds only the attr partials."""
-        template_dir = Path(apps.get_app_config("netbox_acls").path) / "templates" / "netbox_acls"
+    def test_template_tree_holds_only_the_expected_directories(self):
+        """Test the plugin ships no template outside its own namespace.
 
-        self.assertEqual(sorted(path.name for path in template_dir.iterdir()), ["attrs"])
+        A file under templates/inc/ lands in the namespace NetBox Community
+        renders from and shadows it for the whole install. A surviving
+        per-model template shadows the layout that replaced it.
+        """
+        templates = Path(apps.get_app_config("netbox_acls").path) / "templates"
+
+        self.assertEqual(sorted(path.name for path in templates.iterdir()), ["netbox_acls"])
+        self.assertEqual(
+            sorted(path.name for path in (templates / "netbox_acls").iterdir()),
+            ["attrs", "buttons"],
+        )
 
     def test_layouts_declare_the_standard_tail_panels(self):
         """Test every page keeps its custom fields, tags and comments.
@@ -111,6 +125,56 @@ class UIConventionTestCase(SimpleTestCase):
                     self.assertEqual(len(matches), 1, panel_class.__name__)
                 for column in columns:
                     self.assertIsInstance(column[-1], PluginContentPanel)
+
+    @staticmethod
+    def _view_actions():
+        """Yield every plugin view and the assignment actions it declares.
+
+        Five of the six tabs hang off core models, so walking the plugin's own
+        models reaches none of them. The generic feature views are registered
+        by dotted path rather than by class, hence the isinstance guard.
+        """
+        for models_ in registry["views"].values():
+            for entries in models_.values():
+                for entry in entries:
+                    view = entry["view"]
+                    if not isinstance(view, type) or not view.__module__.startswith("netbox_acls."):
+                        continue
+                    for action in getattr(view, "actions", ()):
+                        if isinstance(action, type) and issubclass(action, object_actions.AssignACL):
+                            yield view, action
+
+    def test_add_buttons_target_the_views_own_child_model(self):
+        """Test every Add button creates what its view is gated on.
+
+        A children view resolves permissions_required against child_model, so
+        a button pointing at a different model checks one permission and
+        creates another object.
+        """
+        pairs = list(self._view_actions())
+
+        self.assertEqual(len(pairs), 6)
+        for view, action in pairs:
+            with self.subTest(view=view.__name__):
+                self.assertEqual(apps.get_model(action.child_model_label), view.child_model)
+
+    def test_action_buttons_are_add_actions_with_a_real_template(self):
+        """Test every exported action inherits its permission and resolves.
+
+        permissions_required is what a children view maps onto its child
+        model, so inheriting AddObject is what keeps the add permission
+        correct. ObjectAction.render() goes through render_to_string, so a
+        mistyped template is a 500 on all six tabs, not a missing button.
+        """
+        actions = [getattr(object_actions, name) for name in object_actions.__all__]
+
+        self.assertEqual(len(actions), 2)
+        for action in actions:
+            with self.subTest(action=action.__name__):
+                self.assertTrue(issubclass(action, AddObject))
+                self.assertEqual(action.permissions_required, {"add"})
+                self.assertEqual(action.get_url(None), reverse("plugins:netbox_acls:aclassignment_add"))
+                get_template(action.template_name)
 
     def test_panel_templates_resolve(self):
         """Test every panel and attribute names a template that exists.

@@ -18,7 +18,7 @@ from netbox.views import generic
 from utilities.views import ViewTab, register_model_view
 from virtualization.models import VirtualMachine, VMInterface
 
-from . import choices, filtersets, forms, models, tables, ui
+from . import choices, filtersets, forms, models, object_actions, tables, ui
 
 __all__ = (
     "ACLAssignmentBulkDeleteView",
@@ -87,7 +87,7 @@ class ACLAssignmentChildrenView(generic.ObjectChildrenView):
         weight=1100,
     )
     table = tables.ACLAssignmentTable
-    actions = (BulkExport, BulkDelete)
+    actions = (object_actions.AssignACLToObject, BulkExport, BulkDelete)
 
     def get_children(self, request, parent):
         """
@@ -103,17 +103,6 @@ class ACLAssignmentChildrenView(generic.ObjectChildrenView):
                 "tags",
             )
         )
-
-    def get_extra_context(self, request, instance) -> dict:
-        """
-        Return ContentType as extra context.
-        """
-        assigned_object_type = ContentType.objects.get_for_model(self.queryset.model)
-
-        return super().get_extra_context(request, instance) | {
-            "add_url": "plugins:netbox_acls:aclassignment_add",
-            "content_type_id": assigned_object_type.id,
-        }
 
 
 def rule_reference_filter(instance, *roles):
@@ -324,7 +313,7 @@ class AccessListACLAssignmentView(ACLAssignmentChildrenView):
         permission="netbox_acls.view_aclassignment",
         weight=1100,
     )
-    template_name = "inc/view_acl_assignments_tab.html"
+    actions = (object_actions.AssignACLToAccessList, BulkExport, BulkDelete)
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -458,7 +447,6 @@ class DeviceACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = Device.objects.all()
-    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -485,7 +473,6 @@ class InterfaceACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = Interface.objects.all()
-    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -510,7 +497,6 @@ class VirtualChassisACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = VirtualChassis.objects.all()
-    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -537,7 +523,6 @@ class VirtualMachineACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = VirtualMachine.objects.all()
-    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -564,7 +549,6 @@ class VMInterfaceACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = VMInterface.objects.all()
-    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""

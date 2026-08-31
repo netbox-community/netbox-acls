@@ -6,6 +6,7 @@ when filtering the site list by status or region, for instance.
 import contextlib
 
 import django_filters
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
@@ -13,7 +14,12 @@ from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChass
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.filtersets import NetBoxModelFilterSet, PrimaryModelFilterSet
 from users.filterset_mixins import OwnerFilterMixin
-from utilities.filters import ContentTypeFilter, MultiValueBigNumberFilter, MultiValueCharFilter
+from utilities.filters import (
+    ContentTypeFilter,
+    MultiValueBigNumberFilter,
+    MultiValueCharFilter,
+    MultiValueContentTypeFilter,
+)
 from utilities.filtersets import register_filterset
 from virtualization.models import VirtualMachine, VMInterface
 
@@ -78,6 +84,17 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
         queryset=AccessList.objects.all(),
         to_field_name="id",
         label=_("Access List (ID)"),
+    )
+
+    # Assigned object
+    assigned_object_type = MultiValueContentTypeFilter(
+        label=_("Assigned Object Type"),
+    )
+    assigned_object_type_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="assigned_object_type",
+        queryset=ContentType.objects.all(),
+        distinct=False,
+        label=_("Assigned Object Type (ID)"),
     )
 
     # Organization
@@ -186,6 +203,8 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
         fields = (
             "id",
             "access_list",
+            "assigned_object_type",
+            "assigned_object_type_id",
             "family",
             "site",
             "site_id",

@@ -1,7 +1,8 @@
+from django import forms
 from django.test import TestCase
 
 from ...choices import ACLActionChoices, ACLFamilyChoices, ACLRuleActionChoices, ACLTypeChoices
-from ...forms import AccessListBulkEditForm, AccessListForm
+from ...forms import AccessListBulkEditForm, AccessListFilterForm, AccessListForm
 from ...models import AccessList, ACLStandardRule
 from .base import BulkEditFieldsetTestMixin
 
@@ -65,3 +66,10 @@ class AccessListFormTestCase(BulkEditFieldsetTestMixin, TestCase):
         )
         self.assertFalse(form.is_valid())
         self.assertIn("family", form.errors)
+
+    def test_choice_filters_accept_multiple_values(self):
+        """The filter form's choice fields must be multi-selects, matching the filter set."""
+        form = AccessListFilterForm()
+        for field_name in ("type", "family", "default_action"):
+            with self.subTest(field_name=field_name):
+                self.assertIsInstance(form.fields[field_name], forms.MultipleChoiceField)

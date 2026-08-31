@@ -185,13 +185,15 @@ class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin)
         params = {"comments": "reviewed quarterly"}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
 
-    # action is a single-valued ChoiceFilter, so assert one value at a time.
-
     def test_action(self):
-        params = {"action": ACLRuleActionChoices.ACTION_PERMIT}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
-        params = {"action": ACLRuleActionChoices.ACTION_REMARK}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+        params = {"action": [ACLRuleActionChoices.ACTION_PERMIT]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 2)
+        params = {"action": [ACLRuleActionChoices.ACTION_PERMIT, ACLRuleActionChoices.ACTION_DENY]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 4)
 
     def test_log_matches(self):
         params = {"log_matches": True}

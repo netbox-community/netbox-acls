@@ -335,6 +335,18 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 ],
             )
 
+    def test_filter_accepts_repeated_action_parameters(self):
+        """Repeated parameters must reach the filter set and be ORed, not overwrite each other."""
+        self.add_permissions("netbox_acls.view_aclstandardrule")
+        url = (
+            f"{self._get_list_url()}"
+            f"?action={ACLRuleActionChoices.ACTION_PERMIT}"
+            f"&action={ACLRuleActionChoices.ACTION_DENY}"
+        )
+        response = self.client.get(url, **self.header)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 2)
+
 
 class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
     """

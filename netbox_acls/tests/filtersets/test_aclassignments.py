@@ -410,16 +410,29 @@ class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin):
             with self.subTest(params=params):
                 self.assertEqual(self.filterset(params, self.queryset).qs.count(), 0)
 
-    # direction and family are single-valued ChoiceFilters, so assert one value at a time.
+    # Assert errors too: family covers the whole fixture, so the count alone would pass
+    # even if nothing were applied.
 
     def test_direction(self):
-        params = {"direction": ACLAssignmentDirectionChoices.DIRECTION_EGRESS}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
-        params = {"direction": ACLAssignmentDirectionChoices.DIRECTION_INGRESS}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+        params = {"direction": [ACLAssignmentDirectionChoices.DIRECTION_EGRESS]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 2)
+        params = {
+            "direction": [
+                ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+                ACLAssignmentDirectionChoices.DIRECTION_EGRESS,
+            ],
+        }
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 3)
 
     def test_family(self):
-        params = {"family": ACLFamilyChoices.FAMILY_IPV4}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
-        params = {"family": ACLFamilyChoices.FAMILY_IPV6}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+        filterset = self.filterset({"family": [ACLFamilyChoices.FAMILY_IPV4]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 4)
+        params = {"family": [ACLFamilyChoices.FAMILY_IPV4, ACLFamilyChoices.FAMILY_IPV6]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 6)

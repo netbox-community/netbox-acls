@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 
@@ -257,3 +258,8 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         )
         self.assertFalse(form.is_valid())
         self.assertIn("log_options", form.errors)
+
+    def test_choice_filters_accept_multiple_values(self):
+        """The filter form's action field must be a multi-select, matching the filter set."""
+        form = ACLStandardRuleFilterForm()
+        self.assertIsInstance(form.fields["action"], forms.MultipleChoiceField)

@@ -23,7 +23,14 @@ from utilities.filters import (
 from utilities.filtersets import register_filterset
 from virtualization.models import VirtualMachine, VMInterface
 
-from .choices import ACLTypeChoices
+from .choices import (
+    ACLActionChoices,
+    ACLAssignmentDirectionChoices,
+    ACLFamilyChoices,
+    ACLProtocolChoices,
+    ACLRuleActionChoices,
+    ACLTypeChoices,
+)
 from .constants import ACL_ASSIGNMENT_SITE_TRAVERSAL_PATHS
 from .models import AccessList, ACLAssignment, ACLExtendedRule, ACLStandardRule
 
@@ -40,6 +47,19 @@ class AccessListFilterSet(PrimaryModelFilterSet):
     """
     Define the filter set for the django model AccessList.
     """
+
+    type = django_filters.MultipleChoiceFilter(
+        choices=ACLTypeChoices,
+        distinct=False,
+    )
+    family = django_filters.MultipleChoiceFilter(
+        choices=ACLFamilyChoices,
+        distinct=False,
+    )
+    default_action = django_filters.MultipleChoiceFilter(
+        choices=ACLActionChoices,
+        distinct=False,
+    )
 
     class Meta:
         """
@@ -95,6 +115,16 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
         queryset=ContentType.objects.all(),
         distinct=False,
         label=_("Assigned Object Type (ID)"),
+    )
+
+    # Assignment
+    family = django_filters.MultipleChoiceFilter(
+        choices=ACLFamilyChoices,
+        distinct=False,
+    )
+    direction = django_filters.MultipleChoiceFilter(
+        choices=ACLAssignmentDirectionChoices,
+        distinct=False,
     )
 
     # Organization
@@ -331,6 +361,12 @@ class ACLRuleFilterSetMixin(django_filters.FilterSet):
         label=_("Access List (ID)"),
     )
 
+    # Rule
+    action = django_filters.MultipleChoiceFilter(
+        choices=ACLRuleActionChoices,
+        distinct=False,
+    )
+
     # Logging
     log_options = MultiValueCharFilter(
         method="filter_log_options",
@@ -457,6 +493,12 @@ class ACLExtendedRuleFilterSet(ACLRuleFilterSetMixin, PrimaryModelFilterSet):
         queryset=AccessList.objects.filter(type=ACLTypeChoices.TYPE_EXTENDED),
         to_field_name="id",
         label=_("Access List (ID)"),
+    )
+
+    # Rule
+    protocol = django_filters.MultipleChoiceFilter(
+        choices=ACLProtocolChoices,
+        distinct=False,
     )
 
     # Source

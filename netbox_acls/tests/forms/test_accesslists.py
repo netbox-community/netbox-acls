@@ -4,13 +4,14 @@ from django.test import TestCase
 from ...choices import ACLActionChoices, ACLFamilyChoices, ACLRuleActionChoices, ACLTypeChoices
 from ...forms import AccessListBulkEditForm, AccessListFilterForm, AccessListForm
 from ...models import AccessList, ACLStandardRule
-from .base import BulkEditFieldsetTestMixin
+from .base import BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin
 
 
-class AccessListFormTestCase(BulkEditFieldsetTestMixin, TestCase):
+class AccessListFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin, TestCase):
     """Form tests for AccessList forms."""
 
     bulk_edit_form = AccessListBulkEditForm
+    filter_form = AccessListFilterForm
 
     @classmethod
     def setUpTestData(cls):
@@ -73,3 +74,12 @@ class AccessListFormTestCase(BulkEditFieldsetTestMixin, TestCase):
         for field_name in ("type", "family", "default_action"):
             with self.subTest(field_name=field_name):
                 self.assertIsInstance(form.fields[field_name], forms.MultipleChoiceField)
+
+    def test_description_filter_available(self):
+        """The Description filter needs both a field and a fieldset entry, or it never renders."""
+        form = AccessListFilterForm()
+        self.assertIn("description", form.fields)
+        self.assertIsInstance(form.fields["description"], forms.CharField)
+        self.assertFalse(form.fields["description"].required)
+        named = {item for fieldset in form.fieldsets for item in fieldset.items if isinstance(item, str)}
+        self.assertIn("description", named)

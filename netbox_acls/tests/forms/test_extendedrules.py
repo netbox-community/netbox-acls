@@ -43,10 +43,10 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
             "sequence": 10,
             "action": ACLRuleActionChoices.ACTION_PERMIT,
             "protocol": ACLProtocolChoices.PROTOCOL_TCP,
-            "source_type": ContentType.objects.get_for_model(Prefix).pk,
-            "source": self.prefix.pk,
-            "destination_type": ContentType.objects.get_for_model(Prefix).pk,
-            "destination": self.destination_prefix.pk,
+            "source_content_type": ContentType.objects.get_for_model(Prefix).pk,
+            "source_object_id": self.prefix.pk,
+            "destination_content_type": ContentType.objects.get_for_model(Prefix).pk,
+            "destination_object_id": self.destination_prefix.pk,
         }
         data.update(overrides)
         return ACLExtendedRuleForm(data=data)
@@ -66,23 +66,27 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         self.assertEqual(form.initial["source"], self.prefix)
         self.assertEqual(form.initial["destination"], self.destination_prefix)
 
-    def test_editing_clears_both_object_fields(self):
-        """Test that an edit drops both selected objects, including the unchanged role."""
-        # Pins a defect: the posted type is text and never equals the integer id.
+    def test_editing_keeps_a_complete_role_and_rejects_an_incomplete_one(self):
+        """Test that the two roles are validated independently on an edit."""
+        # Values arrive as text, the way a browser posts them.
         rule = self._rule(20)
         form = ACLExtendedRuleForm(
             data={
                 "access_list": str(self.access_list.pk),
                 "sequence": "20",
                 "action": ACLRuleActionChoices.ACTION_PERMIT,
-                "source_type": str(ContentType.objects.get_for_model(Prefix).pk),
-                "source": str(self.prefix.pk),
-                "destination_type": str(ContentType.objects.get_for_model(self.ip_address).pk),
+                "source_content_type": str(ContentType.objects.get_for_model(Prefix).pk),
+                "source_object_id": str(self.prefix.pk),
+                "destination_content_type": str(ContentType.objects.get_for_model(self.ip_address).pk),
             },
             instance=rule,
         )
-        self.assertIsNone(form.initial["destination"])
-        self.assertIsNone(form.initial["source"])
+        self.assertIs(form.fields["source"].selected_model, Prefix)
+        self.assertIs(form.fields["destination"].selected_model, type(self.ip_address))
+        # A type with no object is a validation error rather than a silent clear.
+        self.assertFalse(form.is_valid())
+        self.assertIn("destination", form.errors)
+        self.assertNotIn("source", form.errors)
 
     def test_bulkedit_access_list_filtered_to_extended(self):
         """#360: the extended bulk-edit Access List picker must filter to Extended ACLs."""
@@ -105,28 +109,30 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         for source in (self.aggregate, self.prefix, self.ip_address, self.ip_range):
             with self.subTest(source=source._meta.label_lower):
                 form = self._bound_form(
-                    source_type=ContentType.objects.get_for_model(source).pk,
-                    source=source.pk,
+                    source_content_type=ContentType.objects.get_for_model(source).pk,
+                    source_object_id=source.pk,
                 )
-                self.assertEqual(form.fields["source"].queryset.model, type(source))
-                self.assertFalse(form.fields["source"].disabled)
+                field = form.fields["source"]
+                self.assertIs(field.selected_model, type(source))
+                self.assertEqual(field.queryset.model, type(source))
 
     def test_destination_queryset_follows_type(self):
         """Test that the destination picker's queryset is resolved from the posted type."""
         for destination in (self.aggregate, self.prefix, self.ip_address, self.ip_range):
             with self.subTest(destination=destination._meta.label_lower):
                 form = self._bound_form(
-                    destination_type=ContentType.objects.get_for_model(destination).pk,
-                    destination=destination.pk,
+                    destination_content_type=ContentType.objects.get_for_model(destination).pk,
+                    destination_object_id=destination.pk,
                 )
-                self.assertEqual(form.fields["destination"].queryset.model, type(destination))
-                self.assertFalse(form.fields["destination"].disabled)
+                field = form.fields["destination"]
+                self.assertIs(field.selected_model, type(destination))
+                self.assertEqual(field.queryset.model, type(destination))
 
     def test_source_type_choices_limited(self):
         """Test that the source type picker offers only the ipam models a rule accepts."""
         form = ACLExtendedRuleForm()
         self.assertQuerySetEqual(
-            form.fields["source_type"].queryset.order_by("pk"),
+            form.fields["source"].content_type_field.queryset.order_by("pk"),
             ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS).order_by("pk"),
             transform=lambda ct: ct,
         )
@@ -135,7 +141,7 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         """Test that the destination type picker offers only the ipam models a rule accepts."""
         form = ACLExtendedRuleForm()
         self.assertQuerySetEqual(
-            form.fields["destination_type"].queryset.order_by("pk"),
+            form.fields["destination"].content_type_field.queryset.order_by("pk"),
             ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS).order_by("pk"),
             transform=lambda ct: ct,
         )
@@ -151,12 +157,12 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         """Test that the bulk-edit pickers' querysets are resolved from the posted types."""
         prefix_type = ContentType.objects.get_for_model(Prefix).pk
         form = ACLExtendedRuleBulkEditForm(
-            data={"source_type": prefix_type, "destination_type": prefix_type},
+            data={"source_content_type": prefix_type, "destination_content_type": prefix_type},
         )
-        self.assertEqual(form.fields["source"].queryset.model, Prefix)
-        self.assertFalse(form.fields["source"].disabled)
-        self.assertEqual(form.fields["destination"].queryset.model, Prefix)
-        self.assertFalse(form.fields["destination"].disabled)
+        for role in ("source", "destination"):
+            with self.subTest(role=role):
+                self.assertIs(form.fields[role].selected_model, Prefix)
+                self.assertEqual(form.fields[role].queryset.model, Prefix)
 
     def test_port_ranges_round_trip_inclusive(self):
         """Test that port ranges posted inclusively are stored half-open and shown inclusively."""
@@ -176,34 +182,26 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         form = ACLExtendedRuleBulkEditForm()
         for role in ("source", "destination"):
             with self.subTest(role=role):
-                attrs = form.fields[f"{role}_type"].widget.attrs
+                attrs = form.fields[role].content_type_field.widget.attrs
                 self.assertEqual(attrs["hx-post"], ".")
                 self.assertEqual(attrs["hx-select"], "#form_fields")
 
-    def test_bulkedit_labels_follow_type(self):
-        """Test that each role's resolved label names that role, so the two cannot be confused."""
+    def test_bulkedit_labels_name_the_role(self):
+        """Test that each label names its role, so the two pickers cannot be confused."""
         form = ACLExtendedRuleBulkEditForm(
             data={
-                "source_type": ContentType.objects.get_for_model(self.ip_range).pk,
-                "destination_type": ContentType.objects.get_for_model(self.aggregate).pk,
+                "source_content_type": ContentType.objects.get_for_model(self.ip_range).pk,
+                "destination_content_type": ContentType.objects.get_for_model(self.aggregate).pk,
             },
         )
-        self.assertEqual(form.fields["source"].label, "Source IP Range")
-        self.assertEqual(form.fields["destination"].label, "Destination Aggregate")
+        self.assertEqual(form.fields["source"].label, "Source")
+        self.assertEqual(form.fields["destination"].label, "Destination")
 
     def test_bulkedit_nullable_fields(self):
         """Test that the nullable list stays exhaustive for this form."""
         self.assertEqual(
             ACLExtendedRuleBulkEditForm.nullable_fields,
-            (
-                "remark",
-                "source_type",
-                "source",
-                "destination_type",
-                "destination",
-                "description",
-                "comments",
-            ),
+            ("remark", "source", "destination", "description", "comments"),
         )
 
     def test_filterform_access_list_filtered_to_extended(self):

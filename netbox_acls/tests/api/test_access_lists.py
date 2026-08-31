@@ -73,6 +73,9 @@ class AccessListAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         cls.bulk_update_data = {
             "comments": "Rule bulk update",
         }
+        cls.bulk_update_invalid_data = {
+            "name": "not a slug",
+        }
 
     def test_type_change_blocked_when_rules_exist(self):
         """
@@ -270,4 +273,7 @@ class ACLAssignmentAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         ]
         cls.bulk_update_data = {
             "comments": "Rule bulk update",
+        }
+        cls.bulk_update_invalid_data = {
+            "direction": "sideways",
         }

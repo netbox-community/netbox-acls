@@ -13,7 +13,7 @@ from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChass
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.filtersets import NetBoxModelFilterSet, PrimaryModelFilterSet
 from users.filterset_mixins import OwnerFilterMixin
-from utilities.filters import ContentTypeFilter, MultiValueCharFilter, MultiValueNumberFilter
+from utilities.filters import ContentTypeFilter, MultiValueBigNumberFilter, MultiValueCharFilter
 from utilities.filtersets import register_filterset
 from virtualization.models import VirtualMachine, VMInterface
 
@@ -81,7 +81,7 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
     )
 
     # Organization
-    region_id = MultiValueNumberFilter(
+    region_id = MultiValueBigNumberFilter(
         field_name="pk",
         method="filter_region",
         label=_("Region (ID)"),
@@ -91,7 +91,7 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
         method="filter_region",
         label=_("Region (slug)"),
     )
-    site_group_id = MultiValueNumberFilter(
+    site_group_id = MultiValueBigNumberFilter(
         field_name="pk",
         method="filter_site_group",
         label=_("Site group (ID)"),
@@ -101,7 +101,7 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
         method="filter_site_group",
         label=_("Site group (slug)"),
     )
-    site_id = MultiValueNumberFilter(
+    site_id = MultiValueBigNumberFilter(
         field_name="pk",
         method="filter_site",
         label=_("Site (ID)"),
@@ -259,12 +259,17 @@ class ACLAssignmentFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
             objects = self._resolve_scope_objects(model, values)
         else:
             objects = model.objects.filter(pk__in=values)
-        pks = set()
-        for obj in objects:
-            pks.update(obj.get_descendants(include_self=True).values_list("pk", flat=True))
+
+        subtree = Q()
+        for ltree_path in objects.values_list("path", flat=True):
+            # An unpopulated path would match the whole table.
+            if ltree_path:
+                subtree |= Q(path__descendant_or_equal=ltree_path)
         # A value matching no object has to match no assignment either.
-        if not pks:
+        if not subtree:
             return queryset.none()
+
+        pks = model.objects.filter(subtree).values_list("pk", flat=True)
         return self._filter_scope(queryset, f"{path}__pk", pks)
 
     def filter_site(self, queryset, name, value):

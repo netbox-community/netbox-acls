@@ -88,11 +88,15 @@ class ACLAssignmentChildrenView(generic.ObjectChildrenView):
         """
         Return all objects of ACLAssignment.
         """
-        return models.ACLAssignment.objects.restrict(request.user, "view").prefetch_related(
-            "access_list",
-            "assigned_object_type",
-            "assigned_object",
-            "tags",
+        return (
+            models.ACLAssignment.objects.restrict(request.user, "view")
+            .select_related("owner")
+            .prefetch_related(
+                "access_list",
+                "assigned_object_type",
+                "assigned_object",
+                "tags",
+            )
         )
 
     def get_extra_context(self, request, instance) -> dict:
@@ -118,7 +122,7 @@ class AccessListView(generic.ObjectView):
     Defines the view for the AccessLists django model.
     """
 
-    queryset = models.AccessList.objects.prefetch_related("tags")
+    queryset = models.AccessList.objects.select_related("owner").prefetch_related("tags")
 
     def get_extra_context(self, request, instance):
         """
@@ -153,9 +157,13 @@ class AccessListListView(generic.ObjectListView):
     Defines the list view for the AccessLists django model.
     """
 
-    queryset = models.AccessList.objects.annotate(
-        rule_count=Count("aclextendedrules") + Count("aclstandardrules"),
-    ).prefetch_related("owner", "tags")
+    queryset = (
+        models.AccessList.objects.annotate(
+            rule_count=Count("aclextendedrules") + Count("aclstandardrules"),
+        )
+        .select_related("owner")
+        .prefetch_related("tags")
+    )
     table = tables.AccessListTable
     filterset = filtersets.AccessListFilterSet
     filterset_form = forms.AccessListFilterForm
@@ -169,7 +177,7 @@ class AccessListEditView(generic.ObjectEditView):
     Defines the edit view for the AccessLists django model.
     """
 
-    queryset = models.AccessList.objects.prefetch_related("owner", "tags")
+    queryset = models.AccessList.objects.select_related("owner").prefetch_related("tags")
     form = forms.AccessListForm
 
 
@@ -179,7 +187,7 @@ class AccessListDeleteView(generic.ObjectDeleteView):
     Defines delete view for the AccessLists django model.
     """
 
-    queryset = models.AccessList.objects.prefetch_related("owner", "tags")
+    queryset = models.AccessList.objects.select_related("owner").prefetch_related("tags")
 
 
 @register_model_view(models.AccessList, "bulk_edit", path="edit", detail=False)
@@ -200,7 +208,7 @@ class AccessListBulkDeleteView(generic.BulkDeleteView):
     Bulk delete view for deleting multiple objects of AccessLists.
     """
 
-    queryset = models.AccessList.objects.prefetch_related("owner", "tags")
+    queryset = models.AccessList.objects.select_related("owner").prefetch_related("tags")
     filterset = filtersets.AccessListFilterSet
     table = tables.AccessListTable
 
@@ -249,9 +257,9 @@ class ACLAssignmentView(generic.ObjectView):
     Defines the view for the ACLAssignments django model.
     """
 
-    queryset = models.ACLAssignment.objects.prefetch_related(
+    queryset = models.ACLAssignment.objects.select_related("owner").prefetch_related(
         "access_list",
-        "owner",
+        "assigned_object",
         "tags",
     )
 
@@ -262,9 +270,9 @@ class ACLAssignmentListView(generic.ObjectListView):
     Defines the list view for the ACLAssignments django model.
     """
 
-    queryset = models.ACLAssignment.objects.prefetch_related(
+    queryset = models.ACLAssignment.objects.select_related("owner").prefetch_related(
         "access_list",
-        "owner",
+        "assigned_object",
         "tags",
     )
     table = tables.ACLAssignmentTable
@@ -280,9 +288,9 @@ class ACLAssignmentEditView(generic.ObjectEditView):
     Defines the edit view for the ACLAssignments django model.
     """
 
-    queryset = models.ACLAssignment.objects.prefetch_related(
+    queryset = models.ACLAssignment.objects.select_related("owner").prefetch_related(
         "access_list",
-        "owner",
+        "assigned_object",
         "tags",
     )
     form = forms.ACLAssignmentForm
@@ -294,9 +302,9 @@ class ACLAssignmentDeleteView(generic.ObjectDeleteView):
     Defines delete view for the ACLAssignments django model.
     """
 
-    queryset = models.ACLAssignment.objects.prefetch_related(
+    queryset = models.ACLAssignment.objects.select_related("owner").prefetch_related(
         "access_list",
-        "owner",
+        "assigned_object",
         "tags",
     )
 
@@ -319,9 +327,9 @@ class ACLAssignmentBulkDeleteView(generic.BulkDeleteView):
     Bulk delete view for deleting multiple objects of ACLAssignments.
     """
 
-    queryset = models.ACLAssignment.objects.prefetch_related(
+    queryset = models.ACLAssignment.objects.select_related("owner").prefetch_related(
         "access_list",
-        "owner",
+        "assigned_object",
         "tags",
     )
     filterset = filtersets.ACLAssignmentFilterSet
@@ -470,10 +478,9 @@ class ACLStandardRuleView(generic.ObjectView):
     Defines the view for the ACLStandardRule django model.
     """
 
-    queryset = models.ACLStandardRule.objects.prefetch_related(
+    queryset = models.ACLStandardRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
-        "owner",
         "tags",
     )
 
@@ -484,10 +491,9 @@ class ACLStandardRuleListView(generic.ObjectListView):
     Defines the list view for the ACLStandardRule django model.
     """
 
-    queryset = models.ACLStandardRule.objects.prefetch_related(
+    queryset = models.ACLStandardRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
-        "owner",
         "tags",
     )
     table = tables.ACLStandardRuleTable
@@ -503,10 +509,9 @@ class ACLStandardRuleEditView(ACLRuleSequenceMixin, generic.ObjectEditView):
     Defines the edit view for the ACLStandardRule django model.
     """
 
-    queryset = models.ACLStandardRule.objects.prefetch_related(
+    queryset = models.ACLStandardRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
-        "owner",
         "tags",
     )
     form = forms.ACLStandardRuleForm
@@ -518,10 +523,9 @@ class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
     Defines delete view for the ACLStandardRules django model.
     """
 
-    queryset = models.ACLStandardRule.objects.prefetch_related(
+    queryset = models.ACLStandardRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
-        "owner",
         "tags",
     )
 
@@ -544,10 +548,9 @@ class ACLStandardRuleBulkDeleteView(generic.BulkDeleteView):
     Bulk delete view for deleting multiple objects of ACLStandardRules.
     """
 
-    queryset = models.ACLStandardRule.objects.prefetch_related(
+    queryset = models.ACLStandardRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
-        "owner",
         "tags",
     )
     filterset = filtersets.ACLStandardRuleFilterSet
@@ -565,11 +568,10 @@ class ACLExtendedRuleView(generic.ObjectView):
     Defines the view for the ACLExtendedRule django model.
     """
 
-    queryset = models.ACLExtendedRule.objects.prefetch_related(
+    queryset = models.ACLExtendedRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
         "destination",
-        "owner",
         "tags",
     )
 
@@ -580,11 +582,10 @@ class ACLExtendedRuleListView(generic.ObjectListView):
     Defines the list view for the ACLExtendedRule django model.
     """
 
-    queryset = models.ACLExtendedRule.objects.prefetch_related(
+    queryset = models.ACLExtendedRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
         "destination",
-        "owner",
         "tags",
     )
     table = tables.ACLExtendedRuleTable
@@ -600,11 +601,10 @@ class ACLExtendedRuleEditView(ACLRuleSequenceMixin, generic.ObjectEditView):
     Defines the edit view for the ACLExtendedRule django model.
     """
 
-    queryset = models.ACLExtendedRule.objects.prefetch_related(
+    queryset = models.ACLExtendedRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
         "destination",
-        "owner",
         "tags",
     )
     form = forms.ACLExtendedRuleForm
@@ -616,11 +616,10 @@ class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
     Defines delete view for the ACLExtendedRules django model.
     """
 
-    queryset = models.ACLExtendedRule.objects.prefetch_related(
+    queryset = models.ACLExtendedRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
         "destination",
-        "owner",
         "tags",
     )
 
@@ -643,11 +642,10 @@ class ACLExtendedRuleBulkDeleteView(generic.BulkDeleteView):
     Bulk delete view for deleting multiple objects of ACLExtendedRules.
     """
 
-    queryset = models.ACLExtendedRule.objects.prefetch_related(
+    queryset = models.ACLExtendedRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
         "destination",
-        "owner",
         "tags",
     )
     filterset = filtersets.ACLExtendedRuleFilterSet

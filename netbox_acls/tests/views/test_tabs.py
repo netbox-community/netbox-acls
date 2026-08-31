@@ -41,6 +41,7 @@ class ACLAssignmentTabTestCase(TestCase):
 
     user_permissions = (
         "netbox_acls.view_aclassignment",
+        "netbox_acls.add_aclassignment",
         "netbox_acls.view_accesslist",
         "dcim.view_device",
         "dcim.view_interface",
@@ -209,3 +210,17 @@ class ACLAssignmentTabTestCase(TestCase):
                 rendered = view_class.tab.render(parent)
                 self.assertIsNotNone(rendered)
                 self.assertEqual(rendered["badge"], len(expected))
+
+    def test_add_link_carries_the_generic_object_params(self):
+        """Test the link uses the subwidget names the assignment form reads."""
+        for _view_class, url_name, parent, _expected in self.tab_cases():
+            # The access list tab prefills access_list instead, so it carries
+            # neither generic object parameter.
+            if url_name.startswith("plugins:netbox_acls:accesslist"):
+                continue
+            with self.subTest(view=url_name, parent=parent):
+                response = self.client.get(reverse(url_name, kwargs={"pk": parent.pk}))
+                self.assertHttpStatus(response, 200)
+                content_type = ContentType.objects.get_for_model(parent)
+                self.assertContains(response, f"assigned_object_object_id={parent.pk}")
+                self.assertContains(response, f"assigned_object_content_type={content_type.pk}")

@@ -38,8 +38,8 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
                 "access_list": self.access_list.pk,
                 "sequence": 10,
                 "action": ACLRuleActionChoices.ACTION_PERMIT,
-                "source_type": ContentType.objects.get_for_model(source).pk,
-                "source": source.pk,
+                "source_content_type": ContentType.objects.get_for_model(source).pk,
+                "source_object_id": source.pk,
             },
         )
 
@@ -56,35 +56,56 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         form = ACLStandardRuleForm(instance=self._rule(10))
         self.assertEqual(form.initial["source"], self.prefix)
 
-    def test_changing_the_source_type_clears_the_source(self):
-        """Switching type while editing drops the object the old type selected."""
+    def test_source_queryset_follows_the_posted_type(self):
+        """Test that switching type while editing re-scopes the object picker."""
         rule = self._rule(20)
         form = ACLStandardRuleForm(
             data={
                 "access_list": self.access_list.pk,
                 "sequence": 20,
                 "action": ACLRuleActionChoices.ACTION_PERMIT,
-                "source_type": ContentType.objects.get_for_model(self.ip_address).pk,
+                "source_content_type": ContentType.objects.get_for_model(self.ip_address).pk,
             },
             instance=rule,
         )
-        self.assertIsNone(form.initial["source"])
+        field = form.fields["source"]
+        self.assertIs(field.selected_model, type(self.ip_address))
+        self.assertEqual(field.queryset.model, type(self.ip_address))
 
-    def test_editing_clears_the_source_even_when_the_type_is_unchanged(self):
-        """Test that an edit drops the selected source whether or not its type changed."""
-        # Pins a defect: the posted type is text and never equals the integer id.
+    def test_editing_rejects_a_type_change_that_names_no_object(self):
+        """Test that switching type without picking an object fails validation."""
+        # Values arrive as text, the way a browser posts them.
+        rule = self._rule(25)
+        form = ACLStandardRuleForm(
+            data={
+                "access_list": str(self.access_list.pk),
+                "sequence": "25",
+                "action": ACLRuleActionChoices.ACTION_PERMIT,
+                "source_content_type": str(ContentType.objects.get_for_model(self.ip_address).pk),
+            },
+            instance=rule,
+        )
+        # A type with no object is a validation error rather than a silent clear.
+        self.assertFalse(form.is_valid())
+        self.assertIn("source", form.errors)
+
+    def test_editing_keeps_the_source_when_the_type_is_unchanged(self):
+        """Test that an edit holds on to the selected source when its type did not change."""
+        # Values arrive as text, the way a browser posts them.
         rule = self._rule(30)
         form = ACLStandardRuleForm(
             data={
                 "access_list": str(self.access_list.pk),
                 "sequence": "30",
                 "action": ACLRuleActionChoices.ACTION_PERMIT,
-                "source_type": str(ContentType.objects.get_for_model(self.prefix).pk),
-                "source": str(self.prefix.pk),
+                "source_content_type": str(ContentType.objects.get_for_model(self.prefix).pk),
+                "source_object_id": str(self.prefix.pk),
             },
             instance=rule,
         )
-        self.assertIsNone(form.initial["source"])
+        self.assertIs(form.fields["source"].selected_model, type(self.prefix))
+        self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+        self.assertEqual(form.instance.source, self.prefix)
 
     def test_bulkedit_access_list_filtered_to_standard(self):
         """Guard the standard bulk-edit picker the extended form (#360) was copied from."""
@@ -107,14 +128,15 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         for source in (self.aggregate, self.prefix, self.ip_address, self.ip_range):
             with self.subTest(source=source._meta.label_lower):
                 form = self._bound_form(source)
-                self.assertEqual(form.fields["source"].queryset.model, type(source))
-                self.assertFalse(form.fields["source"].disabled)
+                field = form.fields["source"]
+                self.assertIs(field.selected_model, type(source))
+                self.assertEqual(field.queryset.model, type(source))
 
     def test_source_type_choices_limited(self):
         """Test that the source type picker offers only the ipam models a rule accepts."""
         form = ACLStandardRuleForm()
         self.assertQuerySetEqual(
-            form.fields["source_type"].queryset.order_by("pk"),
+            form.fields["source"].content_type_field.queryset.order_by("pk"),
             ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS).order_by("pk"),
             transform=lambda ct: ct,
         )
@@ -128,29 +150,29 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
     def test_bulkedit_source_queryset_follows_type(self):
         """Test that the bulk-edit source picker's queryset is resolved from the posted type."""
         form = ACLStandardRuleBulkEditForm(
-            data={"source_type": ContentType.objects.get_for_model(type(self.prefix)).pk},
+            data={"source_content_type": ContentType.objects.get_for_model(type(self.prefix)).pk},
         )
+        self.assertIs(form.fields["source"].selected_model, type(self.prefix))
         self.assertEqual(form.fields["source"].queryset.model, type(self.prefix))
-        self.assertFalse(form.fields["source"].disabled)
 
     def test_bulkedit_source_type_widget_swaps_the_form_fields(self):
         """Test that the bulk-edit type picker posts and swaps, unlike the model form's picker."""
-        attrs = ACLStandardRuleBulkEditForm().fields["source_type"].widget.attrs
+        attrs = ACLStandardRuleBulkEditForm().fields["source"].content_type_field.widget.attrs
         self.assertEqual(attrs["hx-post"], ".")
         self.assertEqual(attrs["hx-select"], "#form_fields")
 
-    def test_bulkedit_source_label_follows_type(self):
-        """Test that the resolved label names the role and the selected model."""
+    def test_bulkedit_source_label_names_the_role(self):
+        """Test that the label names the role, since the type picker sits inside the field."""
         form = ACLStandardRuleBulkEditForm(
-            data={"source_type": ContentType.objects.get_for_model(self.ip_range).pk},
+            data={"source_content_type": ContentType.objects.get_for_model(self.ip_range).pk},
         )
-        self.assertEqual(form.fields["source"].label, "Source IP Range")
+        self.assertEqual(form.fields["source"].label, "Source")
 
     def test_bulkedit_nullable_fields(self):
         """Test that the nullable list stays exhaustive for this form."""
         self.assertEqual(
             ACLStandardRuleBulkEditForm.nullable_fields,
-            ("remark", "source_type", "source", "description", "comments"),
+            ("remark", "source", "description", "comments"),
         )
 
     def test_filterform_carries_no_extended_filters(self):

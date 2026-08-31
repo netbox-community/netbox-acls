@@ -1,13 +1,13 @@
 from django.test import TestCase
 
-from utilities.testing import ChangeLoggedFilterSetTests
+from utilities.testing import ChangeLoggedFilterSetTestMixin
 
 from ...choices import ACLActionChoices, ACLFamilyChoices, ACLTypeChoices
 from ...filtersets import AccessListFilterSet
 from ...models import AccessList
 
 
-class AccessListFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
+class AccessListFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin):
     """FilterSet tests for AccessList."""
 
     queryset = AccessList.objects.all()

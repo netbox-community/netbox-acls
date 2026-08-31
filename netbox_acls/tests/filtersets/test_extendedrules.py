@@ -3,7 +3,7 @@ from django.test import TestCase
 from netaddr import IPNetwork
 
 from ipam.models import RIR, Aggregate, IPAddress, IPRange, Prefix
-from utilities.testing import ChangeLoggedFilterSetTests
+from utilities.testing import ChangeLoggedFilterSetTestMixin
 
 from ...choices import (
     ACLActionChoices,
@@ -18,7 +18,7 @@ from ...models import AccessList, ACLExtendedRule
 from ...utils import normalize_port_ranges
 
 
-class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
+class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin):
     """FilterSet tests for ACLExtendedRule."""
 
     queryset = ACLExtendedRule.objects.all()

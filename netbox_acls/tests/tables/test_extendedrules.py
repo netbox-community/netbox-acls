@@ -1,9 +1,10 @@
+from utilities.testing import TableTestCases
+
 from ...models import ACLExtendedRule
 from ...tables import ACLExtendedRuleTable
-from . import base
 
 
-class ACLExtendedRuleTableTestCase(base.StandardTableTestCase):
+class ACLExtendedRuleTableTestCase(TableTestCases.StandardTableTestCase):
     table = ACLExtendedRuleTable
 
     def test_logging_columns_are_available_and_log_matches_is_default(self):

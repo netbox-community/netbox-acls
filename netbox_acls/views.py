@@ -4,10 +4,11 @@ Specifically, all the various interactions with a client.
 """
 
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Count
+from django.db.models import Case, CharField, Count, Q, Value, When
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device, Interface, VirtualChassis
+from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.object_actions import AddObject, BulkDelete, BulkEdit, BulkExport
 from netbox.views import generic
 from utilities.views import ViewTab, register_model_view
@@ -109,6 +110,102 @@ class ACLAssignmentChildrenView(generic.ObjectChildrenView):
             "add_url": "plugins:netbox_acls:aclassignment_add",
             "content_type_id": assigned_object_type.id,
         }
+
+
+def rule_reference_filter(instance, *roles):
+    """
+    Return a Q matching rules whose named generic FK roles point at the instance.
+    """
+    # An empty Q matches every row, so a role-less call must not be silently accepted.
+    if not roles:
+        raise ValueError("rule_reference_filter() requires at least one role.")
+
+    content_type = ContentType.objects.get_for_model(instance)
+    query = Q()
+    for role in roles:
+        query |= Q(**{f"{role}_type": content_type, f"{role}_id": instance.pk})
+    return query
+
+
+class ACLStandardRuleChildrenView(generic.ObjectChildrenView):
+    """Base children view for attaching a tab of referencing ACL Standard Rules."""
+
+    child_model = models.ACLStandardRule
+    filterset = filtersets.ACLStandardRuleFilterSet
+    tab = ViewTab(
+        label=_("ACL Standard Rules"),
+        badge=lambda obj: models.ACLStandardRule.objects.filter(
+            rule_reference_filter(obj, "source"),
+        ).count(),
+        permission="netbox_acls.view_aclstandardrule",
+        weight=1100,
+        hide_if_empty=True,
+    )
+    table = tables.ACLStandardRuleTable
+    # Read-only tab. ObjectChildrenView has no export handler, and editing a rule belongs
+    # on the rule itself.
+    actions = ()
+
+    def get_children(self, request, parent):
+        """Return the standard rules whose source is the parent object."""
+        return (
+            models.ACLStandardRule.objects.restrict(request.user, "view")
+            .filter(rule_reference_filter(parent, "source"))
+            .select_related("owner")
+            .prefetch_related("access_list", "source", "tags")
+        )
+
+    def get_table(self, *args, **kwargs):
+        """Return the table with the source columns hidden."""
+        table = super().get_table(*args, **kwargs)
+
+        # Every row's source is the parent object. Visibility is set after configure(),
+        # which resets columns from the user's preference or the table defaults.
+        table.columns.hide("source")
+        table.columns.hide("source_type")
+
+        return table
+
+
+class ACLExtendedRuleChildrenView(generic.ObjectChildrenView):
+    """Base children view for attaching a tab of referencing ACL Extended Rules."""
+
+    child_model = models.ACLExtendedRule
+    filterset = filtersets.ACLExtendedRuleFilterSet
+    tab = ViewTab(
+        label=_("ACL Extended Rules"),
+        badge=lambda obj: models.ACLExtendedRule.objects.filter(
+            rule_reference_filter(obj, "source", "destination"),
+        ).count(),
+        permission="netbox_acls.view_aclextendedrule",
+        weight=1200,
+        hide_if_empty=True,
+    )
+    table = tables.ACLExtendedRuleUsageTable
+    # Read-only tab, as on the standard rule base.
+    actions = ()
+
+    def get_children(self, request, parent):
+        """Return the extended rules referencing the parent at either end."""
+        source = rule_reference_filter(parent, "source")
+        destination = rule_reference_filter(parent, "destination")
+
+        # Both ends live on the rule's own row, so the OR needs no distinct().
+        return (
+            models.ACLExtendedRule.objects.restrict(request.user, "view")
+            .filter(source | destination)
+            .annotate(
+                used_as=Case(
+                    When(source & destination, then=Value(choices.ACLRuleUsageChoices.USAGE_BOTH)),
+                    When(source, then=Value(choices.ACLRuleUsageChoices.USAGE_SOURCE)),
+                    When(destination, then=Value(choices.ACLRuleUsageChoices.USAGE_DESTINATION)),
+                    default=Value(""),
+                    output_field=CharField(),
+                ),
+            )
+            .select_related("owner")
+            .prefetch_related("access_list", "source", "destination", "tags")
+        )
 
 
 #
@@ -557,6 +654,42 @@ class ACLStandardRuleBulkDeleteView(generic.BulkDeleteView):
     table = tables.ACLStandardRuleTable
 
 
+@register_model_view(Aggregate, "aclstandardrules", path="acl-standard-rules")
+class AggregateACLStandardRuleView(ACLStandardRuleChildrenView):
+    """
+    Children view of ACL Standard Rules referencing an Aggregate.
+    """
+
+    queryset = Aggregate.objects.all()
+
+
+@register_model_view(IPAddress, "aclstandardrules", path="acl-standard-rules")
+class IPAddressACLStandardRuleView(ACLStandardRuleChildrenView):
+    """
+    Children view of ACL Standard Rules referencing an IP Address.
+    """
+
+    queryset = IPAddress.objects.all()
+
+
+@register_model_view(IPRange, "aclstandardrules", path="acl-standard-rules")
+class IPRangeACLStandardRuleView(ACLStandardRuleChildrenView):
+    """
+    Children view of ACL Standard Rules referencing an IP Range.
+    """
+
+    queryset = IPRange.objects.all()
+
+
+@register_model_view(Prefix, "aclstandardrules", path="acl-standard-rules")
+class PrefixACLStandardRuleView(ACLStandardRuleChildrenView):
+    """
+    Children view of ACL Standard Rules referencing a Prefix.
+    """
+
+    queryset = Prefix.objects.all()
+
+
 #
 # ACLExtendedRule views
 #
@@ -650,3 +783,39 @@ class ACLExtendedRuleBulkDeleteView(generic.BulkDeleteView):
     )
     filterset = filtersets.ACLExtendedRuleFilterSet
     table = tables.ACLExtendedRuleTable
+
+
+@register_model_view(Aggregate, "aclextendedrules", path="acl-extended-rules")
+class AggregateACLExtendedRuleView(ACLExtendedRuleChildrenView):
+    """
+    Children view of ACL Extended Rules referencing an Aggregate.
+    """
+
+    queryset = Aggregate.objects.all()
+
+
+@register_model_view(IPAddress, "aclextendedrules", path="acl-extended-rules")
+class IPAddressACLExtendedRuleView(ACLExtendedRuleChildrenView):
+    """
+    Children view of ACL Extended Rules referencing an IP Address.
+    """
+
+    queryset = IPAddress.objects.all()
+
+
+@register_model_view(IPRange, "aclextendedrules", path="acl-extended-rules")
+class IPRangeACLExtendedRuleView(ACLExtendedRuleChildrenView):
+    """
+    Children view of ACL Extended Rules referencing an IP Range.
+    """
+
+    queryset = IPRange.objects.all()
+
+
+@register_model_view(Prefix, "aclextendedrules", path="acl-extended-rules")
+class PrefixACLExtendedRuleView(ACLExtendedRuleChildrenView):
+    """
+    Children view of ACL Extended Rules referencing a Prefix.
+    """
+
+    queryset = Prefix.objects.all()

@@ -31,7 +31,7 @@ class AccessListFilter(PrimaryModelFilter):
     GraphQL filter definition for the AccessList model.
     """
 
-    name: StrFilterLookup[str] | None = strawberry_django.filter_field()
+    name: StrFilterLookup | None = strawberry_django.filter_field()
     type: BaseFilterLookup[Annotated["ACLTypeEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None = (
         strawberry_django.filter_field()
     )
@@ -63,4 +63,4 @@ class ACLAssignmentFilter(NetBoxModelFilter):
     family: BaseFilterLookup[Annotated["ACLFamilyEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None = (
         strawberry_django.filter_field()
     )
-    comments: StrFilterLookup[str] | None = strawberry_django.filter_field()
+    comments: StrFilterLookup | None = strawberry_django.filter_field()

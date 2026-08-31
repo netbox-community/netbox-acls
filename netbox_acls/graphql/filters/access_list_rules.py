@@ -45,7 +45,7 @@ class ACLRuleFilterMixin(PrimaryModelFilter):
     )
 
     # Remark
-    remark: StrFilterLookup[str] | None = strawberry_django.filter_field()
+    remark: StrFilterLookup | None = strawberry_django.filter_field()
 
     # Source
     source_type: Annotated["ContentTypeFilter", strawberry.lazy("core.graphql.filters")] | None = (

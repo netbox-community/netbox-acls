@@ -195,3 +195,38 @@ class ACLExtendedRuleViewTestCase(ACLRuleSequenceTestsMixin, PluginTestCases.Obj
 
         rule.refresh_from_db()
         self.assertFalse(rule.log_matches)
+
+    def test_detail_view_renders_the_rule_attributes(self):
+        """Test that the detail view renders the rule attributes."""
+        self.add_permissions("netbox_acls.view_aclextendedrule")
+        rule = ACLExtendedRule.objects.get(access_list=self.access_list, sequence=10)
+
+        response = self.client.get(rule.get_absolute_url())
+
+        self.assertHttpStatus(response, 200)
+        self.assertContains(response, rule.access_list.get_absolute_url())
+        self.assertContains(response, rule.get_action_display())
+        self.assertContains(response, rule.get_protocol_display())
+        self.assertContains(response, rule.source.get_absolute_url())
+        self.assertContains(response, rule.destination.get_absolute_url())
+        # "1024-2048" is distinctive, unlike the destination's bare "80".
+        self.assertContains(response, ", ".join(rule.source_port_ranges_list))
+
+    def test_detail_view_renders_the_panel_attributes(self):
+        """Test that the detail view renders the panel's own attribute anchors."""
+        self.add_permissions("netbox_acls.view_aclextendedrule")
+        rule = ACLExtendedRule.objects.get(access_list=self.access_list, sequence=10)
+
+        response = self.client.get(rule.get_absolute_url())
+
+        self.assertHttpStatus(response, 200)
+        for anchor in (
+            "sequence",
+            "description",
+            "source",
+            "source_port_ranges",
+            "destination",
+            "destination_port_ranges",
+        ):
+            with self.subTest(attribute=anchor):
+                self.assertContains(response, f'id="attr_{anchor}"')

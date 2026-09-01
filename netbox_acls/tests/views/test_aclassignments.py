@@ -118,3 +118,52 @@ class ACLAssignmentViewTestCase(PluginTestCases.ObjectViewTestCase):
         cls.bulk_edit_data = {
             "comments": "Bulk edited",
         }
+
+    def test_detail_view_renders_the_assignment_attributes(self):
+        """Test that the detail view renders the assignment attributes."""
+        self.add_permissions("netbox_acls.view_aclassignment")
+        # Two interface assignments share this access list, so select on direction.
+        assignment = ACLAssignment.objects.get(
+            access_list=self.acl1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        response = self.client.get(assignment.get_absolute_url())
+
+        self.assertHttpStatus(response, 200)
+        self.assertContains(response, assignment.access_list.get_absolute_url())
+        self.assertContains(response, assignment.assigned_object.get_absolute_url())
+        self.assertContains(response, assignment.get_direction_display())
+
+    def test_assignment_links_the_parent_of_its_target(self):
+        """Test that an interface assignment renders a link to its parent."""
+        self.add_permissions("netbox_acls.view_aclassignment")
+
+        for model_name, parent_field in (
+            ("interface", "device"),
+            ("vminterface", "virtual_machine"),
+        ):
+            with self.subTest(assigned_object_type=model_name):
+                assignment = ACLAssignment.objects.filter(
+                    assigned_object_type__model=model_name,
+                ).earliest("pk")
+                parent = getattr(assignment.assigned_object, parent_field)
+
+                response = self.client.get(assignment.get_absolute_url())
+
+                self.assertHttpStatus(response, 200)
+                self.assertContains(response, assignment.assigned_object.get_absolute_url())
+                self.assertContains(response, parent.get_absolute_url())
+
+    def test_detail_view_renders_the_panel_attributes(self):
+        """Test that the detail view renders the panel's own attribute anchors."""
+        self.add_permissions("netbox_acls.view_aclassignment")
+        assignment = ACLAssignment.objects.get(
+            access_list=self.acl1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        response = self.client.get(assignment.get_absolute_url())
+
+        self.assertHttpStatus(response, 200)
+        self.assertContains(response, 'id="attr_assigned_object"')

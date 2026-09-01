@@ -6,6 +6,8 @@ These views sit outside every standard NetBox test base, so nothing else reaches
 
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
+from django.utils.html import escape
+from django.utils.http import urlencode
 from netaddr import IPNetwork
 
 from dcim.choices import InterfaceTypeChoices
@@ -46,6 +48,7 @@ from ...views import (
 class ACLAssignmentTabTestCase(TestCase):
     """Each assignment tab lists its own parent's assignments and nothing else."""
 
+    # add_accesslist is withheld: its absence is what the access list tab's button pins.
     user_permissions = (
         "netbox_acls.view_aclassignment",
         "netbox_acls.add_aclassignment",
@@ -231,6 +234,143 @@ class ACLAssignmentTabTestCase(TestCase):
                 content_type = ContentType.objects.get_for_model(parent)
                 self.assertContains(response, f"assigned_object_object_id={parent.pk}")
                 self.assertContains(response, f"assigned_object_content_type={content_type.pk}")
+
+    def test_access_list_tab_offers_its_add_link(self):
+        """Test the access list tab prefills the link with the access list.
+
+        The generic-object assertion above skips this tab, which is how its
+        permission gate went unnoticed since it shipped.
+        """
+        add_url = reverse("plugins:netbox_acls:aclassignment_add")
+
+        response = self.client.get(
+            reverse("plugins:netbox_acls:accesslist_aclassignments", kwargs={"pk": self.access_list.pk})
+        )
+
+        self.assertHttpStatus(response, 200)
+        self.assertContains(response, "Assign an ACL")
+        self.assertContains(response, f'href="{add_url}?access_list={self.access_list.pk}')
+
+    @staticmethod
+    def add_link_href(parent, tab_url):
+        """Return the add link the parent's action is expected to render."""
+        if isinstance(parent, AccessList):
+            params = {"access_list": parent.pk}
+        else:
+            params = {
+                "assigned_object_content_type": ContentType.objects.get_for_model(parent).pk,
+                "assigned_object_object_id": parent.pk,
+            }
+        params["return_url"] = tab_url
+        add_url = reverse("plugins:netbox_acls:aclassignment_add")
+        return escape(f"{add_url}?{urlencode(params)}")
+
+    def test_add_link_returns_to_the_tab_it_was_clicked_from(self):
+        """Test the return URL is the tab, not the parent's detail page.
+
+        No parent page lists its assignments, so returning there hides the
+        object the user just created. The whole href is asserted because the
+        table config control emits a bare return_url for the same path.
+        """
+        for _view_class, url_name, parent, _expected in self.tab_cases():
+            with self.subTest(view=url_name, parent=parent):
+                url = reverse(url_name, kwargs={"pk": parent.pk})
+                response = self.client.get(url)
+
+                self.assertHttpStatus(response, 200)
+                self.assertContains(response, f'href="{self.add_link_href(parent, url)}"')
+
+    def test_every_tab_add_link_targets_the_assignment_form(self):
+        """Test all six tabs link to the ACL assignment form.
+
+        The permission is resolved against the view's child model, so a link
+        to another model checks one permission and creates another object.
+        """
+        add_url = reverse("plugins:netbox_acls:aclassignment_add")
+
+        for _view_class, url_name, parent, _expected in self.tab_cases():
+            with self.subTest(view=url_name, parent=parent):
+                response = self.client.get(reverse(url_name, kwargs={"pk": parent.pk}))
+
+                self.assertHttpStatus(response, 200)
+                self.assertContains(response, f'href="{add_url}?')
+
+    def test_add_link_omits_a_return_url_the_view_does_not_provide(self):
+        """Test the action tolerates a context carrying no return URL.
+
+        Only a children view puts one there, so an unguarded lookup raises
+        KeyError anywhere else. Core guards the same lookup.
+        """
+        action = AccessListACLAssignmentView.actions[0]
+
+        params = action.get_url_params({"object": self.access_list})
+
+        self.assertEqual(params["access_list"], self.access_list.pk)
+        self.assertNotIn("return_url", params)
+
+    def test_add_link_survives_a_filtered_tab(self):
+        """Test a filtered tab does not leak its filters into the add form.
+
+        return_url is request.get_full_path(), so it carries the tab's own
+        query string. Written raw it splits at the first &, truncating the
+        return URL and turning the rest into parameters of the add form.
+        """
+        url = reverse("dcim:device_aclassignments", kwargs={"pk": self.device.pk})
+        tab_url = f"{url}?direction=none&q=foo"
+
+        response = self.client.get(tab_url)
+
+        self.assertHttpStatus(response, 200)
+        self.assertContains(response, f'href="{self.add_link_href(self.device, tab_url)}"')
+
+
+class ACLAssignmentTabAddPermissionTestCase(TestCase):
+    """The add link follows the permission of the object it creates."""
+
+    user_permissions = (
+        "netbox_acls.view_aclassignment",
+        "netbox_acls.view_accesslist",
+        "netbox_acls.add_accesslist",
+        "dcim.view_device",
+    )
+
+    @classmethod
+    def setUpTestData(cls):
+        site = Site.objects.create(name="Site 1", slug="site-1")
+        manufacturer = Manufacturer.objects.create(name="Manufacturer 1", slug="manufacturer-1")
+        device_type = DeviceType.objects.create(manufacturer=manufacturer, model="Device Type 1")
+        role = DeviceRole.objects.create(name="Device Role 1", slug="device-role-1")
+
+        cls.device = Device.objects.create(
+            name="Device 1",
+            site=site,
+            device_type=device_type,
+            role=role,
+        )
+        cls.access_list = AccessList.objects.create(
+            name="testacl1",
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+
+    def test_no_add_link_without_the_assignment_permission(self):
+        """Test add_accesslist alone offers no link on either kind of tab.
+
+        The access list tab used to gate on add_accesslist while its link
+        created an ACLAssignment, so this user got a button leading to a form
+        they could not submit.
+        """
+        cases = (
+            ("plugins:netbox_acls:accesslist_aclassignments", self.access_list),
+            ("dcim:device_aclassignments", self.device),
+        )
+        for url_name, parent in cases:
+            with self.subTest(view=url_name, parent=parent):
+                response = self.client.get(reverse(url_name, kwargs={"pk": parent.pk}))
+
+                self.assertHttpStatus(response, 200)
+                self.assertNotContains(response, "Assign an ACL")
 
 
 class ACLRuleTabFixtureMixin:

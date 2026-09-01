@@ -8,13 +8,17 @@ from django.db.models import Case, CharField, Count, Q, Value, When
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device, Interface, VirtualChassis
+from extras.ui.panels import CustomFieldsPanel, TagsPanel
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.object_actions import AddObject, BulkDelete, BulkEdit, BulkExport
+from netbox.ui import layout
+from netbox.ui.breadcrumbs import Breadcrumb, filtered_list_url
+from netbox.ui.panels import CommentsPanel
 from netbox.views import generic
 from utilities.views import ViewTab, register_model_view
 from virtualization.models import VirtualMachine, VMInterface
 
-from . import choices, filtersets, forms, models, tables
+from . import choices, filtersets, forms, models, object_actions, tables, ui
 
 __all__ = (
     "ACLAssignmentBulkDeleteView",
@@ -83,7 +87,7 @@ class ACLAssignmentChildrenView(generic.ObjectChildrenView):
         weight=1100,
     )
     table = tables.ACLAssignmentTable
-    actions = (BulkExport, BulkDelete)
+    actions = (object_actions.AssignACLToObject, BulkExport, BulkDelete)
 
     def get_children(self, request, parent):
         """
@@ -99,17 +103,6 @@ class ACLAssignmentChildrenView(generic.ObjectChildrenView):
                 "tags",
             )
         )
-
-    def get_extra_context(self, request, instance) -> dict:
-        """
-        Return ContentType as extra context.
-        """
-        assigned_object_type = ContentType.objects.get_for_model(self.queryset.model)
-
-        return super().get_extra_context(request, instance) | {
-            "add_url": "plugins:netbox_acls:aclassignment_add",
-            "content_type_id": assigned_object_type.id,
-        }
 
 
 def rule_reference_filter(instance, *roles):
@@ -220,32 +213,29 @@ class AccessListView(generic.ObjectView):
     """
 
     queryset = models.AccessList.objects.select_related("owner").prefetch_related("tags")
-
-    def get_extra_context(self, request, instance):
-        """
-        Depending on the Access List type, the list view will return
-        the required ACL Rule using the previously defined tables in tables.py.
-        """
-
-        if instance.type == choices.ACLTypeChoices.TYPE_EXTENDED:
-            table = tables.ACLExtendedRuleTable(instance.aclextendedrules.all())
-        elif instance.type == choices.ACLTypeChoices.TYPE_STANDARD:
-            table = tables.ACLStandardRuleTable(instance.aclstandardrules.all())
-        else:
-            table = None
-
-        if table:
-            table.configure(request)
-            # Visibility is set after configure(), which resets columns from the user's
-            # preference or the table defaults.
-            table.columns.hide("access_list")
-            table.columns.show("log_matches")
-            table.columns.show("log_options_list")
-
-            return {
-                "rules_table": table,
-            }
-        return {}
+    template_name = "generic/object.html"
+    layout = layout.SimpleLayout(
+        left_panels=[
+            ui.AccessListPanel(),
+            CustomFieldsPanel(),
+        ],
+        right_panels=[
+            TagsPanel(),
+            CommentsPanel(),
+        ],
+        bottom_panels=[
+            ui.RuleTablePanel(
+                choices.ACLTypeChoices.TYPE_STANDARD,
+                "netbox_acls.aclstandardrule",
+                _("Standard Rules"),
+            ),
+            ui.RuleTablePanel(
+                choices.ACLTypeChoices.TYPE_EXTENDED,
+                "netbox_acls.aclextendedrule",
+                _("Extended Rules"),
+            ),
+        ],
+    )
 
 
 @register_model_view(models.AccessList, "list", path="", detail=False)
@@ -323,7 +313,7 @@ class AccessListACLAssignmentView(ACLAssignmentChildrenView):
         permission="netbox_acls.view_aclassignment",
         weight=1100,
     )
-    template_name = "inc/view_acl_assignments_tab.html"
+    actions = (object_actions.AssignACLToAccessList, BulkExport, BulkDelete)
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -358,6 +348,23 @@ class ACLAssignmentView(generic.ObjectView):
         "access_list",
         "assigned_object",
         "tags",
+    )
+    template_name = "generic/object.html"
+    layout = layout.SimpleLayout(
+        left_panels=[
+            ui.ACLAssignmentPanel(),
+            CustomFieldsPanel(),
+        ],
+        right_panels=[
+            TagsPanel(),
+            CommentsPanel(),
+        ],
+        breadcrumbs=[
+            Breadcrumb(
+                "access_list",
+                url=filtered_list_url("plugins:netbox_acls:aclassignment_list", "access_list_id"),
+            ),
+        ],
     )
 
 
@@ -440,7 +447,6 @@ class DeviceACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = Device.objects.all()
-    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -467,7 +473,6 @@ class InterfaceACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = Interface.objects.all()
-    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -492,7 +497,6 @@ class VirtualChassisACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = VirtualChassis.objects.all()
-    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -519,7 +523,6 @@ class VirtualMachineACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = VirtualMachine.objects.all()
-    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -546,7 +549,6 @@ class VMInterfaceACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = VMInterface.objects.all()
-    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -579,6 +581,25 @@ class ACLStandardRuleView(generic.ObjectView):
         "access_list",
         "source",
         "tags",
+    )
+    template_name = "generic/object.html"
+    layout = layout.SimpleLayout(
+        left_panels=[
+            ui.ACLStandardRulePanel(),
+            ui.ACLStandardRuleDetailsPanel(),
+            ui.ACLRuleLoggingPanel(),
+        ],
+        right_panels=[
+            CustomFieldsPanel(),
+            TagsPanel(),
+            CommentsPanel(),
+        ],
+        breadcrumbs=[
+            Breadcrumb(
+                "access_list",
+                url=filtered_list_url("plugins:netbox_acls:aclstandardrule_list", "access_list_id"),
+            ),
+        ],
     )
 
 
@@ -706,6 +727,25 @@ class ACLExtendedRuleView(generic.ObjectView):
         "source",
         "destination",
         "tags",
+    )
+    template_name = "generic/object.html"
+    layout = layout.SimpleLayout(
+        left_panels=[
+            ui.ACLExtendedRulePanel(),
+            ui.ACLExtendedRuleDetailsPanel(),
+            ui.ACLRuleLoggingPanel(),
+        ],
+        right_panels=[
+            CustomFieldsPanel(),
+            TagsPanel(),
+            CommentsPanel(),
+        ],
+        breadcrumbs=[
+            Breadcrumb(
+                "access_list",
+                url=filtered_list_url("plugins:netbox_acls:aclextendedrule_list", "access_list_id"),
+            ),
+        ],
     )
 
 

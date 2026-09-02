@@ -342,7 +342,7 @@ class ACLAssignment(OwnerMixin, NetBoxModel):
         choices=ACLFamilyChoices,
     )
 
-    clone_fields = ("access_list", "assigned_object_type", "assigned_object_id")
+    clone_fields = ("access_list", "assigned_object")
     prerequisite_models = ("netbox_acls.AccessList",)
 
     class Meta:
@@ -377,13 +377,23 @@ class ACLAssignment(OwnerMixin, NetBoxModel):
         """
         return f"{self.access_list}: Object {self.assigned_object}"
 
+    @property
+    def _is_host_assignment(self) -> bool:
+        """
+        Returns whether the assigned object type carries no directional semantics.
+        """
+        host_assigned_object_type_ids = {
+            ContentType.objects.get_for_model(model).pk for model in (Device, VirtualChassis, VirtualMachine)
+        }
+        return self.assigned_object_type_id in host_assigned_object_type_ids
+
     def clean(self) -> None:
         """
         Override the model's clean method for custom validation.
         """
 
         # Validate object assignment before validation of any other fields
-        if self.assigned_object_type and not (self.assigned_object or self.assigned_object_id):
+        if self.assigned_object_type_id and not (self.assigned_object or self.assigned_object_id):
             assigned_object_model = self.assigned_object_type.model_class()
             raise ValidationError(
                 {
@@ -397,27 +407,29 @@ class ACLAssignment(OwnerMixin, NetBoxModel):
 
         super().clean()
 
-        # Mirror ACL family to denormalized column early
-        self.family = self.access_list.family
+        # Mirror ACL family to denormalized column, skipping the unset non-null foreign key.
+        if self.access_list_id:
+            self.family = self.access_list.family
 
-        # Validate that uniqueness of the AccessList name per assigned host type
-        # (device, virtual chassis, or virtual machine)
-        host_assigned_object_types = [
-            ContentType.objects.get_for_model(Device),
-            ContentType.objects.get_for_model(VirtualChassis),
-            ContentType.objects.get_for_model(VirtualMachine),
-        ]
-        # If the assigned object is a host type (device, virtual chassis,
-        # or virtual machine), directional semantics (ingress/egress) are
-        # not applicable.
-        # Therefore, the direction field is set to "none" in these cases.
-        if self.assigned_object_type in host_assigned_object_types:
+        # Host types carry no directional semantics, so direction is forced to "none".
+        if self._is_host_assignment:
             self.direction = ACLAssignmentDirectionChoices.DIRECTION_NONE
-
-        if self.assigned_object_type in host_assigned_object_types:
             self._validate_unique_acl_name_per_assigned_object()
-        else:
-            self._validate_unique_acl_assignment_per_assigned_interface()
+        elif self.assigned_object_type_id:
+            self._validate_interface_direction()
+            if self.access_list_id:
+                self._validate_unique_acl_assignment_per_assigned_interface()
+
+    def _validate_interface_direction(self) -> None:
+        """
+        Validates that an interface assignment carries a real direction.
+        """
+        if self.direction == ACLAssignmentDirectionChoices.DIRECTION_NONE:
+            raise ValidationError(
+                {
+                    "direction": _("Interface assignments require an ingress or egress direction."),
+                },
+            )
 
     def _validate_unique_acl_name_per_assigned_object(self) -> None:
         """
@@ -425,6 +437,10 @@ class ACLAssignment(OwnerMixin, NetBoxModel):
         the assigned object type and object ID.
         This ensures each ACL name is unique for the same object.
         """
+        # access_list is non-null, so its descriptor raises rather than returning None when unset.
+        if not self.access_list_id:
+            return
+
         conflicting_acl_assignments = ACLAssignment.objects.filter(
             access_list__name=self.access_list.name,
             assigned_object_type=self.assigned_object_type,
@@ -483,19 +499,6 @@ class ACLAssignment(OwnerMixin, NetBoxModel):
         """
         self.family = self.access_list.family
 
-        host_assigned_object_types = [
-            ContentType.objects.get_for_model(Device),
-            ContentType.objects.get_for_model(VirtualChassis),
-            ContentType.objects.get_for_model(VirtualMachine),
-        ]
-
-        # If the assigned object is a host type (device, virtual chassis,
-        # or virtual machine), directional semantics (ingress/egress) are
-        # not applicable.
-        # Therefore, the direction field is set to "none" in these cases.
-        if self.assigned_object_type in host_assigned_object_types:
-            self.direction = ACLAssignmentDirectionChoices.DIRECTION_NONE
-
         # family is a denormalized copy of access_list.family, so persist them together.
         # direction is derived only for host targets, so it is never promoted here.
         update_fields = kwargs.get("update_fields")
@@ -504,6 +507,12 @@ class ACLAssignment(OwnerMixin, NetBoxModel):
             if update_fields & {"access_list", "access_list_id"}:
                 update_fields |= {"family"}
             kwargs["update_fields"] = update_fields
+
+        # Host types carry no directional semantics, so direction is forced to "none".
+        if self._is_host_assignment:
+            self.direction = ACLAssignmentDirectionChoices.DIRECTION_NONE
+        elif self.assigned_object_type_id and (update_fields is None or "direction" in update_fields):
+            self._validate_interface_direction()
 
         super().save(*args, **kwargs)
 

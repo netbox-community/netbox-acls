@@ -12,6 +12,7 @@ from .choices import ACLFamilyChoices
 
 __all__ = (
     "infer_family_from_object",
+    "normalize_log_options",
     "normalize_port_ranges",
 )
 
@@ -32,6 +33,13 @@ def infer_family_from_object(obj):
     if version == 6:
         return ACLFamilyChoices.FAMILY_IPV6
     return None
+
+
+def normalize_log_options(options: Iterable[str]) -> list[str]:
+    """
+    Deduplicate log options and order them for stable storage and change logging.
+    """
+    return sorted(set(options))
 
 
 def normalize_port_ranges(ranges: Iterable[NumericRange], field_name: str = "__all__") -> list[NumericRange]:

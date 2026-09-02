@@ -2,14 +2,20 @@ from django.test import TestCase
 from netaddr import IPNetwork
 
 from ipam.models import RIR, Aggregate, IPAddress, IPRange, Prefix
-from utilities.testing import ChangeLoggedFilterSetTests
+from utilities.testing import ChangeLoggedFilterSetTestMixin
 
-from ...choices import ACLActionChoices, ACLFamilyChoices, ACLRuleActionChoices, ACLTypeChoices
+from ...choices import (
+    ACLActionChoices,
+    ACLFamilyChoices,
+    ACLRuleActionChoices,
+    ACLRuleLogOptionChoices,
+    ACLTypeChoices,
+)
 from ...filtersets import ACLStandardRuleFilterSet
 from ...models import AccessList, ACLStandardRule
 
 
-class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
+class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin):
     """FilterSet tests for ACLStandardRule."""
 
     queryset = ACLStandardRule.objects.all()
@@ -39,7 +45,7 @@ class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         )
 
         # create() rather than bulk_create(), because save() is what runs
-        # cache_related_source_object() to populate the _source_* shadow columns
+        # cache_related_objects() to populate the _source_* shadow columns
         # that the source_prefix and friends filters actually query.
         ACLStandardRule.objects.create(
             access_list=cls.access_list,
@@ -48,6 +54,8 @@ class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
             source=cls.prefix,
             description="permit the prefix",
             comments="reviewed quarterly",
+            log_matches=True,
+            log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG],
         )
         ACLStandardRule.objects.create(
             access_list=cls.access_list,
@@ -108,6 +116,21 @@ class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         params = {"access_list": [self.access_list.name]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 5)
 
+    def test_access_list_filter_accepts_any_acl_type(self):
+        """
+        The standard rule filters accept an extended access list while the extended rule
+        filters reject a standard one. Pinned so the asymmetry cannot change unnoticed.
+        """
+        extended_acl = AccessList.objects.create(
+            name="anextendedacl",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        filterset = self.filterset({}, self.queryset)
+        self.assertIn(extended_acl, filterset.filters["access_list"].queryset)
+        self.assertIn(extended_acl, filterset.filters["access_list_id"].queryset)
+
     def test_sequence(self):
         params = {"sequence": [10, 20]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
@@ -162,10 +185,20 @@ class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         params = {"comments": "reviewed quarterly"}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
 
-    # action is a single-valued ChoiceFilter, so assert one value at a time.
-
     def test_action(self):
-        params = {"action": ACLRuleActionChoices.ACTION_PERMIT}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
-        params = {"action": ACLRuleActionChoices.ACTION_REMARK}
+        params = {"action": [ACLRuleActionChoices.ACTION_PERMIT]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 2)
+        params = {"action": [ACLRuleActionChoices.ACTION_PERMIT, ACLRuleActionChoices.ACTION_DENY]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 4)
+
+    def test_log_matches(self):
+        params = {"log_matches": True}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_log_options(self):
+        params = {"log_options": ["syslog"]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)

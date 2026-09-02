@@ -1,6 +1,7 @@
+from utilities.testing import TableTestCases
+
 from ...tables import AccessListTable
-from . import base
 
 
-class AccessListTableTestCase(base.StandardTableTestCase):
+class AccessListTableTestCase(TableTestCases.StandardTableTestCase):
     table = AccessListTable

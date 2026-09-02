@@ -1,15 +1,17 @@
+from django import forms
 from django.test import TestCase
 
 from ...choices import ACLActionChoices, ACLFamilyChoices, ACLRuleActionChoices, ACLTypeChoices
-from ...forms import AccessListBulkEditForm, AccessListForm
+from ...forms import AccessListBulkEditForm, AccessListFilterForm, AccessListForm, AccessListImportForm
 from ...models import AccessList, ACLStandardRule
-from .base import BulkEditFieldsetTestMixin
+from .base import BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin
 
 
-class AccessListFormTestCase(BulkEditFieldsetTestMixin, TestCase):
+class AccessListFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin, TestCase):
     """Form tests for AccessList forms."""
 
     bulk_edit_form = AccessListBulkEditForm
+    filter_form = AccessListFilterForm
 
     @classmethod
     def setUpTestData(cls):
@@ -65,3 +67,62 @@ class AccessListFormTestCase(BulkEditFieldsetTestMixin, TestCase):
         )
         self.assertFalse(form.is_valid())
         self.assertIn("family", form.errors)
+
+    def test_choice_filters_accept_multiple_values(self):
+        """The filter form's choice fields must be multi-selects, matching the filter set."""
+        form = AccessListFilterForm()
+        for field_name in ("type", "family", "default_action"):
+            with self.subTest(field_name=field_name):
+                self.assertIsInstance(form.fields[field_name], forms.MultipleChoiceField)
+
+    def test_description_filter_available(self):
+        """The Description filter needs both a field and a fieldset entry, or it never renders."""
+        form = AccessListFilterForm()
+        self.assertIn("description", form.fields)
+        self.assertIsInstance(form.fields["description"], forms.CharField)
+        self.assertFalse(form.fields["description"].required)
+        named = {item for fieldset in form.fieldsets for item in fieldset.items if isinstance(item, str)}
+        self.assertIn("description", named)
+
+
+class AccessListImportFormTestCase(TestCase):
+    """Import form tests for AccessList."""
+
+    def test_blank_optional_columns_keep_the_model_defaults(self):
+        """Test that a blank family or default action cell leaves the model default in place."""
+        form = AccessListImportForm(
+            data={
+                "name": "acl-defaults",
+                "type": ACLTypeChoices.TYPE_STANDARD,
+                "family": "",
+                "default_action": "",
+            },
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        access_list = form.save()
+        self.assertEqual(access_list.family, ACLFamilyChoices.FAMILY_IPV4)
+        self.assertEqual(access_list.default_action, ACLActionChoices.ACTION_DENY)
+
+    def test_type_cannot_change_once_rules_exist(self):
+        """Test that the model's own type guard fires through the import form."""
+        access_list = AccessList.objects.create(
+            name="acl-with-rules",
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        ACLStandardRule.objects.create(
+            access_list=access_list,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_REMARK,
+            remark="a remark",
+        )
+
+        form = AccessListImportForm(
+            data={"name": access_list.name, "type": ACLTypeChoices.TYPE_EXTENDED},
+            instance=access_list,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("type", form.errors)

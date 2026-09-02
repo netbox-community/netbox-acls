@@ -4,38 +4,68 @@ Specifically, all the various interactions with a client.
 """
 
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Count
+from django.db.models import Case, CharField, Count, Q, Value, When
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device, Interface, VirtualChassis
-from netbox.object_actions import AddObject, BulkDelete, BulkEdit, BulkExport
+from extras.ui.panels import CustomFieldsPanel, TagsPanel
+from ipam.models import Aggregate, IPAddress, IPRange, Prefix
+from netbox.object_actions import BulkDelete, BulkExport
+from netbox.ui import layout
+from netbox.ui.breadcrumbs import Breadcrumb, filtered_list_url
+from netbox.ui.panels import CommentsPanel
 from netbox.views import generic
 from utilities.views import ViewTab, register_model_view
 from virtualization.models import VirtualMachine, VMInterface
 
-from . import choices, filtersets, forms, models, tables
+from . import choices, filtersets, forms, models, object_actions, tables, ui
 
 __all__ = (
     "ACLAssignmentBulkDeleteView",
+    "ACLAssignmentBulkEditView",
+    "ACLAssignmentBulkImportView",
+    "ACLAssignmentChildrenView",
     "ACLAssignmentDeleteView",
     "ACLAssignmentEditView",
     "ACLAssignmentListView",
     "ACLAssignmentView",
     "ACLExtendedRuleBulkDeleteView",
+    "ACLExtendedRuleBulkEditView",
+    "ACLExtendedRuleBulkImportView",
+    "ACLExtendedRuleChildrenView",
     "ACLExtendedRuleDeleteView",
     "ACLExtendedRuleEditView",
     "ACLExtendedRuleListView",
     "ACLExtendedRuleView",
     "ACLStandardRuleBulkDeleteView",
+    "ACLStandardRuleBulkEditView",
+    "ACLStandardRuleBulkImportView",
+    "ACLStandardRuleChildrenView",
     "ACLStandardRuleDeleteView",
     "ACLStandardRuleEditView",
     "ACLStandardRuleListView",
     "ACLStandardRuleView",
+    "AccessListACLAssignmentView",
     "AccessListBulkDeleteView",
+    "AccessListBulkEditView",
+    "AccessListBulkImportView",
     "AccessListDeleteView",
     "AccessListEditView",
     "AccessListListView",
     "AccessListView",
+    "AggregateACLExtendedRuleView",
+    "AggregateACLStandardRuleView",
+    "DeviceACLAssignmentView",
+    "IPAddressACLExtendedRuleView",
+    "IPAddressACLStandardRuleView",
+    "IPRangeACLExtendedRuleView",
+    "IPRangeACLStandardRuleView",
+    "InterfaceACLAssignmentView",
+    "PrefixACLExtendedRuleView",
+    "PrefixACLStandardRuleView",
+    "VMInterfaceACLAssignmentView",
+    "VirtualChassisACLAssignmentView",
+    "VirtualMachineACLAssignmentView",
 )
 
 
@@ -82,29 +112,118 @@ class ACLAssignmentChildrenView(generic.ObjectChildrenView):
         weight=1100,
     )
     table = tables.ACLAssignmentTable
-    actions = (BulkExport, BulkDelete)
+    actions = (object_actions.AssignACLToObject, BulkExport, BulkDelete)
 
     def get_children(self, request, parent):
         """
         Return all objects of ACLAssignment.
         """
-        return models.ACLAssignment.objects.restrict(request.user, "view").prefetch_related(
-            "access_list",
-            "assigned_object_type",
-            "assigned_object",
-            "tags",
+        return (
+            models.ACLAssignment.objects.restrict(request.user, "view")
+            .select_related("owner")
+            .prefetch_related(
+                "access_list",
+                "assigned_object_type",
+                "assigned_object",
+                "tags",
+            )
         )
 
-    def get_extra_context(self, request, instance) -> dict:
-        """
-        Return ContentType as extra context.
-        """
-        assigned_object_type = ContentType.objects.get_for_model(self.queryset.model)
 
-        return super().get_extra_context(request, instance) | {
-            "add_url": "plugins:netbox_acls:aclassignment_add",
-            "content_type_id": assigned_object_type.id,
-        }
+def rule_reference_filter(instance, *roles):
+    """
+    Return a Q matching rules whose named generic FK roles point at the instance.
+    """
+    # An empty Q matches every row, so a role-less call must not be silently accepted.
+    if not roles:
+        raise ValueError("rule_reference_filter() requires at least one role.")
+
+    content_type = ContentType.objects.get_for_model(instance)
+    query = Q()
+    for role in roles:
+        query |= Q(**{f"{role}_type": content_type, f"{role}_id": instance.pk})
+    return query
+
+
+class ACLStandardRuleChildrenView(generic.ObjectChildrenView):
+    """Base children view for attaching a tab of referencing ACL Standard Rules."""
+
+    child_model = models.ACLStandardRule
+    filterset = filtersets.ACLStandardRuleFilterSet
+    tab = ViewTab(
+        label=_("ACL Standard Rules"),
+        badge=lambda obj: models.ACLStandardRule.objects.filter(
+            rule_reference_filter(obj, "source"),
+        ).count(),
+        permission="netbox_acls.view_aclstandardrule",
+        weight=1100,
+        hide_if_empty=True,
+    )
+    table = tables.ACLStandardRuleTable
+    # Read-only tab. ObjectChildrenView has no export handler, and editing a rule belongs
+    # on the rule itself.
+    actions = ()
+
+    def get_children(self, request, parent):
+        """Return the standard rules whose source is the parent object."""
+        return (
+            models.ACLStandardRule.objects.restrict(request.user, "view")
+            .filter(rule_reference_filter(parent, "source"))
+            .select_related("owner")
+            .prefetch_related("access_list", "source", "tags")
+        )
+
+    def get_table(self, *args, **kwargs):
+        """Return the table with the source columns hidden."""
+        table = super().get_table(*args, **kwargs)
+
+        # Every row's source is the parent object. Visibility is set after configure(),
+        # which resets columns from the user's preference or the table defaults.
+        table.columns.hide("source")
+        table.columns.hide("source_type")
+
+        return table
+
+
+class ACLExtendedRuleChildrenView(generic.ObjectChildrenView):
+    """Base children view for attaching a tab of referencing ACL Extended Rules."""
+
+    child_model = models.ACLExtendedRule
+    filterset = filtersets.ACLExtendedRuleFilterSet
+    tab = ViewTab(
+        label=_("ACL Extended Rules"),
+        badge=lambda obj: models.ACLExtendedRule.objects.filter(
+            rule_reference_filter(obj, "source", "destination"),
+        ).count(),
+        permission="netbox_acls.view_aclextendedrule",
+        weight=1200,
+        hide_if_empty=True,
+    )
+    table = tables.ACLExtendedRuleUsageTable
+    # Read-only tab, as on the standard rule base.
+    actions = ()
+
+    def get_children(self, request, parent):
+        """Return the extended rules referencing the parent at either end."""
+        source = rule_reference_filter(parent, "source")
+        destination = rule_reference_filter(parent, "destination")
+
+        # Both ends live on the rule's own row, so the OR needs no distinct().
+        return (
+            models.ACLExtendedRule.objects.restrict(request.user, "view")
+            .filter(source | destination)
+            .annotate(
+                used_as=Case(
+                    When(source & destination, then=Value(choices.ACLRuleUsageChoices.USAGE_BOTH)),
+                    When(source, then=Value(choices.ACLRuleUsageChoices.USAGE_SOURCE)),
+                    When(destination, then=Value(choices.ACLRuleUsageChoices.USAGE_DESTINATION)),
+                    default=Value(""),
+                    output_field=CharField(),
+                ),
+            )
+            .select_related("owner")
+            .prefetch_related("access_list", "source", "destination", "tags")
+        )
 
 
 #
@@ -118,29 +237,30 @@ class AccessListView(generic.ObjectView):
     Defines the view for the AccessLists django model.
     """
 
-    queryset = models.AccessList.objects.prefetch_related("tags")
-
-    def get_extra_context(self, request, instance):
-        """
-        Depending on the Access List type, the list view will return
-        the required ACL Rule using the previously defined tables in tables.py.
-        """
-
-        if instance.type == choices.ACLTypeChoices.TYPE_EXTENDED:
-            table = tables.ACLExtendedRuleTable(instance.aclextendedrules.all())
-        elif instance.type == choices.ACLTypeChoices.TYPE_STANDARD:
-            table = tables.ACLStandardRuleTable(instance.aclstandardrules.all())
-        else:
-            table = None
-
-        if table:
-            table.columns.hide("access_list")
-            table.configure(request)
-
-            return {
-                "rules_table": table,
-            }
-        return {}
+    queryset = models.AccessList.objects.select_related("owner").prefetch_related("tags")
+    template_name = "generic/object.html"
+    layout = layout.SimpleLayout(
+        left_panels=[
+            ui.AccessListPanel(),
+            CustomFieldsPanel(),
+        ],
+        right_panels=[
+            TagsPanel(),
+            CommentsPanel(),
+        ],
+        bottom_panels=[
+            ui.RuleTablePanel(
+                choices.ACLTypeChoices.TYPE_STANDARD,
+                "netbox_acls.aclstandardrule",
+                _("Standard Rules"),
+            ),
+            ui.RuleTablePanel(
+                choices.ACLTypeChoices.TYPE_EXTENDED,
+                "netbox_acls.aclextendedrule",
+                _("Extended Rules"),
+            ),
+        ],
+    )
 
 
 @register_model_view(models.AccessList, "list", path="", detail=False)
@@ -149,13 +269,16 @@ class AccessListListView(generic.ObjectListView):
     Defines the list view for the AccessLists django model.
     """
 
-    queryset = models.AccessList.objects.annotate(
-        rule_count=Count("aclextendedrules") + Count("aclstandardrules"),
-    ).prefetch_related("owner", "tags")
+    queryset = (
+        models.AccessList.objects.annotate(
+            rule_count=Count("aclextendedrules") + Count("aclstandardrules"),
+        )
+        .select_related("owner")
+        .prefetch_related("tags")
+    )
     table = tables.AccessListTable
     filterset = filtersets.AccessListFilterSet
     filterset_form = forms.AccessListFilterForm
-    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.AccessList, "add", detail=False)
@@ -165,7 +288,7 @@ class AccessListEditView(generic.ObjectEditView):
     Defines the edit view for the AccessLists django model.
     """
 
-    queryset = models.AccessList.objects.prefetch_related("owner", "tags")
+    queryset = models.AccessList.objects.select_related("owner").prefetch_related("tags")
     form = forms.AccessListForm
 
 
@@ -175,7 +298,17 @@ class AccessListDeleteView(generic.ObjectDeleteView):
     Defines delete view for the AccessLists django model.
     """
 
-    queryset = models.AccessList.objects.prefetch_related("owner", "tags")
+    queryset = models.AccessList.objects.select_related("owner").prefetch_related("tags")
+
+
+@register_model_view(models.AccessList, "bulk_import", path="import", detail=False)
+class AccessListBulkImportView(generic.BulkImportView):
+    """
+    Bulk import view for importing multiple objects of AccessLists.
+    """
+
+    queryset = models.AccessList.objects.all()
+    model_form = forms.AccessListImportForm
 
 
 @register_model_view(models.AccessList, "bulk_edit", path="edit", detail=False)
@@ -196,7 +329,7 @@ class AccessListBulkDeleteView(generic.BulkDeleteView):
     Bulk delete view for deleting multiple objects of AccessLists.
     """
 
-    queryset = models.AccessList.objects.prefetch_related("owner", "tags")
+    queryset = models.AccessList.objects.select_related("owner").prefetch_related("tags")
     filterset = filtersets.AccessListFilterSet
     table = tables.AccessListTable
 
@@ -214,7 +347,7 @@ class AccessListACLAssignmentView(ACLAssignmentChildrenView):
         permission="netbox_acls.view_aclassignment",
         weight=1100,
     )
-    template_name = "inc/view_acl_assignments_tab.html"
+    actions = (object_actions.AssignACLToAccessList, BulkExport, BulkDelete)
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -245,10 +378,27 @@ class ACLAssignmentView(generic.ObjectView):
     Defines the view for the ACLAssignments django model.
     """
 
-    queryset = models.ACLAssignment.objects.prefetch_related(
+    queryset = models.ACLAssignment.objects.select_related("owner").prefetch_related(
         "access_list",
-        "owner",
+        "assigned_object",
         "tags",
+    )
+    template_name = "generic/object.html"
+    layout = layout.SimpleLayout(
+        left_panels=[
+            ui.ACLAssignmentPanel(),
+            CustomFieldsPanel(),
+        ],
+        right_panels=[
+            TagsPanel(),
+            CommentsPanel(),
+        ],
+        breadcrumbs=[
+            Breadcrumb(
+                "access_list",
+                url=filtered_list_url("plugins:netbox_acls:aclassignment_list", "access_list_id"),
+            ),
+        ],
     )
 
 
@@ -258,15 +408,14 @@ class ACLAssignmentListView(generic.ObjectListView):
     Defines the list view for the ACLAssignments django model.
     """
 
-    queryset = models.ACLAssignment.objects.prefetch_related(
+    queryset = models.ACLAssignment.objects.select_related("owner").prefetch_related(
         "access_list",
-        "owner",
+        "assigned_object",
         "tags",
     )
     table = tables.ACLAssignmentTable
     filterset = filtersets.ACLAssignmentFilterSet
     filterset_form = forms.ACLAssignmentFilterForm
-    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLAssignment, "add", detail=False)
@@ -276,9 +425,9 @@ class ACLAssignmentEditView(generic.ObjectEditView):
     Defines the edit view for the ACLAssignments django model.
     """
 
-    queryset = models.ACLAssignment.objects.prefetch_related(
+    queryset = models.ACLAssignment.objects.select_related("owner").prefetch_related(
         "access_list",
-        "owner",
+        "assigned_object",
         "tags",
     )
     form = forms.ACLAssignmentForm
@@ -290,11 +439,21 @@ class ACLAssignmentDeleteView(generic.ObjectDeleteView):
     Defines delete view for the ACLAssignments django model.
     """
 
-    queryset = models.ACLAssignment.objects.prefetch_related(
+    queryset = models.ACLAssignment.objects.select_related("owner").prefetch_related(
         "access_list",
-        "owner",
+        "assigned_object",
         "tags",
     )
+
+
+@register_model_view(models.ACLAssignment, "bulk_import", path="import", detail=False)
+class ACLAssignmentBulkImportView(generic.BulkImportView):
+    """
+    Bulk import view for importing multiple objects of ACLAssignments.
+    """
+
+    queryset = models.ACLAssignment.objects.all()
+    model_form = forms.ACLAssignmentImportForm
 
 
 @register_model_view(models.ACLAssignment, "bulk_edit", path="edit", detail=False)
@@ -315,9 +474,9 @@ class ACLAssignmentBulkDeleteView(generic.BulkDeleteView):
     Bulk delete view for deleting multiple objects of ACLAssignments.
     """
 
-    queryset = models.ACLAssignment.objects.prefetch_related(
+    queryset = models.ACLAssignment.objects.select_related("owner").prefetch_related(
         "access_list",
-        "owner",
+        "assigned_object",
         "tags",
     )
     filterset = filtersets.ACLAssignmentFilterSet
@@ -331,7 +490,6 @@ class DeviceACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = Device.objects.all()
-    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -358,7 +516,6 @@ class InterfaceACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = Interface.objects.all()
-    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -383,7 +540,6 @@ class VirtualChassisACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = VirtualChassis.objects.all()
-    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -410,7 +566,6 @@ class VirtualMachineACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = VirtualMachine.objects.all()
-    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -437,7 +592,6 @@ class VMInterfaceACLAssignmentView(ACLAssignmentChildrenView):
     """
 
     queryset = VMInterface.objects.all()
-    template_name = "inc/view_object_assignments_tab.html"
 
     def get_children(self, request, parent):
         """Return all children objects to the current parent object."""
@@ -466,11 +620,29 @@ class ACLStandardRuleView(generic.ObjectView):
     Defines the view for the ACLStandardRule django model.
     """
 
-    queryset = models.ACLStandardRule.objects.prefetch_related(
+    queryset = models.ACLStandardRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
-        "owner",
         "tags",
+    )
+    template_name = "generic/object.html"
+    layout = layout.SimpleLayout(
+        left_panels=[
+            ui.ACLStandardRulePanel(),
+            ui.ACLStandardRuleDetailsPanel(),
+            ui.ACLRuleLoggingPanel(),
+        ],
+        right_panels=[
+            CustomFieldsPanel(),
+            TagsPanel(),
+            CommentsPanel(),
+        ],
+        breadcrumbs=[
+            Breadcrumb(
+                "access_list",
+                url=filtered_list_url("plugins:netbox_acls:aclstandardrule_list", "access_list_id"),
+            ),
+        ],
     )
 
 
@@ -480,16 +652,14 @@ class ACLStandardRuleListView(generic.ObjectListView):
     Defines the list view for the ACLStandardRule django model.
     """
 
-    queryset = models.ACLStandardRule.objects.prefetch_related(
+    queryset = models.ACLStandardRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
-        "owner",
         "tags",
     )
     table = tables.ACLStandardRuleTable
     filterset = filtersets.ACLStandardRuleFilterSet
     filterset_form = forms.ACLStandardRuleFilterForm
-    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLStandardRule, "add", detail=False)
@@ -499,10 +669,9 @@ class ACLStandardRuleEditView(ACLRuleSequenceMixin, generic.ObjectEditView):
     Defines the edit view for the ACLStandardRule django model.
     """
 
-    queryset = models.ACLStandardRule.objects.prefetch_related(
+    queryset = models.ACLStandardRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
-        "owner",
         "tags",
     )
     form = forms.ACLStandardRuleForm
@@ -514,12 +683,21 @@ class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
     Defines delete view for the ACLStandardRules django model.
     """
 
-    queryset = models.ACLStandardRule.objects.prefetch_related(
+    queryset = models.ACLStandardRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
-        "owner",
         "tags",
     )
+
+
+@register_model_view(models.ACLStandardRule, "bulk_import", path="import", detail=False)
+class ACLStandardRuleBulkImportView(generic.BulkImportView):
+    """
+    Bulk import view for importing multiple objects of ACLStandardRules.
+    """
+
+    queryset = models.ACLStandardRule.objects.all()
+    model_form = forms.ACLStandardRuleImportForm
 
 
 @register_model_view(models.ACLStandardRule, "bulk_edit", path="edit", detail=False)
@@ -540,14 +718,49 @@ class ACLStandardRuleBulkDeleteView(generic.BulkDeleteView):
     Bulk delete view for deleting multiple objects of ACLStandardRules.
     """
 
-    queryset = models.ACLStandardRule.objects.prefetch_related(
+    queryset = models.ACLStandardRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
-        "owner",
         "tags",
     )
     filterset = filtersets.ACLStandardRuleFilterSet
     table = tables.ACLStandardRuleTable
+
+
+@register_model_view(Aggregate, "aclstandardrules", path="acl-standard-rules")
+class AggregateACLStandardRuleView(ACLStandardRuleChildrenView):
+    """
+    Children view of ACL Standard Rules referencing an Aggregate.
+    """
+
+    queryset = Aggregate.objects.all()
+
+
+@register_model_view(IPAddress, "aclstandardrules", path="acl-standard-rules")
+class IPAddressACLStandardRuleView(ACLStandardRuleChildrenView):
+    """
+    Children view of ACL Standard Rules referencing an IP Address.
+    """
+
+    queryset = IPAddress.objects.all()
+
+
+@register_model_view(IPRange, "aclstandardrules", path="acl-standard-rules")
+class IPRangeACLStandardRuleView(ACLStandardRuleChildrenView):
+    """
+    Children view of ACL Standard Rules referencing an IP Range.
+    """
+
+    queryset = IPRange.objects.all()
+
+
+@register_model_view(Prefix, "aclstandardrules", path="acl-standard-rules")
+class PrefixACLStandardRuleView(ACLStandardRuleChildrenView):
+    """
+    Children view of ACL Standard Rules referencing a Prefix.
+    """
+
+    queryset = Prefix.objects.all()
 
 
 #
@@ -561,12 +774,30 @@ class ACLExtendedRuleView(generic.ObjectView):
     Defines the view for the ACLExtendedRule django model.
     """
 
-    queryset = models.ACLExtendedRule.objects.prefetch_related(
+    queryset = models.ACLExtendedRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
         "destination",
-        "owner",
         "tags",
+    )
+    template_name = "generic/object.html"
+    layout = layout.SimpleLayout(
+        left_panels=[
+            ui.ACLExtendedRulePanel(),
+            ui.ACLExtendedRuleDetailsPanel(),
+            ui.ACLRuleLoggingPanel(),
+        ],
+        right_panels=[
+            CustomFieldsPanel(),
+            TagsPanel(),
+            CommentsPanel(),
+        ],
+        breadcrumbs=[
+            Breadcrumb(
+                "access_list",
+                url=filtered_list_url("plugins:netbox_acls:aclextendedrule_list", "access_list_id"),
+            ),
+        ],
     )
 
 
@@ -576,17 +807,15 @@ class ACLExtendedRuleListView(generic.ObjectListView):
     Defines the list view for the ACLExtendedRule django model.
     """
 
-    queryset = models.ACLExtendedRule.objects.prefetch_related(
+    queryset = models.ACLExtendedRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
         "destination",
-        "owner",
         "tags",
     )
     table = tables.ACLExtendedRuleTable
     filterset = filtersets.ACLExtendedRuleFilterSet
     filterset_form = forms.ACLExtendedRuleFilterForm
-    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLExtendedRule, "add", detail=False)
@@ -596,11 +825,10 @@ class ACLExtendedRuleEditView(ACLRuleSequenceMixin, generic.ObjectEditView):
     Defines the edit view for the ACLExtendedRule django model.
     """
 
-    queryset = models.ACLExtendedRule.objects.prefetch_related(
+    queryset = models.ACLExtendedRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
         "destination",
-        "owner",
         "tags",
     )
     form = forms.ACLExtendedRuleForm
@@ -612,13 +840,22 @@ class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
     Defines delete view for the ACLExtendedRules django model.
     """
 
-    queryset = models.ACLExtendedRule.objects.prefetch_related(
+    queryset = models.ACLExtendedRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
         "destination",
-        "owner",
         "tags",
     )
+
+
+@register_model_view(models.ACLExtendedRule, "bulk_import", path="import", detail=False)
+class ACLExtendedRuleBulkImportView(generic.BulkImportView):
+    """
+    Bulk import view for importing multiple objects of ACLExtendedRules.
+    """
+
+    queryset = models.ACLExtendedRule.objects.all()
+    model_form = forms.ACLExtendedRuleImportForm
 
 
 @register_model_view(models.ACLExtendedRule, "bulk_edit", path="edit", detail=False)
@@ -639,12 +876,47 @@ class ACLExtendedRuleBulkDeleteView(generic.BulkDeleteView):
     Bulk delete view for deleting multiple objects of ACLExtendedRules.
     """
 
-    queryset = models.ACLExtendedRule.objects.prefetch_related(
+    queryset = models.ACLExtendedRule.objects.select_related("owner").prefetch_related(
         "access_list",
         "source",
         "destination",
-        "owner",
         "tags",
     )
     filterset = filtersets.ACLExtendedRuleFilterSet
     table = tables.ACLExtendedRuleTable
+
+
+@register_model_view(Aggregate, "aclextendedrules", path="acl-extended-rules")
+class AggregateACLExtendedRuleView(ACLExtendedRuleChildrenView):
+    """
+    Children view of ACL Extended Rules referencing an Aggregate.
+    """
+
+    queryset = Aggregate.objects.all()
+
+
+@register_model_view(IPAddress, "aclextendedrules", path="acl-extended-rules")
+class IPAddressACLExtendedRuleView(ACLExtendedRuleChildrenView):
+    """
+    Children view of ACL Extended Rules referencing an IP Address.
+    """
+
+    queryset = IPAddress.objects.all()
+
+
+@register_model_view(IPRange, "aclextendedrules", path="acl-extended-rules")
+class IPRangeACLExtendedRuleView(ACLExtendedRuleChildrenView):
+    """
+    Children view of ACL Extended Rules referencing an IP Range.
+    """
+
+    queryset = IPRange.objects.all()
+
+
+@register_model_view(Prefix, "aclextendedrules", path="acl-extended-rules")
+class PrefixACLExtendedRuleView(ACLExtendedRuleChildrenView):
+    """
+    Children view of ACL Extended Rules referencing a Prefix.
+    """
+
+    queryset = Prefix.objects.all()

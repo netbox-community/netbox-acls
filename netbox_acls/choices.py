@@ -10,8 +10,9 @@ __all__ = (
     "ACLAssignmentDirectionUIChoices",
     "ACLFamilyChoices",
     "ACLProtocolChoices",
-    "ACLProtocolChoices",
     "ACLRuleActionChoices",
+    "ACLRuleLogOptionChoices",
+    "ACLRuleUsageChoices",
     "ACLTypeChoices",
 )
 
@@ -66,6 +67,44 @@ class ACLRuleActionChoices(ChoiceSet):
     ]
 
 
+class ACLRuleLogOptionChoices(ChoiceSet):
+    """
+    Logging options available to ACL rules.
+    """
+
+    key = "ACLRule.log_options"
+
+    OPTION_SYSLOG = "syslog"
+    OPTION_CISCO_LOG_INPUT = "cisco-log-input"
+
+    CHOICES = [
+        (
+            "Generic",
+            ((OPTION_SYSLOG, "Syslog", "blue"),),
+        ),
+        (
+            "Cisco",
+            ((OPTION_CISCO_LOG_INPUT, "Log-input", "purple"),),
+        ),
+    ]
+
+
+class ACLRuleUsageChoices(ChoiceSet):
+    """
+    Defines how an ACL Extended Rule references an object listed against it.
+    """
+
+    USAGE_SOURCE = "source"
+    USAGE_DESTINATION = "destination"
+    USAGE_BOTH = "both"
+
+    CHOICES = [
+        (USAGE_SOURCE, "Source", "blue"),
+        (USAGE_DESTINATION, "Destination", "purple"),
+        (USAGE_BOTH, "Source and destination", "teal"),
+    ]
+
+
 class ACLAssignmentDirectionUIChoices(ChoiceSet):
     """
     Defines the application direction of the ACL on an associated interface (UI version).
@@ -115,14 +154,35 @@ class ACLProtocolChoices(ChoiceSet):
     Defines the choices available for the Access Lists plugin specific to ACL Rule protocol.
     """
 
+    key = "ACLExtendedRule.protocol"
+
+    PROTOCOL_EIGRP = "eigrp"
+    PROTOCOL_GRE = "gre"
     PROTOCOL_ICMP = "icmp"
     PROTOCOL_IP = "ip"
+    PROTOCOL_OSPF = "ospf"
+    PROTOCOL_PIM = "pim"
     PROTOCOL_TCP = "tcp"
     PROTOCOL_UDP = "udp"
 
+    # The second group follows the IP protocol numbers 47, 88, 89 and 103.
     CHOICES = [
-        (PROTOCOL_ICMP, "ICMP", "purple"),
-        (PROTOCOL_IP, "IP", "cyan"),
-        (PROTOCOL_TCP, "TCP", "blue"),
-        (PROTOCOL_UDP, "UDP", "orange"),
+        (
+            "Common",
+            (
+                (PROTOCOL_ICMP, "ICMP", "purple"),
+                (PROTOCOL_IP, "IP", "cyan"),
+                (PROTOCOL_TCP, "TCP", "blue"),
+                (PROTOCOL_UDP, "UDP", "orange"),
+            ),
+        ),
+        (
+            "Routing and tunneling",
+            (
+                (PROTOCOL_GRE, "GRE", "teal"),
+                (PROTOCOL_EIGRP, "EIGRP", "yellow"),
+                (PROTOCOL_OSPF, "OSPF", "green"),
+                (PROTOCOL_PIM, "PIM", "indigo"),
+            ),
+        ),
     ]

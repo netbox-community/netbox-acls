@@ -1,8 +1,8 @@
 {
   "accesslist:api_list_objects": 12,
   "accesslist:list_objects_with_permission": 18,
-  "aclassignment:api_list_objects": 17,
-  "aclassignment:list_objects_with_permission": 21,
+  "aclassignment:api_list_objects": 18,
+  "aclassignment:list_objects_with_permission": 22,
   "aclextendedrule:api_list_objects": 17,
   "aclextendedrule:list_objects_with_permission": 27,
   "aclstandardrule:api_list_objects": 15,

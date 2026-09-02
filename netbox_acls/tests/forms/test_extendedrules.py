@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from netaddr import IPNetwork
@@ -9,19 +10,28 @@ from ...choices import (
     ACLFamilyChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
+    ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
 from ...constants import ACL_RULE_SOURCE_DESTINATION_MODELS
-from ...forms import ACLExtendedRuleBulkEditForm, ACLExtendedRuleForm
-from ...models import AccessList
+from ...forms import (
+    ACLExtendedRuleBulkEditForm,
+    ACLExtendedRuleFilterForm,
+    ACLExtendedRuleForm,
+    ACLExtendedRuleImportForm,
+)
+from ...models import AccessList, ACLExtendedRule
 from ..views.base import build_ipam_objects
-from .base import BulkEditFieldsetTestMixin
+from .base import BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin
+
+UNRESOLVABLE_OBJECT_ID = 99999999
 
 
-class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, TestCase):
+class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin, TestCase):
     """Form tests for ACLExtendedRule forms."""
 
     bulk_edit_form = ACLExtendedRuleBulkEditForm
+    filter_form = ACLExtendedRuleFilterForm
 
     @classmethod
     def setUpTestData(cls):
@@ -41,13 +51,50 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, TestCase):
             "sequence": 10,
             "action": ACLRuleActionChoices.ACTION_PERMIT,
             "protocol": ACLProtocolChoices.PROTOCOL_TCP,
-            "source_type": ContentType.objects.get_for_model(Prefix).pk,
-            "source": self.prefix.pk,
-            "destination_type": ContentType.objects.get_for_model(Prefix).pk,
-            "destination": self.destination_prefix.pk,
+            "source_content_type": ContentType.objects.get_for_model(Prefix).pk,
+            "source_object_id": self.prefix.pk,
+            "destination_content_type": ContentType.objects.get_for_model(Prefix).pk,
+            "destination_object_id": self.destination_prefix.pk,
         }
         data.update(overrides)
         return ACLExtendedRuleForm(data=data)
+
+    def _rule(self, sequence):
+        return ACLExtendedRule.objects.create(
+            access_list=self.access_list,
+            sequence=sequence,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix,
+            destination=self.destination_prefix,
+        )
+
+    def test_instance_seeds_both_object_fields(self):
+        """Both roles reach the form as initial values, not just the source."""
+        form = ACLExtendedRuleForm(instance=self._rule(10))
+        self.assertEqual(form.initial["source"], self.prefix)
+        self.assertEqual(form.initial["destination"], self.destination_prefix)
+
+    def test_editing_keeps_a_complete_role_and_rejects_an_incomplete_one(self):
+        """Test that the two roles are validated independently on an edit."""
+        # Values arrive as text, the way a browser posts them.
+        rule = self._rule(20)
+        form = ACLExtendedRuleForm(
+            data={
+                "access_list": str(self.access_list.pk),
+                "sequence": "20",
+                "action": ACLRuleActionChoices.ACTION_PERMIT,
+                "source_content_type": str(ContentType.objects.get_for_model(Prefix).pk),
+                "source_object_id": str(self.prefix.pk),
+                "destination_content_type": str(ContentType.objects.get_for_model(self.ip_address).pk),
+            },
+            instance=rule,
+        )
+        self.assertIs(form.fields["source"].selected_model, Prefix)
+        self.assertIs(form.fields["destination"].selected_model, type(self.ip_address))
+        # A type with no object is a validation error rather than a silent clear.
+        self.assertFalse(form.is_valid())
+        self.assertIn("destination", form.errors)
+        self.assertNotIn("source", form.errors)
 
     def test_bulkedit_access_list_filtered_to_extended(self):
         """#360: the extended bulk-edit Access List picker must filter to Extended ACLs."""
@@ -70,28 +117,30 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, TestCase):
         for source in (self.aggregate, self.prefix, self.ip_address, self.ip_range):
             with self.subTest(source=source._meta.label_lower):
                 form = self._bound_form(
-                    source_type=ContentType.objects.get_for_model(source).pk,
-                    source=source.pk,
+                    source_content_type=ContentType.objects.get_for_model(source).pk,
+                    source_object_id=source.pk,
                 )
-                self.assertEqual(form.fields["source"].queryset.model, type(source))
-                self.assertFalse(form.fields["source"].disabled)
+                field = form.fields["source"]
+                self.assertIs(field.selected_model, type(source))
+                self.assertEqual(field.queryset.model, type(source))
 
     def test_destination_queryset_follows_type(self):
         """Test that the destination picker's queryset is resolved from the posted type."""
         for destination in (self.aggregate, self.prefix, self.ip_address, self.ip_range):
             with self.subTest(destination=destination._meta.label_lower):
                 form = self._bound_form(
-                    destination_type=ContentType.objects.get_for_model(destination).pk,
-                    destination=destination.pk,
+                    destination_content_type=ContentType.objects.get_for_model(destination).pk,
+                    destination_object_id=destination.pk,
                 )
-                self.assertEqual(form.fields["destination"].queryset.model, type(destination))
-                self.assertFalse(form.fields["destination"].disabled)
+                field = form.fields["destination"]
+                self.assertIs(field.selected_model, type(destination))
+                self.assertEqual(field.queryset.model, type(destination))
 
     def test_source_type_choices_limited(self):
         """Test that the source type picker offers only the ipam models a rule accepts."""
         form = ACLExtendedRuleForm()
         self.assertQuerySetEqual(
-            form.fields["source_type"].queryset.order_by("pk"),
+            form.fields["source"].content_type_field.queryset.order_by("pk"),
             ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS).order_by("pk"),
             transform=lambda ct: ct,
         )
@@ -100,7 +149,7 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, TestCase):
         """Test that the destination type picker offers only the ipam models a rule accepts."""
         form = ACLExtendedRuleForm()
         self.assertQuerySetEqual(
-            form.fields["destination_type"].queryset.order_by("pk"),
+            form.fields["destination"].content_type_field.queryset.order_by("pk"),
             ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS).order_by("pk"),
             transform=lambda ct: ct,
         )
@@ -116,12 +165,12 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, TestCase):
         """Test that the bulk-edit pickers' querysets are resolved from the posted types."""
         prefix_type = ContentType.objects.get_for_model(Prefix).pk
         form = ACLExtendedRuleBulkEditForm(
-            data={"source_type": prefix_type, "destination_type": prefix_type},
+            data={"source_content_type": prefix_type, "destination_content_type": prefix_type},
         )
-        self.assertEqual(form.fields["source"].queryset.model, Prefix)
-        self.assertFalse(form.fields["source"].disabled)
-        self.assertEqual(form.fields["destination"].queryset.model, Prefix)
-        self.assertFalse(form.fields["destination"].disabled)
+        for role in ("source", "destination"):
+            with self.subTest(role=role):
+                self.assertIs(form.fields[role].selected_model, Prefix)
+                self.assertEqual(form.fields[role].queryset.model, Prefix)
 
     def test_port_ranges_round_trip_inclusive(self):
         """Test that port ranges posted inclusively are stored half-open and shown inclusively."""
@@ -135,3 +184,233 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, TestCase):
         )
         self.assertEqual(instance.source_port_ranges_list, ["80-81"])
         self.assertEqual(instance.destination_port_ranges_list, ["8080-8081"])
+
+    def test_bulkedit_type_widgets_swap_the_form_fields(self):
+        """Test that both bulk-edit type pickers post and swap, for either role."""
+        form = ACLExtendedRuleBulkEditForm()
+        for role in ("source", "destination"):
+            with self.subTest(role=role):
+                attrs = form.fields[role].content_type_field.widget.attrs
+                self.assertEqual(attrs["hx-post"], ".")
+                self.assertEqual(attrs["hx-select"], "#form_fields")
+
+    def test_bulkedit_labels_name_the_role(self):
+        """Test that each label names its role, so the two pickers cannot be confused."""
+        form = ACLExtendedRuleBulkEditForm(
+            data={
+                "source_content_type": ContentType.objects.get_for_model(self.ip_range).pk,
+                "destination_content_type": ContentType.objects.get_for_model(self.aggregate).pk,
+            },
+        )
+        self.assertEqual(form.fields["source"].label, "Source")
+        self.assertEqual(form.fields["destination"].label, "Destination")
+
+    def test_bulkedit_nullable_fields(self):
+        """Test that the nullable list stays exhaustive for this form."""
+        self.assertEqual(
+            ACLExtendedRuleBulkEditForm.nullable_fields,
+            ("remark", "source", "destination", "description", "comments"),
+        )
+
+    def test_filterform_access_list_filtered_to_extended(self):
+        """Test that the filter form's Access List picker filters to Extended ACLs."""
+        form = ACLExtendedRuleFilterForm()
+        self.assertEqual(
+            form.fields["access_list_id"].query_params,
+            {"type": ACLTypeChoices.TYPE_EXTENDED},
+        )
+
+    def test_choice_filters_accept_multiple_values(self):
+        """The filter form's choice fields must be multi-selects, matching the filter set."""
+        form = ACLExtendedRuleFilterForm()
+        for field_name in ("action", "protocol"):
+            with self.subTest(field_name=field_name):
+                self.assertIsInstance(form.fields[field_name], forms.MultipleChoiceField)
+
+    def test_protocol_filter_form_accepts_a_grouped_value(self):
+        """ACLProtocolChoices is optgrouped, so the groups must survive into the field."""
+        form = ACLExtendedRuleFilterForm(data={"protocol": [ACLProtocolChoices.PROTOCOL_GRE]})
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["protocol"], [ACLProtocolChoices.PROTOCOL_GRE])
+
+    def test_logging_fields_are_present(self):
+        """Test that the model form exposes both logging fields."""
+        form = ACLExtendedRuleForm()
+        self.assertIn("log_matches", form.fields)
+        self.assertIn("log_options", form.fields)
+
+    def test_form_rejects_options_without_log_matches(self):
+        """Test that the model form surfaces the consistency error per field."""
+        form = self._bound_form(log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG])
+        self.assertFalse(form.is_valid())
+        self.assertIn("log_options", form.errors)
+
+    def test_bulkedit_disabling_logging_clears_the_options(self):
+        """Test that turning logging off also drops the options."""
+        form = ACLExtendedRuleBulkEditForm(
+            data={"log_matches": "False", "pk": [self._rule(10).pk]},
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["log_options"], [])
+        self.assertIn("log_options", form.changed_data)
+
+    def test_bulkedit_clear_rejects_an_explicit_selection(self):
+        """Test that clearing and selecting log options at once is rejected."""
+        form = ACLExtendedRuleBulkEditForm(
+            data={
+                "clear_log_options": True,
+                "log_options": [ACLRuleLogOptionChoices.OPTION_SYSLOG],
+                "pk": [self._rule(20).pk],
+            },
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("clear_log_options", form.errors)
+
+    def test_bulkedit_disabling_logging_rejects_a_selection(self):
+        """Test that disabling logging while selecting options is rejected."""
+        form = ACLExtendedRuleBulkEditForm(
+            data={
+                "log_matches": "False",
+                "log_options": [ACLRuleLogOptionChoices.OPTION_SYSLOG],
+                "pk": [self._rule(30).pk],
+            },
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("log_options", form.errors)
+
+
+class ACLExtendedRuleImportFormTestCase(TestCase):
+    """
+    Import form tests for ACLExtendedRule.
+
+    Only what is extended-specific. The shared resolver's branches are covered once, against
+    the standard rule, in ACLStandardRuleImportFormTestCase.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.aggregate, cls.prefix, cls.ip_address, cls.ip_range = build_ipam_objects()
+        cls.destination_prefix = Prefix.objects.create(prefix=IPNetwork("10.2.0.0/16"))
+
+        cls.access_list = AccessList.objects.create(
+            name="testextendedacl",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        cls.standard_access_list = AccessList.objects.create(
+            name="teststandardacl",
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+
+    def _form(self, instance=None, **columns):
+        """Build the form from the default row, with None removing a column."""
+        data = {
+            "access_list": self.access_list.name,
+            "sequence": "10",
+            "action": ACLRuleActionChoices.ACTION_PERMIT,
+            "protocol": ACLProtocolChoices.PROTOCOL_TCP,
+            "source_type": "ipam.prefix",
+            "source": str(self.prefix.prefix),
+            "destination_type": "ipam.ipaddress",
+            "destination": str(self.ip_address.address),
+        }
+        data.update(columns)
+        return ACLExtendedRuleImportForm(
+            data={key: value for key, value in data.items() if value is not None},
+            instance=instance,
+        )
+
+    def test_unknown_source_id_is_rejected(self):
+        """Test that a source ID matching no object is rejected."""
+        form = self._form(source=None, source_id=str(UNRESOLVABLE_OBJECT_ID))
+        self.assertFalse(form.is_valid())
+        self.assertIn("not found", str(form.errors["source_id"]))
+
+    def test_unknown_destination_id_is_rejected(self):
+        """Test that a destination ID matching no object is rejected."""
+        form = self._form(destination=None, destination_id=str(UNRESOLVABLE_OBJECT_ID))
+        self.assertFalse(form.is_valid())
+        self.assertIn("not found", str(form.errors["destination_id"]))
+
+    def test_both_roles_resolve_from_values(self):
+        """object_roles runs the resolver twice, against two different content types."""
+        form = self._form()
+        self.assertTrue(form.is_valid(), form.errors)
+        rule = form.save()
+        self.assertEqual(rule.source, self.prefix)
+        self.assertEqual(rule.destination, self.ip_address)
+
+    def test_standard_access_list_is_rejected(self):
+        """The access list column offers extended lists only."""
+        form = self._form(access_list=self.standard_access_list.name)
+        self.assertFalse(form.is_valid())
+        self.assertIn("access_list", form.errors)
+
+    def test_a_shared_name_resolves_to_the_extended_list(self):
+        """Access list names are not unique, so the column's queryset picks the extended one."""
+        AccessList.objects.create(
+            name=self.access_list.name,
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+
+        form = self._form()
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().access_list, self.access_list)
+
+    def test_port_ranges_round_trip_in_the_inclusive_form(self):
+        """Ports are stored half-open and read back inclusive, matching the detail view."""
+        form = self._form(source_port_ranges="80-81,443")
+        self.assertTrue(form.is_valid(), form.errors)
+        rule = form.save()
+        self.assertEqual(
+            [(r.lower, r.upper) for r in rule.source_port_ranges],
+            [(80, 82), (443, 444)],
+        )
+        self.assertEqual(rule.source_port_ranges_list, ["80-81", "443"])
+
+    def test_reversed_port_range_is_rejected(self):
+        """A range whose end precedes its start is rejected."""
+        form = self._form(source_port_ranges="443-80")
+        self.assertFalse(form.is_valid())
+        self.assertIn("source_port_ranges", form.errors)
+
+    def test_overlapping_port_ranges_are_rejected(self):
+        """Two ranges covering the same port are rejected."""
+        form = self._form(source_port_ranges="80-100,90-110")
+        self.assertFalse(form.is_valid())
+        self.assertIn("overlap", str(form.errors))
+
+    def test_ports_without_tcp_or_udp_are_rejected(self):
+        """Port ranges need a protocol that has ports."""
+        form = self._form(protocol=ACLProtocolChoices.PROTOCOL_IP, source_port_ranges="80")
+        self.assertFalse(form.is_valid())
+        self.assertIn("source_port_ranges", form.errors)
+
+    def test_blank_destination_columns_clear_only_the_destination(self):
+        """The two roles are independent, so clearing one leaves the other stored."""
+        rule = self._form().save()
+
+        form = ACLExtendedRuleImportForm(
+            data={
+                "access_list": self.access_list.name,
+                "sequence": "10",
+                "action": rule.action,
+                "protocol": rule.protocol,
+                "source_type": "ipam.prefix",
+                "source": str(self.prefix.prefix),
+                "destination_type": "",
+                "destination": "",
+                "destination_id": "",
+            },
+            instance=rule,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        updated = form.save()
+        self.assertIsNone(updated.destination)
+        self.assertEqual(updated.source, self.prefix)

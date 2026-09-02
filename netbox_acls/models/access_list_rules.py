@@ -2,7 +2,6 @@
 Define the django models for this plugin.
 """
 
-from django.apps import apps
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.postgres.fields import ArrayField, IntegerRangeField
 from django.core.exceptions import ValidationError
@@ -12,15 +11,17 @@ from django.utils.translation import gettext_lazy as _
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.models import PrimaryModel
 from utilities.data import ranges_to_string_list
+from utilities.object_types import object_type_identifier
 
 from ..choices import (
     ACLFamilyChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
+    ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
 from ..constants import ACL_RULE_SOURCE_DESTINATION_MODELS
-from ..utils import infer_family_from_object, normalize_port_ranges
+from ..utils import infer_family_from_object, normalize_log_options, normalize_port_ranges
 from ..validators import validate_port_ranges
 from .access_lists import AccessList
 from .managers import ACLRuleManager
@@ -49,6 +50,15 @@ ERROR_MESSAGE_ACTION_REMARK_DESTINATION_PORTS_SET = _("When the action is 'remar
 # Error message when the action is 'remark', but the protocol is set.
 ERROR_MESSAGE_ACTION_REMARK_PROTOCOL_SET = _("When the action is 'remark', Protocol must not be set.")
 
+# Error message when log options are set but logging is disabled.
+ERROR_MESSAGE_LOG_OPTIONS_WITHOUT_LOG_MATCHES = _("Log options require Log matches to be enabled.")
+
+# Error message when the action is 'remark', but logging is enabled.
+ERROR_MESSAGE_ACTION_REMARK_LOG_MATCHES_SET = _("When the action is 'remark', Log matches must not be enabled.")
+
+# Error message when the action is 'remark', but log options are set.
+ERROR_MESSAGE_ACTION_REMARK_LOG_OPTIONS_SET = _("When the action is 'remark', Log options must not be set.")
+
 # Error message when the protocol is not 'TCP' or 'UDP', but the source ports are set.
 ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_SOURCE_PORTS_SET = _(
     "Source Ports can only be set when the protocol is TCP or UDP."
@@ -57,6 +67,12 @@ ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_SOURCE_PORTS_SET = _(
 # Error message when the protocol is not 'TCP' or 'UDP', but the destination ports are set.
 ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_DESTINATION_PORTS_SET = _(
     "Destination Ports can only be set when the protocol is TCP or UDP."
+)
+
+# Help text for the log options field, shared by the model and both form modules.
+HELP_TEXT_ACL_RULE_LOG_OPTIONS = _(
+    "Optional logging attributes. Leave empty for the target platform's default. "
+    "Vendor-specific options are grouped by vendor and are platform-dependent."
 )
 
 
@@ -69,7 +85,6 @@ class ACLRule(PrimaryModel):
     access_list = models.ForeignKey(
         to=AccessList,
         on_delete=models.CASCADE,
-        related_name="rules",
         verbose_name=_("Access List"),
     )
 
@@ -147,15 +162,36 @@ class ACLRule(PrimaryModel):
         null=True,
     )
 
+    # Logging
+    log_matches = models.BooleanField(
+        verbose_name=_("Log matches"),
+        default=False,
+        help_text=_("Request logging for packets matching this rule."),
+    )
+    log_options = ArrayField(
+        base_field=models.CharField(
+            max_length=100,
+            choices=ACLRuleLogOptionChoices,
+        ),
+        verbose_name=_("Log options"),
+        default=list,
+        blank=True,
+        help_text=HELP_TEXT_ACL_RULE_LOG_OPTIONS,
+    )
+
     objects = ACLRuleManager()
 
     clone_fields = (
         "access_list",
         "action",
-        "source_id",
-        "source_type",
+        "source",
+        "log_matches",
+        "log_options",
     )
     prerequisite_models: tuple = ("netbox_acls.AccessList",)
+
+    # Generic references mirrored into shadow columns, one set per role.
+    cached_object_roles = ("source",)
 
     class Meta:
         """
@@ -221,33 +257,37 @@ class ACLRule(PrimaryModel):
         """
         Saves the current instance to the database.
         """
-        # Cache the related source objects for faster access
-        self.cache_related_source_object()
+        # Cache the related objects for faster access
+        for role in self.cached_object_roles:
+            self.cache_related_objects(role)
 
         super().save(*args, **kwargs)
 
-    def cache_related_source_object(self):
+    def cache_related_objects(self, role):
         """
-        Cache the related source objects for faster access.
+        Refresh one role's shadow columns from its generic reference.
         """
-        self._source_aggregate = self._source_ipaddress = self._source_iprange = self._source_prefix = None
-        if self.source_type:
-            source_type = self.source_type.model_class()
-            if source_type == apps.get_model("ipam", "aggregate"):
-                self._source_aggregate = self.source
-            elif source_type == apps.get_model("ipam", "ipaddress"):
-                self._source_ipaddress = self.source
-            elif source_type == apps.get_model("ipam", "iprange"):
-                self._source_iprange = self.source
-            elif source_type == apps.get_model("ipam", "prefix"):
-                self._source_prefix = self.source
+        content_type = getattr(self, f"{role}_type")
+        label = object_type_identifier(content_type) if content_type else None
+        prefix = f"_{role}_"
 
-    cache_related_source_object.alters_data = True
+        # Shadow columns are located by name, so _<role>_<model> is a contract.
+        for field in self._meta.fields:
+            if not field.is_relation or not field.name.startswith(prefix):
+                continue
+            matched = field.related_model._meta.label_lower == label
+            setattr(self, field.name, getattr(self, role) if matched else None)
+
+    cache_related_objects.alters_data = True
 
     def _validate_rule_family(self):
         """
         Validates that the ACL rule's family matches the source and destination families.
         """
+        # access_list is non-null, so its descriptor raises rather than returning None when unset.
+        if not self.access_list_id:
+            return
+
         acl_family = self.access_list.family
         families = set()
 
@@ -287,6 +327,39 @@ class ACLRule(PrimaryModel):
         objectchange.related_object = self.access_list
         return objectchange
 
+    @property
+    def log_options_badges(self) -> list[tuple[str, str | None]]:
+        """
+        Return the display label and badge color of each stored log option.
+        """
+        labels = dict(self._meta.get_field("log_options").base_field.flatchoices)
+        colors = ACLRuleLogOptionChoices.colors
+        return [(str(labels.get(value, value)), colors.get(value)) for value in self.log_options]
+
+    @property
+    def log_options_list(self) -> list[str]:
+        """
+        Return the display labels, passing through values no longer configured.
+        """
+        return [label for label, _color in self.log_options_badges]
+
+    def _validate_logging(self):
+        """
+        Return field errors for an inconsistent logging state.
+        """
+        errors = {}
+
+        if not self.log_matches and self.log_options:
+            errors["log_options"] = ERROR_MESSAGE_LOG_OPTIONS_WITHOUT_LOG_MATCHES
+
+        if self.action == ACLRuleActionChoices.ACTION_REMARK:
+            if self.log_matches:
+                errors["log_matches"] = ERROR_MESSAGE_ACTION_REMARK_LOG_MATCHES_SET
+            if self.log_options:
+                errors["log_options"] = ERROR_MESSAGE_ACTION_REMARK_LOG_OPTIONS_SET
+
+        return errors
+
 
 class ACLStandardRule(ACLRule):
     """
@@ -324,6 +397,9 @@ class ACLStandardRule(ACLRule):
         super().clean()
         errors = {}
 
+        self.log_options = normalize_log_options(self.log_options or [])
+        errors.update(self._validate_logging())
+
         # Validate that only the remark field is filled
         if self.action == ACLRuleActionChoices.ACTION_REMARK:
             if not self.remark:
@@ -346,7 +422,7 @@ class ACLExtendedRule(ACLRule):
         to=AccessList,
         on_delete=models.CASCADE,
         related_name="aclextendedrules",
-        limit_choices_to={"type": "extended"},
+        limit_choices_to={"type": ACLTypeChoices.TYPE_EXTENDED},
         verbose_name=_("Extended Access List"),
     )
 
@@ -428,17 +504,14 @@ class ACLExtendedRule(ACLRule):
         null=True,
     )
 
-    clone_fields = (
-        "access_list",
-        "action",
-        "source_id",
-        "source_type",
+    clone_fields = ACLRule.clone_fields + (
         "source_port_ranges",
-        "destination_id",
-        "destination_type",
+        "destination",
         "destination_port_ranges",
         "protocol",
     )
+
+    cached_object_roles = ("source", "destination")
 
     class Meta(ACLRule.Meta):
         """
@@ -481,6 +554,9 @@ class ACLExtendedRule(ACLRule):
 
         errors = {}
 
+        self.log_options = normalize_log_options(self.log_options or [])
+        errors.update(self._validate_logging())
+
         # Validate that only the remark field is filled
         if self.action == ACLRuleActionChoices.ACTION_REMARK:
             if not self.remark:
@@ -512,35 +588,6 @@ class ACLExtendedRule(ACLRule):
         )
         validate_port_ranges(self.source_port_ranges, "source_port_ranges")
         validate_port_ranges(self.destination_port_ranges, "destination_port_ranges")
-
-    def save(self, *args, **kwargs):
-        """
-        Saves the current instance to the database.
-        """
-        # Cache the related destination objects for faster access
-        self.cache_related_destination_objects()
-
-        super().save(*args, **kwargs)
-
-    def cache_related_destination_objects(self):
-        """
-        Cache the related destination objects for faster access.
-        """
-        self._destination_aggregate = self._destination_ipaddress = self._destination_iprange = (
-            self._destination_prefix
-        ) = None
-        if self.destination_type:
-            destination_type = self.destination_type.model_class()
-            if destination_type == apps.get_model("ipam", "aggregate"):
-                self._destination_aggregate = self.destination
-            elif destination_type == apps.get_model("ipam", "ipaddress"):
-                self._destination_ipaddress = self.destination
-            elif destination_type == apps.get_model("ipam", "iprange"):
-                self._destination_iprange = self.destination
-            elif destination_type == apps.get_model("ipam", "prefix"):
-                self._destination_prefix = self.destination
-
-    cache_related_destination_objects.alters_data = True
 
     @property
     def destination_port_ranges_list(self):
@@ -588,106 +635,24 @@ class ACLExtendedRule(ACLRule):
 
 
 #
-# Generic Relations: ACLStandardRule
+# Generic Relations
 #
 
-# Source Aggregate
-GenericRelation(
-    to=ACLStandardRule,
-    content_type_field="source_type",
-    object_id_field="source_id",
-    related_query_name="source_aggregate",
-).contribute_to_class(Aggregate, "accesslist_standard_rule_sources")
-
-# Source IPAddress
-GenericRelation(
-    to=ACLStandardRule,
-    content_type_field="source_type",
-    object_id_field="source_id",
-    related_query_name="source_ip_address",
-).contribute_to_class(IPAddress, "accesslist_standard_rule_sources")
-
-# Source IPRange
-GenericRelation(
-    to=ACLStandardRule,
-    content_type_field="source_type",
-    object_id_field="source_id",
-    related_query_name="source_ip_range",
-).contribute_to_class(IPRange, "accesslist_standard_rule_sources")
-
-# Source Prefix
-GenericRelation(
-    to=ACLStandardRule,
-    content_type_field="source_type",
-    object_id_field="source_id",
-    related_query_name="source_prefix",
-).contribute_to_class(Prefix, "accesslist_standard_rule_sources")
-
-
-#
-# Generic Relations: ACLExtendedRule
-#
-
-# Source Aggregate
-GenericRelation(
-    to=ACLExtendedRule,
-    content_type_field="source_type",
-    object_id_field="source_id",
-    related_query_name="source_aggregate",
-).contribute_to_class(Aggregate, "accesslist_extended_rule_sources")
-
-# Source IPAddress
-GenericRelation(
-    to=ACLExtendedRule,
-    content_type_field="source_type",
-    object_id_field="source_id",
-    related_query_name="source_ip_address",
-).contribute_to_class(IPAddress, "accesslist_extended_rule_sources")
-
-# Source IPRange
-GenericRelation(
-    to=ACLExtendedRule,
-    content_type_field="source_type",
-    object_id_field="source_id",
-    related_query_name="source_ip_range",
-).contribute_to_class(IPRange, "accesslist_extended_rule_sources")
-
-# Source Prefix
-GenericRelation(
-    to=ACLExtendedRule,
-    content_type_field="source_type",
-    object_id_field="source_id",
-    related_query_name="source_prefix",
-).contribute_to_class(Prefix, "accesslist_extended_rule_sources")
-
-# Destination Aggregate
-GenericRelation(
-    to=ACLExtendedRule,
-    content_type_field="destination_type",
-    object_id_field="destination_id",
-    related_query_name="destination_aggregate",
-).contribute_to_class(Aggregate, "accesslist_extended_rule_destinations")
-
-# Destination IPAddress
-GenericRelation(
-    to=ACLExtendedRule,
-    content_type_field="destination_type",
-    object_id_field="destination_id",
-    related_query_name="destination_ip_address",
-).contribute_to_class(IPAddress, "accesslist_extended_rule_destinations")
-
-# Destination IPRange
-GenericRelation(
-    to=ACLExtendedRule,
-    content_type_field="destination_type",
-    object_id_field="destination_id",
-    related_query_name="destination_ip_range",
-).contribute_to_class(IPRange, "accesslist_extended_rule_destinations")
-
-# Destination Prefix
-GenericRelation(
-    to=ACLExtendedRule,
-    content_type_field="destination_type",
-    object_id_field="destination_id",
-    related_query_name="destination_prefix",
-).contribute_to_class(Prefix, "accesslist_extended_rule_destinations")
+for _rule_model, _role, _accessor in (
+    (ACLStandardRule, "source", "accesslist_standard_rule_sources"),
+    (ACLExtendedRule, "source", "accesslist_extended_rule_sources"),
+    (ACLExtendedRule, "destination", "accesslist_extended_rule_destinations"),
+):
+    # The query name segment differs from the model name where that runs words together.
+    for _model, _query_name in (
+        (Aggregate, "aggregate"),
+        (IPAddress, "ip_address"),
+        (IPRange, "ip_range"),
+        (Prefix, "prefix"),
+    ):
+        GenericRelation(
+            to=_rule_model,
+            content_type_field=f"{_role}_type",
+            object_id_field=f"{_role}_id",
+            related_query_name=f"{_role}_{_query_name}",
+        ).contribute_to_class(_model, _accessor)

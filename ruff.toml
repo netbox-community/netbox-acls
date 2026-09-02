@@ -85,7 +85,7 @@ unfixable = []
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [lint.flake8-self]
-ignore-names = ["_meta", "Meta"]
+ignore-names = ["_attrs", "_meta", "Meta"]
 
 [lint.isort]
 known-first-party = [

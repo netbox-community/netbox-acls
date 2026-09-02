@@ -3,24 +3,21 @@ Defines each django model's GUI filter/search options.
 """
 
 from django import forms
+from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device, Interface, Region, Site, SiteGroup, VirtualChassis
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.forms import NetBoxModelFilterSetForm, PrimaryModelFilterSetForm
-
-try:
-    from netbox.forms.mixins import OwnerFilterMixin
-except ImportError:  # NetBox < 4.5.2 keeps it alongside the filter set forms
-    from netbox.forms.filtersets import OwnerFilterMixin
-
+from netbox.forms.mixins import OwnerFilterMixin
+from utilities.forms.constants import BOOLEAN_WITH_BLANK_CHOICES
 from utilities.forms.fields import (
+    ContentTypeMultipleChoiceField,
     DynamicModelChoiceField,
     DynamicModelMultipleChoiceField,
     TagFilterField,
 )
 from utilities.forms.rendering import FieldSet
-from utilities.forms.utils import add_blank_choice
 from virtualization.models import VirtualMachine, VMInterface
 
 from ..choices import (
@@ -29,8 +26,10 @@ from ..choices import (
     ACLFamilyChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
+    ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
+from ..constants import ACL_ASSIGNMENT_MODELS
 from ..models import (
     AccessList,
     ACLAssignment,
@@ -73,20 +72,24 @@ class AccessListFilterForm(PrimaryModelFilterSetForm):
     )
 
     # ACL selector
-    type = forms.ChoiceField(
-        choices=add_blank_choice(ACLTypeChoices),
+    type = forms.MultipleChoiceField(
+        choices=ACLTypeChoices,
         required=False,
         label=_("Type"),
     )
-    family = forms.ChoiceField(
-        choices=add_blank_choice(ACLFamilyChoices),
+    family = forms.MultipleChoiceField(
+        choices=ACLFamilyChoices,
         required=False,
         label=_("Family"),
     )
-    default_action = forms.ChoiceField(
-        choices=add_blank_choice(ACLActionChoices),
+    default_action = forms.MultipleChoiceField(
+        choices=ACLActionChoices,
         required=False,
         label=_("Default Action"),
+    )
+    description = forms.CharField(
+        required=False,
+        label=_("Description"),
     )
 
     # Tag selector
@@ -107,6 +110,7 @@ class ACLAssignmentFilterForm(OwnerFilterMixin, NetBoxModelFilterSetForm):
         ),
         FieldSet(
             "access_list_id",
+            "assigned_object_type_id",
             "family",
             "direction",
             name=_("ACL Details"),
@@ -141,13 +145,18 @@ class ACLAssignmentFilterForm(OwnerFilterMixin, NetBoxModelFilterSetForm):
         required=False,
         label=_("Access List"),
     )
-    family = forms.ChoiceField(
-        choices=add_blank_choice(ACLFamilyChoices),
+    assigned_object_type_id = ContentTypeMultipleChoiceField(
+        queryset=ContentType.objects.filter(ACL_ASSIGNMENT_MODELS),
+        required=False,
+        label=_("Assigned Object Type"),
+    )
+    family = forms.MultipleChoiceField(
+        choices=ACLFamilyChoices,
         required=False,
         label=_("Family"),
     )
-    direction = forms.ChoiceField(
-        choices=add_blank_choice(ACLAssignmentDirectionChoices),
+    direction = forms.MultipleChoiceField(
+        choices=ACLAssignmentDirectionChoices,
         required=False,
         label=_("Direction"),
     )
@@ -217,7 +226,64 @@ class ACLAssignmentFilterForm(OwnerFilterMixin, NetBoxModelFilterSetForm):
     tag = TagFilterField(model)
 
 
-class ACLStandardRuleFilterForm(PrimaryModelFilterSetForm):
+class ACLRuleFilterFormMixin(forms.Form):
+    """
+    Filter fields shared by both concrete rule filter forms.
+
+    The Access List picker stays on each concrete form, since the two narrow it
+    to different ACL types.
+    """
+
+    sequence = forms.IntegerField(
+        required=False,
+        label=_("Sequence"),
+    )
+    action = forms.MultipleChoiceField(
+        choices=ACLRuleActionChoices,
+        required=False,
+        label=_("Action"),
+    )
+    remark = forms.CharField(
+        required=False,
+        label=_("Remark"),
+    )
+
+    # Logging
+    log_matches = forms.NullBooleanField(
+        required=False,
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+        label=_("Log matches"),
+    )
+    log_options = forms.MultipleChoiceField(
+        choices=ACLRuleLogOptionChoices,
+        required=False,
+        label=_("Log options"),
+    )
+
+    # Source selectors
+    source_aggregate_id = DynamicModelMultipleChoiceField(
+        queryset=Aggregate.objects.all(),
+        required=False,
+        label=_("Source Aggregate"),
+    )
+    source_ipaddress_id = DynamicModelMultipleChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        label=_("Source IP-Address"),
+    )
+    source_iprange_id = DynamicModelMultipleChoiceField(
+        queryset=IPRange.objects.all(),
+        required=False,
+        label=_("Source IP-Range"),
+    )
+    source_prefix_id = DynamicModelMultipleChoiceField(
+        queryset=Prefix.objects.all(),
+        required=False,
+        label=_("Source Prefix"),
+    )
+
+
+class ACLStandardRuleFilterForm(ACLRuleFilterFormMixin, PrimaryModelFilterSetForm):
     """
     GUI filter form to search the django ACLStandardRule model.
     """
@@ -244,6 +310,11 @@ class ACLStandardRuleFilterForm(PrimaryModelFilterSetForm):
             name=_("Source Details"),
         ),
         FieldSet(
+            "log_matches",
+            "log_options",
+            name=_("Logging"),
+        ),
+        FieldSet(
             "owner_group_id",
             "owner_id",
             name=_("Ownership"),
@@ -258,47 +329,12 @@ class ACLStandardRuleFilterForm(PrimaryModelFilterSetForm):
         required=False,
         label=_("Access List"),
     )
-    sequence = forms.IntegerField(
-        required=False,
-        label=_("Sequence"),
-    )
-    action = forms.ChoiceField(
-        choices=add_blank_choice(ACLRuleActionChoices),
-        required=False,
-        label=_("Action"),
-    )
-    remark = forms.CharField(
-        required=False,
-        label=_("Remark"),
-    )
-
-    # Source selectors
-    source_aggregate_id = DynamicModelMultipleChoiceField(
-        queryset=Aggregate.objects.all(),
-        required=False,
-        label=_("Source Aggregate"),
-    )
-    source_ipaddress_id = DynamicModelMultipleChoiceField(
-        queryset=IPAddress.objects.all(),
-        required=False,
-        label=_("Source IP-Address"),
-    )
-    source_iprange_id = DynamicModelMultipleChoiceField(
-        queryset=IPRange.objects.all(),
-        required=False,
-        label=_("Source IP-Range"),
-    )
-    source_prefix_id = DynamicModelMultipleChoiceField(
-        queryset=Prefix.objects.all(),
-        required=False,
-        label=_("Source Prefix"),
-    )
 
     # Tag selector
     tag = TagFilterField(model)
 
 
-class ACLExtendedRuleFilterForm(PrimaryModelFilterSetForm):
+class ACLExtendedRuleFilterForm(ACLRuleFilterFormMixin, PrimaryModelFilterSetForm):
     """
     GUI filter form to search the django ACLExtendedRule model.
     """
@@ -335,6 +371,11 @@ class ACLExtendedRuleFilterForm(PrimaryModelFilterSetForm):
             name=_("Destination Details"),
         ),
         FieldSet(
+            "log_matches",
+            "log_options",
+            name=_("Logging"),
+        ),
+        FieldSet(
             "owner_group_id",
             "owner_id",
             name=_("Ownership"),
@@ -349,46 +390,12 @@ class ACLExtendedRuleFilterForm(PrimaryModelFilterSetForm):
         required=False,
         label=_("Access List"),
     )
-    sequence = forms.IntegerField(
-        required=False,
-        label=_("Sequence"),
-    )
-    action = forms.ChoiceField(
-        choices=add_blank_choice(ACLRuleActionChoices),
-        required=False,
-        label=_("Action"),
-    )
-    remark = forms.CharField(
-        required=False,
-        label=_("Remark"),
-    )
-    protocol = forms.ChoiceField(
-        choices=add_blank_choice(ACLProtocolChoices),
+    protocol = forms.MultipleChoiceField(
+        choices=ACLProtocolChoices,
         required=False,
         label=_("Protocol"),
     )
 
-    # Source selectors
-    source_aggregate_id = DynamicModelMultipleChoiceField(
-        queryset=Aggregate.objects.all(),
-        required=False,
-        label=_("Source Aggregate"),
-    )
-    source_ipaddress_id = DynamicModelMultipleChoiceField(
-        queryset=IPAddress.objects.all(),
-        required=False,
-        label=_("Source IP-Address"),
-    )
-    source_iprange_id = DynamicModelMultipleChoiceField(
-        queryset=IPRange.objects.all(),
-        required=False,
-        label=_("Source IP-Range"),
-    )
-    source_prefix_id = DynamicModelMultipleChoiceField(
-        queryset=Prefix.objects.all(),
-        required=False,
-        label=_("Source Prefix"),
-    )
     source_port = forms.IntegerField(
         label=_("Source Port"),
         required=False,

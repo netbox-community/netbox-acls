@@ -1,6 +1,7 @@
+from utilities.testing import TableTestCases
+
 from ...tables import ACLAssignmentTable
-from . import base
 
 
-class ACLAssignmentTableTestCase(base.StandardTableTestCase):
+class ACLAssignmentTableTestCase(TableTestCases.StandardTableTestCase):
     table = ACLAssignmentTable

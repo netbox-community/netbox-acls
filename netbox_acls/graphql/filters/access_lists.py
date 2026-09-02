@@ -3,15 +3,10 @@ from typing import TYPE_CHECKING, Annotated
 import strawberry
 import strawberry_django
 from strawberry.scalars import ID
-from strawberry_django import BaseFilterLookup
+from strawberry_django import BaseFilterLookup, StrFilterLookup
 
 from core.graphql.filters import ContentTypeFilter
 from netbox.graphql.filters import NetBoxModelFilter, PrimaryModelFilter
-
-try:
-    from strawberry_django import StrFilterLookup
-except ImportError:
-    from strawberry_django import FilterLookup as StrFilterLookup
 
 from ... import models
 
@@ -36,7 +31,7 @@ class AccessListFilter(PrimaryModelFilter):
     GraphQL filter definition for the AccessList model.
     """
 
-    name: StrFilterLookup[str] | None = strawberry_django.filter_field()
+    name: StrFilterLookup | None = strawberry_django.filter_field()
     type: BaseFilterLookup[Annotated["ACLTypeEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None = (
         strawberry_django.filter_field()
     )
@@ -68,4 +63,4 @@ class ACLAssignmentFilter(NetBoxModelFilter):
     family: BaseFilterLookup[Annotated["ACLFamilyEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None = (
         strawberry_django.filter_field()
     )
-    comments: StrFilterLookup[str] | None = strawberry_django.filter_field()
+    comments: StrFilterLookup | None = strawberry_django.filter_field()

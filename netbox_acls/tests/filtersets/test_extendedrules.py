@@ -3,13 +3,14 @@ from django.test import TestCase
 from netaddr import IPNetwork
 
 from ipam.models import RIR, Aggregate, IPAddress, IPRange, Prefix
-from utilities.testing import ChangeLoggedFilterSetTests
+from utilities.testing import ChangeLoggedFilterSetTestMixin
 
 from ...choices import (
     ACLActionChoices,
     ACLFamilyChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
+    ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
 from ...filtersets import ACLExtendedRuleFilterSet
@@ -17,7 +18,7 @@ from ...models import AccessList, ACLExtendedRule
 from ...utils import normalize_port_ranges
 
 
-class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
+class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin):
     """FilterSet tests for ACLExtendedRule."""
 
     queryset = ACLExtendedRule.objects.all()
@@ -70,6 +71,8 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
             destination_port_ranges=normalize_port_ranges([NumericRange(80, 80, bounds="[]")]),
             description="permit web",
             comments="reviewed quarterly",
+            log_matches=True,
+            log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG],
         )
         ACLExtendedRule.objects.create(
             access_list=cls.access_list,
@@ -133,6 +136,21 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 5)
         params = {"access_list": [self.access_list.name]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 5)
+
+    def test_access_list_filter_is_limited_to_extended(self):
+        """
+        The extended rule filters reject a standard access list while the standard rule
+        filters accept any type. Pinned so the asymmetry cannot change unnoticed.
+        """
+        standard_acl = AccessList.objects.create(
+            name="astandardacl",
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        filterset = self.filterset({}, self.queryset)
+        self.assertNotIn(standard_acl, filterset.filters["access_list"].queryset)
+        self.assertNotIn(standard_acl, filterset.filters["access_list_id"].queryset)
 
     def test_sequence(self):
         params = {"sequence": [10, 20]}
@@ -247,16 +265,36 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         params = {"destination_port": 81}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 0)
 
-    # action and protocol are single-valued ChoiceFilters, so assert one value at a time.
-
     def test_action(self):
-        params = {"action": ACLRuleActionChoices.ACTION_PERMIT}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
-        params = {"action": ACLRuleActionChoices.ACTION_DENY}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+        params = {"action": [ACLRuleActionChoices.ACTION_PERMIT]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 2)
+        params = {"action": [ACLRuleActionChoices.ACTION_PERMIT, ACLRuleActionChoices.ACTION_DENY]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 4)
 
     def test_protocol(self):
-        params = {"protocol": ACLProtocolChoices.PROTOCOL_TCP}
+        params = {"protocol": [ACLProtocolChoices.PROTOCOL_TCP]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 1)
+        params = {"protocol": [ACLProtocolChoices.PROTOCOL_TCP, ACLProtocolChoices.PROTOCOL_UDP]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 2)
+
+    def test_protocol_accepts_a_grouped_value(self):
+        """ACLProtocolChoices is optgrouped, so the flattened values must still validate."""
+        filterset = self.filterset({"protocol": [ACLProtocolChoices.PROTOCOL_GRE]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 0)
+
+    def test_log_matches(self):
+        params = {"log_matches": True}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
-        params = {"protocol": ACLProtocolChoices.PROTOCOL_UDP}
+
+    def test_log_options(self):
+        params = {"log_options": ["syslog"]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)

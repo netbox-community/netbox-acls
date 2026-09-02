@@ -13,7 +13,8 @@ from dcim.models import (
     SiteGroup,
     VirtualChassis,
 )
-from utilities.testing import ChangeLoggedFilterSetTests
+from ipam.models import Prefix
+from utilities.testing import ChangeLoggedFilterSetTestMixin
 from virtualization.models import Cluster, ClusterType, VirtualMachine, VMInterface
 
 from ...choices import (
@@ -26,7 +27,7 @@ from ...filtersets import ACLAssignmentFilterSet
 from ...models import AccessList, ACLAssignment
 
 
-class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
+class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin):
     """FilterSet tests for ACLAssignment."""
 
     queryset = ACLAssignment.objects.all()
@@ -35,7 +36,12 @@ class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
 
     @classmethod
     def setUpTestData(cls):
-        cls.parent_region = Region.objects.create(name="Region 0", slug="region-0")
+        cls.grandparent_region = Region.objects.create(name="Region 00", slug="region-00")
+        cls.parent_region = Region.objects.create(
+            name="Region 0",
+            slug="region-0",
+            parent=cls.grandparent_region,
+        )
         cls.region = Region.objects.create(name="Region 1", slug="region-1", parent=cls.parent_region)
         cls.site_group = SiteGroup.objects.create(name="Site Group 1", slug="site-group-1")
         cls.site = Site.objects.create(
@@ -163,6 +169,55 @@ class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         params = {"access_list": [self.acl2.name]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
+    def test_assigned_object_type(self):
+        params = {"assigned_object_type": ["dcim.interface"]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+        params = {"assigned_object_type": ["dcim.interface", "virtualization.vminterface"]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+        params = {
+            "assigned_object_type": [
+                "dcim.device",
+                "dcim.virtualchassis",
+                "virtualization.virtualmachine",
+            ],
+        }
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+
+    def test_assigned_object_type_id(self):
+        params = {"assigned_object_type_id": [ContentType.objects.get_for_model(Interface).pk]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+        params = {
+            "assigned_object_type_id": [
+                ContentType.objects.get_for_model(Device).pk,
+                ContentType.objects.get_for_model(VirtualMachine).pk,
+            ],
+        }
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_assigned_object_type_outside_whitelist_matches_nothing(self):
+        """limit_choices_to keeps unassignable types off the model, so none can ever match."""
+        filterset = self.filterset({"assigned_object_type": ["ipam.prefix"]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 0)
+
+    def test_assigned_object_type_id_outside_whitelist_matches_nothing(self):
+        """The pk filter is unrestricted, so an unassignable type matches nothing rather than erroring."""
+        params = {"assigned_object_type_id": [ContentType.objects.get_for_model(Prefix).pk]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 0)
+
+    def test_assigned_object_type_drops_unparseable_values(self):
+        """A key that is not <app_label>.<model> is skipped, and the remaining keys still filter."""
+        for params, expected in (
+            ({"assigned_object_type": ["dcim"]}, 0),
+            ({"assigned_object_type": ["dcim.interface", "dcim"]}, 2),
+        ):
+            with self.subTest(params=params):
+                filterset = self.filterset(params, self.queryset)
+                self.assertEqual(filterset.errors, {})
+                self.assertEqual(filterset.qs.count(), expected)
+
     def test_interface(self):
         params = {"interface_id": [self.interface1.pk]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
@@ -224,14 +279,82 @@ class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         self.assertEqual(filterset.qs.count(), 6)
 
     def test_region_matches_descendants(self):
-        """Selecting a parent region matches assignments sited in its children."""
-        filterset = self.filterset({"region": [self.parent_region.slug]}, self.queryset)
-        self.assertEqual(filterset.errors, {})
-        self.assertEqual(filterset.qs.count(), 6)
+        """Selecting an ancestor region matches assignments sited anywhere below it."""
+        for region in (self.parent_region, self.grandparent_region):
+            with self.subTest(region=region.slug):
+                filterset = self.filterset({"region": [region.slug]}, self.queryset)
+                self.assertEqual(filterset.errors, {})
+                self.assertEqual(filterset.qs.count(), 6)
 
-        filterset = self.filterset({"region_id": [self.parent_region.pk]}, self.queryset)
-        self.assertEqual(filterset.errors, {})
-        self.assertEqual(filterset.qs.count(), 6)
+                filterset = self.filterset({"region_id": [region.pk]}, self.queryset)
+                self.assertEqual(filterset.errors, {})
+                self.assertEqual(filterset.qs.count(), 6)
+
+    def test_region_excludes_a_sibling_subtree(self):
+        """Test an ancestor match stops at its own subtree instead of matching everything.
+
+        The shared fixture sites every assignment under one region, so a filter
+        returning the whole table also counts six. This builds one assignment
+        outside that tree so over-matching becomes visible.
+        """
+        outside_region = Region.objects.create(name="Region 9", slug="region-9")
+        outside_site = Site.objects.create(name="Site 9", slug="site-9", region=outside_region)
+        outside_device = Device.objects.create(
+            name="Device 9",
+            site=outside_site,
+            device_type=self.device.device_type,
+            role=self.device.role,
+        )
+        outside_assignment = ACLAssignment.objects.create(
+            access_list=self.acl1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+            assigned_object=outside_device,
+        )
+        self.assertEqual(self.queryset.count(), 7)
+
+        # The slug and the id take different branches of _filter_nested_scope.
+        for region in (self.region, self.parent_region, self.grandparent_region):
+            for name, value in (("region", region.slug), ("region_id", region.pk)):
+                with self.subTest(region=region.slug, filter=name):
+                    filterset = self.filterset({name: [value]}, self.queryset)
+                    self.assertEqual(filterset.errors, {})
+                    self.assertNotIn(outside_assignment, filterset.qs)
+                    self.assertEqual(filterset.qs.count(), 6)
+
+        for name, value in (("region", outside_region.slug), ("region_id", outside_region.pk)):
+            with self.subTest(filter=name):
+                filterset = self.filterset({name: [value]}, self.queryset)
+                self.assertEqual(filterset.errors, {})
+                self.assertEqual(list(filterset.qs), [outside_assignment])
+
+    def test_site_group_matches_descendants_and_excludes_a_sibling(self):
+        """Test a site group ancestor matches its own subtree and nothing outside it."""
+        parent_group = SiteGroup.objects.create(name="Site Group 0", slug="site-group-0")
+        self.site_group.parent = parent_group
+        self.site_group.save()
+
+        outside_group = SiteGroup.objects.create(name="Site Group 9", slug="site-group-9")
+        outside_site = Site.objects.create(name="Site 9", slug="site-9", group=outside_group)
+        outside_device = Device.objects.create(
+            name="Device 9",
+            site=outside_site,
+            device_type=self.device.device_type,
+            role=self.device.role,
+        )
+        outside_assignment = ACLAssignment.objects.create(
+            access_list=self.acl1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+            assigned_object=outside_device,
+        )
+        self.assertEqual(self.queryset.count(), 7)
+
+        for group in (self.site_group, parent_group):
+            for name, value in (("site_group", group.slug), ("site_group_id", group.pk)):
+                with self.subTest(group=group.slug, filter=name):
+                    filterset = self.filterset({name: [value]}, self.queryset)
+                    self.assertEqual(filterset.errors, {})
+                    self.assertNotIn(outside_assignment, filterset.qs)
+                    self.assertEqual(filterset.qs.count(), 6)
 
     # Deprecated: the bare names took a primary key from 2.0.0 to 2.0.2, so both forms resolve.
 
@@ -287,16 +410,29 @@ class ACLAssignmentFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
             with self.subTest(params=params):
                 self.assertEqual(self.filterset(params, self.queryset).qs.count(), 0)
 
-    # direction and family are single-valued ChoiceFilters, so assert one value at a time.
+    # Assert errors too: family covers the whole fixture, so the count alone would pass
+    # even if nothing were applied.
 
     def test_direction(self):
-        params = {"direction": ACLAssignmentDirectionChoices.DIRECTION_EGRESS}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
-        params = {"direction": ACLAssignmentDirectionChoices.DIRECTION_INGRESS}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+        params = {"direction": [ACLAssignmentDirectionChoices.DIRECTION_EGRESS]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 2)
+        params = {
+            "direction": [
+                ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+                ACLAssignmentDirectionChoices.DIRECTION_EGRESS,
+            ],
+        }
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 3)
 
     def test_family(self):
-        params = {"family": ACLFamilyChoices.FAMILY_IPV4}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
-        params = {"family": ACLFamilyChoices.FAMILY_IPV6}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+        filterset = self.filterset({"family": [ACLFamilyChoices.FAMILY_IPV4]}, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 4)
+        params = {"family": [ACLFamilyChoices.FAMILY_IPV4, ACLFamilyChoices.FAMILY_IPV6]}
+        filterset = self.filterset(params, self.queryset)
+        self.assertEqual(filterset.errors, {})
+        self.assertEqual(filterset.qs.count(), 6)

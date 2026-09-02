@@ -7,6 +7,8 @@ from ...choices import (
     ACLActionChoices,
     ACLFamilyChoices,
     ACLProtocolChoices,
+    ACLRuleActionChoices,
+    ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
 from ...models import AccessList, ACLExtendedRule
@@ -469,6 +471,39 @@ class TestACLExtendedRule(BaseTestCase):
         self.assertEqual(isinstance(created_rule.access_list, AccessList), True)
         self.assertEqual(created_rule.access_list.type, self.acl_type)
 
+    def test_acl_extended_rule_routing_protocol_creation_success(self):
+        """
+        Test that ACLExtendedRule with a routing or tunneling protocol passes validation.
+        """
+        routing_protocols = (
+            ACLProtocolChoices.PROTOCOL_GRE,
+            ACLProtocolChoices.PROTOCOL_EIGRP,
+            ACLProtocolChoices.PROTOCOL_OSPF,
+            ACLProtocolChoices.PROTOCOL_PIM,
+        )
+
+        for protocol in routing_protocols:
+            with self.subTest(protocol=protocol):
+                created_rule = ACLExtendedRule(
+                    access_list=self.extended_acl1,
+                    sequence=140,
+                    action="permit",
+                    remark="",
+                    source=self.prefix1,
+                    source_port_ranges=None,
+                    destination=self.prefix2,
+                    destination_port_ranges=None,
+                    protocol=protocol,
+                    description=f"Created rule with {protocol} protocol",
+                )
+                created_rule.full_clean()
+
+                self.assertEqual(created_rule.protocol, protocol)
+                self.assertEqual(created_rule.source, self.prefix1)
+                self.assertEqual(created_rule.destination, self.prefix2)
+                self.assertEqual(created_rule.source_port_ranges, [])
+                self.assertEqual(created_rule.destination_port_ranges, [])
+
     def test_acl_extended_rule_complete_params_creation_success(self):
         """
         Test that ACLExtendedRule with complete parameters creation passes validation.
@@ -746,43 +781,32 @@ class TestACLExtendedRule(BaseTestCase):
         with self.assertRaises(ValidationError):
             invalid_rule.full_clean()
 
-    def test_acl_extended_rule_protocol_ip_with_source_port_ranges_fail(self):
+    def test_non_tcp_udp_protocols_reject_ports(self):
         """
-        Test that ACLExtendedRule with protocol 'ip' and source ports fails validation.
+        Test that ACLExtendedRule rejects ports on every protocol except TCP and UDP.
         """
-        invalid_rule = ACLExtendedRule(
-            access_list=self.extended_acl1,
-            sequence=10,
-            action="permit",
-            remark="",
-            source=None,
-            source_port_ranges=string_to_ranges("80, 443"),
-            destination=None,
-            destination_port_ranges=None,
-            protocol=ACLProtocolChoices.PROTOCOL_IP,
-            description="Invalid rule with protocol 'ip' and source ports set",
-        )
-        with self.assertRaises(ValidationError):
-            invalid_rule.full_clean()
+        portless_protocols = [
+            protocol
+            for protocol in ACLProtocolChoices.values()
+            if protocol not in {ACLProtocolChoices.PROTOCOL_TCP, ACLProtocolChoices.PROTOCOL_UDP}
+        ]
+        for new_protocol in ("gre", "eigrp", "ospf", "pim"):
+            self.assertIn(new_protocol, portless_protocols)
 
-    def test_acl_extended_rule_protocol_icmp_with_destination_port_ranges_fail(self):
-        """
-        Test that ACLExtendedRule with protocol 'icmp' and destination ports fails validation.
-        """
-        invalid_rule = ACLExtendedRule(
-            access_list=self.extended_acl1,
-            sequence=10,
-            action="permit",
-            remark="",
-            source=None,
-            source_port_ranges=None,
-            destination=None,
-            destination_port_ranges=string_to_ranges("80, 443"),
-            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
-            description="Invalid rule with protocol 'icmp' and destination ports set",
-        )
-        with self.assertRaises(ValidationError):
-            invalid_rule.full_clean()
+        for protocol in portless_protocols:
+            for field_name in ("source_port_ranges", "destination_port_ranges"):
+                with self.subTest(protocol=protocol, field=field_name):
+                    invalid_rule = ACLExtendedRule(
+                        access_list=self.extended_acl1,
+                        sequence=10,
+                        action="permit",
+                        remark="",
+                        protocol=protocol,
+                        description=f"Invalid rule with protocol '{protocol}' and {field_name} set",
+                        **{field_name: string_to_ranges("80, 443")},
+                    )
+                    with self.assertRaises(ValidationError):
+                        invalid_rule.full_clean()
 
     def test_acl_extended_rule_with_invalid_source_port_ranges_fail(self):
         """
@@ -896,17 +920,18 @@ class TestACLExtendedRule(BaseTestCase):
         """
         Test ACLExtendedRule protocol choices using VALID choices.
         """
-        valid_acl_rule_protocol_choices = ["icmp", "ip", "tcp", "udp"]
+        valid_acl_rule_protocol_choices = ["icmp", "ip", "tcp", "udp", "gre", "eigrp", "ospf", "pim"]
 
         for protocol_choice in valid_acl_rule_protocol_choices:
-            valid_acl_rule_protocol = ACLExtendedRule(
-                access_list=self.extended_acl1,
-                sequence=10,
-                action=self.default_action,
-                protocol=protocol_choice,
-                description=f"VALID ACL RULE PROTOCOL CHOICES USED: protocol={protocol_choice}",
-            )
-            valid_acl_rule_protocol.full_clean()
+            with self.subTest(protocol=protocol_choice):
+                valid_acl_rule_protocol = ACLExtendedRule(
+                    access_list=self.extended_acl1,
+                    sequence=10,
+                    action=self.default_action,
+                    protocol=protocol_choice,
+                    description=f"VALID ACL RULE PROTOCOL CHOICES USED: protocol={protocol_choice}",
+                )
+                valid_acl_rule_protocol.full_clean()
 
     def test_invalid_acl_rule_protocol_choices(self):
         """
@@ -1101,3 +1126,203 @@ class TestACLExtendedRule(BaseTestCase):
 
         with self.assertRaises(ValidationError):
             invalid_rule.full_clean()
+
+    def test_switching_the_destination_leaves_the_source_shadow_columns(self):
+        """Test that the two roles are independent, so switching one leaves the other."""
+        rule = ACLExtendedRule.objects.create(
+            access_list=self.extended_acl1,
+            sequence=920,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+            destination=self.aggregate1,
+        )
+        cached = self._cached_objects(rule)
+        self.assertEqual(cached["_source_prefix"], self.prefix1.pk)
+        self.assertEqual(cached["_destination_aggregate"], self.aggregate1.pk)
+
+        rule.destination = self.ip_range1
+        rule.save()
+
+        cached = self._cached_objects(rule)
+        self.assertEqual(cached["_source_prefix"], self.prefix1.pk)
+        self.assertIsNone(cached["_destination_aggregate"])
+        self.assertEqual(cached["_destination_iprange"], self.ip_range1.pk)
+
+    @staticmethod
+    def _cached_objects(rule):
+        """Read the shadow columns back from the database, which is what the filters query."""
+        return (
+            ACLExtendedRule.objects.filter(pk=rule.pk)
+            .values("_source_prefix", "_destination_aggregate", "_destination_iprange")
+            .get()
+        )
+
+    def test_logging_defaults_to_disabled(self):
+        """Test that a new rule logs nothing until asked to."""
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+        )
+        self.assertFalse(rule.log_matches)
+        self.assertEqual(rule.log_options, [])
+
+    def test_log_options_require_log_matches(self):
+        """Test that options are rejected while logging is disabled."""
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=30,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+            log_matches=False,
+            log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG],
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertIn("log_options", ctx.exception.message_dict)
+
+    def test_remark_rule_rejects_logging(self):
+        """Test that a remark cannot request logging, since it matches nothing."""
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=40,
+            action=ACLRuleActionChoices.ACTION_REMARK,
+            remark="Remark",
+            log_matches=True,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertIn("log_matches", ctx.exception.message_dict)
+
+    def test_remark_logging_errors_accumulate_with_other_remark_errors(self):
+        """Test that a malformed remark reports every offending field at once."""
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=50,
+            action=ACLRuleActionChoices.ACTION_REMARK,
+            remark="",
+            log_matches=True,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertIn("remark", ctx.exception.message_dict)
+        self.assertIn("log_matches", ctx.exception.message_dict)
+
+    def test_log_matches_without_options_is_valid(self):
+        """Test that enabling logging without naming a destination is allowed."""
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=70,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+            log_matches=True,
+        )
+        rule.full_clean()
+
+    def test_logging_defaults_persist_as_disabled(self):
+        """Test that the stored default is disabled with no options."""
+        rule = ACLExtendedRule.objects.create(
+            access_list=self.extended_acl1,
+            sequence=80,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+        )
+        rule.refresh_from_db()
+        self.assertFalse(rule.log_matches)
+        self.assertEqual(rule.log_options, [])
+
+    def test_clone_carries_the_logging_state(self):
+        """Test that cloning reproduces the logging values, not just the field names."""
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=90,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+            log_matches=True,
+            log_options=[
+                ACLRuleLogOptionChoices.OPTION_SYSLOG,
+                ACLRuleLogOptionChoices.OPTION_CISCO_LOG_INPUT,
+            ],
+        )
+        rule.full_clean()
+        rule.save()
+
+        attrs = rule.clone()
+        self.assertTrue(attrs["log_matches"])
+        self.assertEqual(attrs["log_options"], ["cisco-log-input", "syslog"])
+
+    def test_unsupported_log_option_is_rejected(self):
+        """Test that a value outside the choice set fails validation."""
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=95,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+            log_matches=True,
+            log_options=["not-a-real-option"],
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertIn("log_options", ctx.exception.message_dict)
+
+    def test_log_options_list_renders_display_values(self):
+        """Test that the display helper resolves labels and passes through unknown values."""
+        rule = ACLExtendedRule(
+            log_options=["syslog", "vendor-x-future-option"],
+        )
+        self.assertEqual(
+            rule.log_options_list,
+            ["Syslog", "vendor-x-future-option"],
+        )
+
+    def test_log_options_badges_pair_labels_with_colors(self):
+        """Test that the badge helper pairs each label with its color, leaving unknown values uncolored."""
+        rule = ACLExtendedRule(
+            log_options=["syslog", "vendor-x-future-option"],
+        )
+        self.assertEqual(
+            rule.log_options_badges,
+            [("Syslog", "blue"), ("vendor-x-future-option", None)],
+        )
+
+    def test_remark_rule_rejects_log_options(self):
+        """Test that a remark reports the remark error rather than the master-switch one."""
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=45,
+            action=ACLRuleActionChoices.ACTION_REMARK,
+            remark="Remark",
+            log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG],
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertEqual(
+            ctx.exception.message_dict["log_options"],
+            ["When the action is 'remark', Log options must not be set."],
+        )
+
+    def test_log_options_are_composable_and_canonicalized(self):
+        """Test that options combine, deduplicate and reach the database sorted."""
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=20,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=self.prefix1,
+            log_matches=True,
+            log_options=[
+                ACLRuleLogOptionChoices.OPTION_SYSLOG,
+                ACLRuleLogOptionChoices.OPTION_CISCO_LOG_INPUT,
+                ACLRuleLogOptionChoices.OPTION_SYSLOG,
+            ],
+        )
+        rule.full_clean()
+        rule.save()
+        rule.refresh_from_db()
+        self.assertEqual(
+            rule.log_options,
+            [
+                ACLRuleLogOptionChoices.OPTION_CISCO_LOG_INPUT,
+                ACLRuleLogOptionChoices.OPTION_SYSLOG,
+            ],
+        )

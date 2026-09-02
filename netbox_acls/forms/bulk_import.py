@@ -261,7 +261,10 @@ class ACLAssignmentImportForm(ObjectImportMixin, OwnerCSVMixin, NetBoxModelImpor
     direction = CSVChoiceField(
         label=_("Direction"),
         choices=ACLAssignmentDirectionChoices,
-        help_text=_("Device, virtual chassis and virtual machine assignments are always stored as none."),
+        help_text=_(
+            "Device, virtual chassis and virtual machine assignments are always stored as none. "
+            "Interface assignments require ingress or egress."
+        ),
     )
 
     object_roles = ("assigned_object",)

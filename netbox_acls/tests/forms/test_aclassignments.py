@@ -9,6 +9,7 @@ from virtualization.models import Cluster, ClusterType, VirtualMachine, VMInterf
 from ...choices import (
     ACLActionChoices,
     ACLAssignmentDirectionChoices,
+    ACLAssignmentDirectionUIChoices,
     ACLFamilyChoices,
     ACLTypeChoices,
 )
@@ -113,6 +114,17 @@ class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTes
                 form = self._bound_form(model, obj)
                 self.assertFalse(form.fields["direction"].disabled)
                 self.assertTrue(form.fields["direction"].required)
+
+    def test_ui_direction_choices_mirror_the_model_set(self):
+        """Test the narrowed GUI choices stay the model set without the host-only value."""
+        self.assertEqual(
+            set(ACLAssignmentDirectionUIChoices),
+            {
+                choice
+                for choice in ACLAssignmentDirectionChoices
+                if choice[0] != ACLAssignmentDirectionChoices.DIRECTION_NONE
+            },
+        )
 
     def test_direction_disabled_for_host_types(self):
         """Test that the direction is disabled for host assignments."""
@@ -419,6 +431,21 @@ class ACLAssignmentImportFormTestCase(TestCase):
         form = self._form(direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS)
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.save().direction, ACLAssignmentDirectionChoices.DIRECTION_NONE)
+
+    def test_interface_row_with_direction_none_is_rejected(self):
+        """Test that the model's interface direction rule fires through the import form."""
+        form = self._form(
+            assigned_object_type="dcim.interface",
+            assigned_object=self.spare.name,
+            assigned_object_parent=self.device1.name,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+        self.assertFalse(form.is_valid())
+        self.assertEqual(set(form.errors), {"direction"})
+        self.assertEqual(
+            list(form.errors["direction"]),
+            ["Interface assignments require an ingress or egress direction."],
+        )
 
     def test_update_without_object_columns_keeps_the_target(self):
         """Test that an update omitting every object column preserves the stored target."""

@@ -277,3 +277,34 @@ class ACLAssignmentAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         cls.bulk_update_invalid_data = {
             "direction": "sideways",
         }
+
+    def test_interface_assignment_rejects_direction_none(self):
+        """
+        The GUI's narrowed choices never reach the API, so the model rule is the only guard here.
+        """
+        self.add_permissions("netbox_acls.add_aclassignment")
+        access_list = AccessList.objects.get(name="testacl1")
+
+        for assigned_object in (
+            Interface.objects.get(name="DeviceInterface3"),
+            VMInterface.objects.get(name="eth2"),
+        ):
+            with self.subTest(assigned_object_type=assigned_object._meta.label_lower):
+                response = self.client.post(
+                    self._get_list_url(),
+                    {
+                        "access_list": access_list.pk,
+                        "assigned_object_type": assigned_object._meta.label_lower,
+                        "assigned_object_id": assigned_object.pk,
+                        "direction": ACLAssignmentDirectionChoices.DIRECTION_NONE,
+                    },
+                    format="json",
+                    **self.header,
+                )
+
+                self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
+                self.assertEqual(list(response.data), ["direction"])
+                self.assertEqual(
+                    response.data["direction"],
+                    ["Interface assignments require an ingress or egress direction."],
+                )

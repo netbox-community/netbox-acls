@@ -1,7 +1,7 @@
 from django.contrib.contenttypes.models import ContentType
 
 from ipam.models import Prefix
-from utilities.testing import create_tags
+from utilities.testing import ViewTestCases, create_tags
 
 from ...choices import (
     ACLActionChoices,
@@ -11,10 +11,14 @@ from ...choices import (
     ACLTypeChoices,
 )
 from ...models import AccessList, ACLStandardRule
-from .base import ACLRuleSequenceTestsMixin, PluginTestCases, build_ipam_objects
+from .base import ACLRuleSequenceTestsMixin, PluginViewTestCase, build_ipam_objects
 
 
-class ACLStandardRuleViewTestCase(ACLRuleSequenceTestsMixin, PluginTestCases.ObjectViewTestCase):
+class ACLStandardRuleViewTestCase(
+    ACLRuleSequenceTestsMixin,
+    PluginViewTestCase,
+    ViewTestCases.PrimaryObjectViewTestCase,
+):
     """View tests for ACLStandardRule."""
 
     model = ACLStandardRule
@@ -30,7 +34,7 @@ class ACLStandardRuleViewTestCase(ACLRuleSequenceTestsMixin, PluginTestCases.Obj
 
     @classmethod
     def setUpTestData(cls):
-        aggregate, cls.prefix, ip_address, ip_range = build_ipam_objects()
+        aggregate, cls.prefix, cls.ip_address, ip_range = build_ipam_objects()
 
         cls.access_list = AccessList.objects.create(
             name="teststandardacl",
@@ -51,7 +55,7 @@ class ACLStandardRuleViewTestCase(ACLRuleSequenceTestsMixin, PluginTestCases.Obj
             access_list=cls.access_list,
             sequence=20,
             action=ACLRuleActionChoices.ACTION_DENY,
-            source=ip_address,
+            source=cls.ip_address,
             description="deny the address",
         )
         ACLStandardRule.objects.create(
@@ -75,6 +79,8 @@ class ACLStandardRuleViewTestCase(ACLRuleSequenceTestsMixin, PluginTestCases.Obj
             description="deny the aggregate",
         )
 
+        cls.rules = list(ACLStandardRule.objects.order_by("sequence"))
+
         tags = create_tags("Alpha", "Bravo", "Charlie")
 
         cls.form_data = {
@@ -94,6 +100,20 @@ class ACLStandardRuleViewTestCase(ACLRuleSequenceTestsMixin, PluginTestCases.Obj
         cls.bulk_edit_data = {
             "description": "Bulk edited",
         }
+
+        # The fixture holds sequences 10 to 50, and a remark rule forbids a source.
+        cls.csv_data = (
+            "access_list,sequence,action,remark,source_type,source,log_matches,log_options",
+            f"{cls.access_list.name},110,permit,,ipam.prefix,{cls.prefix.prefix},true,syslog",
+            f"{cls.access_list.name},120,deny,,ipam.ipaddress,{cls.ip_address.address},false,",
+            f"{cls.access_list.name},130,remark,an imported remark,,,false,",
+        )
+
+        cls.csv_update_data = (
+            "id,description",
+            f"{cls.rules[0].pk},Updated by import",
+            f"{cls.rules[1].pk},Updated by import too",
+        )
 
     def test_detail_view_renders_log_option_labels(self):
         """Test that the detail page shows option labels rather than stored values."""

@@ -10,7 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from dcim.models import Device, Interface, VirtualChassis
 from extras.ui.panels import CustomFieldsPanel, TagsPanel
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
-from netbox.object_actions import AddObject, BulkDelete, BulkEdit, BulkExport
+from netbox.object_actions import BulkDelete, BulkExport
 from netbox.ui import layout
 from netbox.ui.breadcrumbs import Breadcrumb, filtered_list_url
 from netbox.ui.panels import CommentsPanel
@@ -22,25 +22,50 @@ from . import choices, filtersets, forms, models, object_actions, tables, ui
 
 __all__ = (
     "ACLAssignmentBulkDeleteView",
+    "ACLAssignmentBulkEditView",
+    "ACLAssignmentBulkImportView",
+    "ACLAssignmentChildrenView",
     "ACLAssignmentDeleteView",
     "ACLAssignmentEditView",
     "ACLAssignmentListView",
     "ACLAssignmentView",
     "ACLExtendedRuleBulkDeleteView",
+    "ACLExtendedRuleBulkEditView",
+    "ACLExtendedRuleBulkImportView",
+    "ACLExtendedRuleChildrenView",
     "ACLExtendedRuleDeleteView",
     "ACLExtendedRuleEditView",
     "ACLExtendedRuleListView",
     "ACLExtendedRuleView",
     "ACLStandardRuleBulkDeleteView",
+    "ACLStandardRuleBulkEditView",
+    "ACLStandardRuleBulkImportView",
+    "ACLStandardRuleChildrenView",
     "ACLStandardRuleDeleteView",
     "ACLStandardRuleEditView",
     "ACLStandardRuleListView",
     "ACLStandardRuleView",
+    "AccessListACLAssignmentView",
     "AccessListBulkDeleteView",
+    "AccessListBulkEditView",
+    "AccessListBulkImportView",
     "AccessListDeleteView",
     "AccessListEditView",
     "AccessListListView",
     "AccessListView",
+    "AggregateACLExtendedRuleView",
+    "AggregateACLStandardRuleView",
+    "DeviceACLAssignmentView",
+    "IPAddressACLExtendedRuleView",
+    "IPAddressACLStandardRuleView",
+    "IPRangeACLExtendedRuleView",
+    "IPRangeACLStandardRuleView",
+    "InterfaceACLAssignmentView",
+    "PrefixACLExtendedRuleView",
+    "PrefixACLStandardRuleView",
+    "VMInterfaceACLAssignmentView",
+    "VirtualChassisACLAssignmentView",
+    "VirtualMachineACLAssignmentView",
 )
 
 
@@ -254,7 +279,6 @@ class AccessListListView(generic.ObjectListView):
     table = tables.AccessListTable
     filterset = filtersets.AccessListFilterSet
     filterset_form = forms.AccessListFilterForm
-    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.AccessList, "add", detail=False)
@@ -275,6 +299,16 @@ class AccessListDeleteView(generic.ObjectDeleteView):
     """
 
     queryset = models.AccessList.objects.select_related("owner").prefetch_related("tags")
+
+
+@register_model_view(models.AccessList, "bulk_import", path="import", detail=False)
+class AccessListBulkImportView(generic.BulkImportView):
+    """
+    Bulk import view for importing multiple objects of AccessLists.
+    """
+
+    queryset = models.AccessList.objects.all()
+    model_form = forms.AccessListImportForm
 
 
 @register_model_view(models.AccessList, "bulk_edit", path="edit", detail=False)
@@ -382,7 +416,6 @@ class ACLAssignmentListView(generic.ObjectListView):
     table = tables.ACLAssignmentTable
     filterset = filtersets.ACLAssignmentFilterSet
     filterset_form = forms.ACLAssignmentFilterForm
-    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLAssignment, "add", detail=False)
@@ -411,6 +444,16 @@ class ACLAssignmentDeleteView(generic.ObjectDeleteView):
         "assigned_object",
         "tags",
     )
+
+
+@register_model_view(models.ACLAssignment, "bulk_import", path="import", detail=False)
+class ACLAssignmentBulkImportView(generic.BulkImportView):
+    """
+    Bulk import view for importing multiple objects of ACLAssignments.
+    """
+
+    queryset = models.ACLAssignment.objects.all()
+    model_form = forms.ACLAssignmentImportForm
 
 
 @register_model_view(models.ACLAssignment, "bulk_edit", path="edit", detail=False)
@@ -617,7 +660,6 @@ class ACLStandardRuleListView(generic.ObjectListView):
     table = tables.ACLStandardRuleTable
     filterset = filtersets.ACLStandardRuleFilterSet
     filterset_form = forms.ACLStandardRuleFilterForm
-    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLStandardRule, "add", detail=False)
@@ -646,6 +688,16 @@ class ACLStandardRuleDeleteView(generic.ObjectDeleteView):
         "source",
         "tags",
     )
+
+
+@register_model_view(models.ACLStandardRule, "bulk_import", path="import", detail=False)
+class ACLStandardRuleBulkImportView(generic.BulkImportView):
+    """
+    Bulk import view for importing multiple objects of ACLStandardRules.
+    """
+
+    queryset = models.ACLStandardRule.objects.all()
+    model_form = forms.ACLStandardRuleImportForm
 
 
 @register_model_view(models.ACLStandardRule, "bulk_edit", path="edit", detail=False)
@@ -764,7 +816,6 @@ class ACLExtendedRuleListView(generic.ObjectListView):
     table = tables.ACLExtendedRuleTable
     filterset = filtersets.ACLExtendedRuleFilterSet
     filterset_form = forms.ACLExtendedRuleFilterForm
-    actions = (AddObject, BulkEdit, BulkExport, BulkDelete)
 
 
 @register_model_view(models.ACLExtendedRule, "add", detail=False)
@@ -795,6 +846,16 @@ class ACLExtendedRuleDeleteView(generic.ObjectDeleteView):
         "destination",
         "tags",
     )
+
+
+@register_model_view(models.ACLExtendedRule, "bulk_import", path="import", detail=False)
+class ACLExtendedRuleBulkImportView(generic.BulkImportView):
+    """
+    Bulk import view for importing multiple objects of ACLExtendedRules.
+    """
+
+    queryset = models.ACLExtendedRule.objects.all()
+    model_form = forms.ACLExtendedRuleImportForm
 
 
 @register_model_view(models.ACLExtendedRule, "bulk_edit", path="edit", detail=False)

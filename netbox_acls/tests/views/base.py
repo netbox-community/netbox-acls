@@ -5,11 +5,9 @@ Shared bases and fixtures for the plugin's view tests.
 from netaddr import IPNetwork
 
 from ipam.models import RIR, Aggregate, IPAddress, IPRange, Prefix
-from utilities.testing import ViewTestCases
 
 __all__ = (
     "ACLRuleSequenceTestsMixin",
-    "PluginTestCases",
     "PluginViewTestCase",
     "build_ipam_objects",
 )
@@ -25,33 +23,6 @@ class PluginViewTestCase:
 
     def _get_base_url(self):
         return f"plugins:{super()._get_base_url()}"
-
-
-class PluginTestCases:
-    """
-    Composites live nested in this container, never at module level. A composite
-    inherits real test methods but declares no model, so the runner would collect
-    it and every inherited test would error on the missing model.
-    """
-
-    class ObjectViewTestCase(
-        PluginViewTestCase,
-        ViewTestCases.GetObjectViewTestCase,
-        ViewTestCases.GetObjectChangelogViewTestCase,
-        ViewTestCases.CreateObjectViewTestCase,
-        ViewTestCases.EditObjectViewTestCase,
-        ViewTestCases.DeleteObjectViewTestCase,
-        ViewTestCases.ListObjectsViewTestCase,
-        ViewTestCases.BulkEditObjectsViewTestCase,
-        ViewTestCases.BulkDeleteObjectsViewTestCase,
-    ):
-        """
-        Every standard object view except bulk import, which the plugin has no
-        import forms for yet. PluginViewTestCase stays first, so its namespace
-        override wins.
-        """
-
-        maxDiff = None
 
 
 class ACLRuleSequenceTestsMixin:

@@ -14,10 +14,17 @@ from ...choices import (
     ACLTypeChoices,
 )
 from ...constants import ACL_RULE_SOURCE_DESTINATION_MODELS
-from ...forms import ACLExtendedRuleBulkEditForm, ACLExtendedRuleFilterForm, ACLExtendedRuleForm
+from ...forms import (
+    ACLExtendedRuleBulkEditForm,
+    ACLExtendedRuleFilterForm,
+    ACLExtendedRuleForm,
+    ACLExtendedRuleImportForm,
+)
 from ...models import AccessList, ACLExtendedRule
 from ..views.base import build_ipam_objects
 from .base import BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin
+
+UNRESOLVABLE_OBJECT_ID = 99999999
 
 
 class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin, TestCase):
@@ -270,3 +277,140 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         )
         self.assertFalse(form.is_valid())
         self.assertIn("log_options", form.errors)
+
+
+class ACLExtendedRuleImportFormTestCase(TestCase):
+    """
+    Import form tests for ACLExtendedRule.
+
+    Only what is extended-specific. The shared resolver's branches are covered once, against
+    the standard rule, in ACLStandardRuleImportFormTestCase.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.aggregate, cls.prefix, cls.ip_address, cls.ip_range = build_ipam_objects()
+        cls.destination_prefix = Prefix.objects.create(prefix=IPNetwork("10.2.0.0/16"))
+
+        cls.access_list = AccessList.objects.create(
+            name="testextendedacl",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        cls.standard_access_list = AccessList.objects.create(
+            name="teststandardacl",
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+
+    def _form(self, instance=None, **columns):
+        """Build the form from the default row, with None removing a column."""
+        data = {
+            "access_list": self.access_list.name,
+            "sequence": "10",
+            "action": ACLRuleActionChoices.ACTION_PERMIT,
+            "protocol": ACLProtocolChoices.PROTOCOL_TCP,
+            "source_type": "ipam.prefix",
+            "source": str(self.prefix.prefix),
+            "destination_type": "ipam.ipaddress",
+            "destination": str(self.ip_address.address),
+        }
+        data.update(columns)
+        return ACLExtendedRuleImportForm(
+            data={key: value for key, value in data.items() if value is not None},
+            instance=instance,
+        )
+
+    def test_unknown_source_id_is_rejected(self):
+        """Test that a source ID matching no object is rejected."""
+        form = self._form(source=None, source_id=str(UNRESOLVABLE_OBJECT_ID))
+        self.assertFalse(form.is_valid())
+        self.assertIn("not found", str(form.errors["source_id"]))
+
+    def test_unknown_destination_id_is_rejected(self):
+        """Test that a destination ID matching no object is rejected."""
+        form = self._form(destination=None, destination_id=str(UNRESOLVABLE_OBJECT_ID))
+        self.assertFalse(form.is_valid())
+        self.assertIn("not found", str(form.errors["destination_id"]))
+
+    def test_both_roles_resolve_from_values(self):
+        """object_roles runs the resolver twice, against two different content types."""
+        form = self._form()
+        self.assertTrue(form.is_valid(), form.errors)
+        rule = form.save()
+        self.assertEqual(rule.source, self.prefix)
+        self.assertEqual(rule.destination, self.ip_address)
+
+    def test_standard_access_list_is_rejected(self):
+        """The access list column offers extended lists only."""
+        form = self._form(access_list=self.standard_access_list.name)
+        self.assertFalse(form.is_valid())
+        self.assertIn("access_list", form.errors)
+
+    def test_a_shared_name_resolves_to_the_extended_list(self):
+        """Access list names are not unique, so the column's queryset picks the extended one."""
+        AccessList.objects.create(
+            name=self.access_list.name,
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+
+        form = self._form()
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().access_list, self.access_list)
+
+    def test_port_ranges_round_trip_in_the_inclusive_form(self):
+        """Ports are stored half-open and read back inclusive, matching the detail view."""
+        form = self._form(source_port_ranges="80-81,443")
+        self.assertTrue(form.is_valid(), form.errors)
+        rule = form.save()
+        self.assertEqual(
+            [(r.lower, r.upper) for r in rule.source_port_ranges],
+            [(80, 82), (443, 444)],
+        )
+        self.assertEqual(rule.source_port_ranges_list, ["80-81", "443"])
+
+    def test_reversed_port_range_is_rejected(self):
+        """A range whose end precedes its start is rejected."""
+        form = self._form(source_port_ranges="443-80")
+        self.assertFalse(form.is_valid())
+        self.assertIn("source_port_ranges", form.errors)
+
+    def test_overlapping_port_ranges_are_rejected(self):
+        """Two ranges covering the same port are rejected."""
+        form = self._form(source_port_ranges="80-100,90-110")
+        self.assertFalse(form.is_valid())
+        self.assertIn("overlap", str(form.errors))
+
+    def test_ports_without_tcp_or_udp_are_rejected(self):
+        """Port ranges need a protocol that has ports."""
+        form = self._form(protocol=ACLProtocolChoices.PROTOCOL_IP, source_port_ranges="80")
+        self.assertFalse(form.is_valid())
+        self.assertIn("source_port_ranges", form.errors)
+
+    def test_blank_destination_columns_clear_only_the_destination(self):
+        """The two roles are independent, so clearing one leaves the other stored."""
+        rule = self._form().save()
+
+        form = ACLExtendedRuleImportForm(
+            data={
+                "access_list": self.access_list.name,
+                "sequence": "10",
+                "action": rule.action,
+                "protocol": rule.protocol,
+                "source_type": "ipam.prefix",
+                "source": str(self.prefix.prefix),
+                "destination_type": "",
+                "destination": "",
+                "destination_id": "",
+            },
+            instance=rule,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        updated = form.save()
+        self.assertIsNone(updated.destination)
+        self.assertEqual(updated.source, self.prefix)

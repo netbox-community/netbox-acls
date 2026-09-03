@@ -7,18 +7,25 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "netbox-acls"
-version = "2.0.3"
+version = "2.1.0"
 requires-python = ">=3.12.0"
 description = "NetBox plugin for managing Access Control Lists (ACLs)."
 readme = { file = "README.md", content-type = "text/markdown" }
 license = "Apache-2.0"
 license-files = ["LICENSE.txt"]
-keywords = ["netbox", "netbox-plugin"]
+keywords = [
+    "netbox",
+    "netbox-plugin",
+    "access-lists",
+    "network-automation",
+    "source-of-truth",
+]
 classifiers=[
     "Development Status :: 5 - Production/Stable",
     "Framework :: Django",
     "Framework :: Django :: 6.1",
     "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
     "Intended Audience :: System Administrators",
     "Natural Language :: English",
     "Operating System :: OS Independent",
@@ -28,8 +35,8 @@ classifiers=[
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
-    "Topic :: System :: Networking",
     "Topic :: Internet",
+    "Topic :: System :: Networking",
 ]
 
 [project.optional-dependencies]
@@ -37,7 +44,7 @@ test = [
     "check-manifest==0.51",
     "pre-commit==4.6.2",
     "pytest==9.1.1",
-    "ruff==0.16.3",
+    "ruff==0.16.5",
     "yamllint==1.38.0",
 ]
 
@@ -49,5 +56,16 @@ Issues = "https://github.com/netbox-community/netbox-acls/issues"
 Changelog = "https://github.com/netbox-community/netbox-acls/releases"
 
 [tool.setuptools]
-packages = ["netbox_acls"]
-package-data = {"netbox_acls" = ["**/*", "templates/**"]}
+include-package-data = false
+
+[tool.setuptools.packages.find]
+include = ["netbox_acls*"]
+exclude = ["netbox_acls.tests*"]
+namespaces = false
+
+[tool.setuptools.package-data]
+netbox_acls = [
+    "templates/**",
+    "static/**",
+    "locale/**/*.mo",
+]

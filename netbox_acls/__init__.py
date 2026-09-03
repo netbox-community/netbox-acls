@@ -19,7 +19,7 @@ class NetBoxACLsConfig(PluginConfig):
     version = version("netbox-acls")
     description = "Manage Access Control Lists (ACL) in NetBox"
     base_url = "access-lists"
-    min_version = "4.7.0-beta2"
+    min_version = "4.7.0"
     max_version = "4.7.99"
     default_settings = {
         "rule_sequence_step": 10,

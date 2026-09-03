@@ -24,6 +24,12 @@ accesslist_item = PluginMenuItem(
             icon_class="mdi mdi-plus-thick",
             permissions=["netbox_acls.add_accesslist"],
         ),
+        PluginMenuButton(
+            link="plugins:netbox_acls:accesslist_bulk_import",
+            title="Import",
+            icon_class="mdi mdi-upload",
+            permissions=["netbox_acls.add_accesslist"],
+        ),
     ),
 )
 
@@ -37,6 +43,12 @@ aclstandardrule_item = PluginMenuItem(
             link="plugins:netbox_acls:aclstandardrule_add",
             title="Add",
             icon_class="mdi mdi-plus-thick",
+            permissions=["netbox_acls.add_aclstandardrule"],
+        ),
+        PluginMenuButton(
+            link="plugins:netbox_acls:aclstandardrule_bulk_import",
+            title="Import",
+            icon_class="mdi mdi-upload",
             permissions=["netbox_acls.add_aclstandardrule"],
         ),
     ),
@@ -54,6 +66,12 @@ aclextendedrule_item = PluginMenuItem(
             icon_class="mdi mdi-plus-thick",
             permissions=["netbox_acls.add_aclextendedrule"],
         ),
+        PluginMenuButton(
+            link="plugins:netbox_acls:aclextendedrule_bulk_import",
+            title="Import",
+            icon_class="mdi mdi-upload",
+            permissions=["netbox_acls.add_aclextendedrule"],
+        ),
     ),
 )
 
@@ -67,6 +85,12 @@ aclassignment_item = PluginMenuItem(
             link="plugins:netbox_acls:aclassignment_add",
             title="Add",
             icon_class="mdi mdi-plus-thick",
+            permissions=["netbox_acls.add_aclassignment"],
+        ),
+        PluginMenuButton(
+            link="plugins:netbox_acls:aclassignment_bulk_import",
+            title="Import",
+            icon_class="mdi mdi-upload",
             permissions=["netbox_acls.add_aclassignment"],
         ),
     ),

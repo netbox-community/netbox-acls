@@ -1,4 +1,4 @@
-ARG NETBOX_VARIANT=v4.7.0-beta2
+ARG NETBOX_VARIANT=v4.7
 
 FROM netboxcommunity/netbox:${NETBOX_VARIANT}
 

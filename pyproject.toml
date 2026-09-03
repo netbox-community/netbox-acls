@@ -13,12 +13,19 @@ description = "NetBox plugin for managing Access Control Lists (ACLs)."
 readme = { file = "README.md", content-type = "text/markdown" }
 license = "Apache-2.0"
 license-files = ["LICENSE.txt"]
-keywords = ["netbox", "netbox-plugin"]
+keywords = [
+    "netbox",
+    "netbox-plugin",
+    "access-lists",
+    "network-automation",
+    "source-of-truth",
+]
 classifiers=[
     "Development Status :: 5 - Production/Stable",
     "Framework :: Django",
     "Framework :: Django :: 6.1",
     "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
     "Intended Audience :: System Administrators",
     "Natural Language :: English",
     "Operating System :: OS Independent",
@@ -28,8 +35,8 @@ classifiers=[
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
-    "Topic :: System :: Networking",
     "Topic :: Internet",
+    "Topic :: System :: Networking",
 ]
 
 [project.optional-dependencies]

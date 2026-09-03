@@ -49,5 +49,16 @@ Issues = "https://github.com/netbox-community/netbox-acls/issues"
 Changelog = "https://github.com/netbox-community/netbox-acls/releases"
 
 [tool.setuptools]
-packages = ["netbox_acls"]
-package-data = {"netbox_acls" = ["**/*", "templates/**"]}
+include-package-data = false
+
+[tool.setuptools.packages.find]
+include = ["netbox_acls*"]
+exclude = ["netbox_acls.tests*"]
+namespaces = false
+
+[tool.setuptools.package-data]
+netbox_acls = [
+    "templates/**",
+    "static/**",
+    "locale/**/*.mo",
+]

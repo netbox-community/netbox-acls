@@ -12,7 +12,7 @@ from ...choices import (
     ACLTypeChoices,
 )
 from ...filtersets import ACLStandardRuleFilterSet
-from ...models import AccessList, ACLStandardRule
+from ...models import AccessList, ACLAddressGroup, ACLStandardRule
 
 
 class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin):
@@ -176,6 +176,19 @@ class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin)
         params = {"source_aggregate_id": [self.aggregate.pk]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
         params = {"source_aggregate": [self.aggregate.prefix]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_source_address_group(self):
+        address_group = ACLAddressGroup.objects.create(name="address-group-1")
+        ACLStandardRule.objects.create(
+            access_list=self.access_list,
+            sequence=1000,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=address_group,
+        )
+        params = {"source_address_group_id": [address_group.pk]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+        params = {"source_address_group": [address_group.name]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
 
     # comments is a TextField, which django-filter maps to a single-valued CharFilter

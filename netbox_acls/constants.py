@@ -53,13 +53,10 @@ ACL_ASSIGNMENT_SITE_TRAVERSAL_PATHS = (
 )
 
 #
-# AccessList Rule
+# Address Objects
 #
 
-ACL_RULE_PORT_MIN, ACL_RULE_PORT_MAX = 1, 65535
-
-
-ACL_RULE_SOURCE_DESTINATION_MODELS = Q(
+ACL_ADDRESS_OBJECT_MODELS = Q(
     Q(
         app_label="ipam",
         model__in=(
@@ -71,11 +68,26 @@ ACL_RULE_SOURCE_DESTINATION_MODELS = Q(
     )
 )
 
-# Natural value per source or destination content type, for import. None means ID only.
-# Must match ACL_RULE_SOURCE_DESTINATION_MODELS exactly.
-ACL_RULE_OBJECT_LOOKUPS = {
+# Natural value per address object, for import. None means ID only.
+# Must match ACL_ADDRESS_OBJECT_MODELS exactly.
+ACL_ADDRESS_OBJECT_LOOKUPS = {
     "ipam.aggregate": "prefix",
     "ipam.ipaddress": "address",
     "ipam.iprange": None,
     "ipam.prefix": "prefix",
+}
+
+#
+# AccessList Rule
+#
+
+ACL_RULE_PORT_MIN, ACL_RULE_PORT_MAX = 1, 65535
+
+ACL_RULE_SOURCE_DESTINATION_MODELS = ACL_ADDRESS_OBJECT_MODELS | Q(app_label="netbox_acls", model="acladdressgroup")
+
+# Natural value per source or destination content type, for import. None means ID only.
+# Must match ACL_RULE_SOURCE_DESTINATION_MODELS exactly.
+ACL_RULE_OBJECT_LOOKUPS = {
+    **ACL_ADDRESS_OBJECT_LOOKUPS,
+    "netbox_acls.acladdressgroup": "name",
 }

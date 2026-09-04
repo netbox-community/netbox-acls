@@ -28,9 +28,9 @@ def infer_family_from_object(obj):
         or getattr(getattr(obj, "address", None), "version", None)
         or getattr(getattr(obj, "start_address", None), "version", None)
     )
-    if version == 4:
+    if version in (4, ACLFamilyChoices.FAMILY_IPV4):
         return ACLFamilyChoices.FAMILY_IPV4
-    if version == 6:
+    if version in (6, ACLFamilyChoices.FAMILY_IPV6):
         return ACLFamilyChoices.FAMILY_IPV6
     return None
 

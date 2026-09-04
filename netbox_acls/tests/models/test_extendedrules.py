@@ -5,13 +5,14 @@ from utilities.data import string_to_ranges
 
 from ...choices import (
     ACLActionChoices,
+    ACLAddressFamilyChoices,
     ACLFamilyChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
     ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
-from ...models import AccessList, ACLExtendedRule
+from ...models import AccessList, ACLAddressGroup, ACLExtendedRule
 from .base import BaseTestCase
 
 
@@ -1009,6 +1010,68 @@ class TestACLExtendedRule(BaseTestCase):
         with self.assertRaises(ValidationError):
             mixed.full_clean()
 
+    def test_acl_extended_rule_family_v4_acl_accepts_v4_address_groups(self):
+        """
+        Test that IPv4 ACL accepts rules carrying IPv4 address groups.
+        """
+        acl_v4 = AccessList.objects.create(
+            name="RF4",
+            type=self.acl_type,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=self.default_action,
+        )
+        address_group = ACLAddressGroup.objects.create(
+            name="address-group-v4",
+            family=ACLAddressFamilyChoices.FAMILY_IPV4,
+        )
+        valid_rule = ACLExtendedRule(
+            access_list=acl_v4,
+            sequence=10,
+            action=ACLActionChoices.ACTION_PERMIT,
+            source=address_group,
+            destination=address_group,
+        )
+        valid_rule.full_clean()
+
+    def test_acl_extended_rule_family_v4_acl_rejects_v6_address_groups(self):
+        """
+        Test that IPv4 ACL must not accept rules carrying IPv6 address groups.
+        """
+        acl_v4 = AccessList.objects.create(
+            name="RF4",
+            type=self.acl_type,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=self.default_action,
+        )
+        address_group = ACLAddressGroup.objects.create(
+            name="address-group-v6",
+            family=ACLAddressFamilyChoices.FAMILY_IPV6,
+        )
+        invalid_rule = ACLExtendedRule(
+            access_list=acl_v4,
+            sequence=10,
+            action=ACLActionChoices.ACTION_PERMIT,
+            source=address_group,
+            destination=address_group,
+        )
+        with self.assertRaises(ValidationError):
+            invalid_rule.full_clean()
+
+    def test_acl_extended_rule_family_dual_forbids_mixing_address_group_and_object(self):
+        """
+        Test that a dual-stack rule rejects an IPv4 address group alongside an IPv6 object.
+        """
+        address_group = ACLAddressGroup.objects.create(name="address-group-1")
+        mixed = ACLExtendedRule(
+            access_list=self.extended_acl_dual,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=address_group,
+            destination=self.prefix1_v6,
+        )
+        with self.assertRaises(ValidationError):
+            mixed.full_clean()
+
     def test_acl_extended_rule_string_to_ranges(self):
         """
         Tests the conversion port ranges as strings to NumericRange objects.
@@ -1156,6 +1219,90 @@ class TestACLExtendedRule(BaseTestCase):
             .values("_source_prefix", "_destination_aggregate", "_destination_iprange")
             .get()
         )
+
+    def test_switching_the_source_address_group_refreshes_its_shadow_column(self):
+        """
+        Test that re-saving with another address group refreshes the source column.
+        """
+        address_group_1 = ACLAddressGroup.objects.create(name="address-group-1")
+        address_group_2 = ACLAddressGroup.objects.create(name="address-group-2")
+        rule = ACLExtendedRule.objects.create(
+            access_list=self.extended_acl1,
+            sequence=930,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=address_group_1,
+        )
+
+        rule.source = address_group_2
+        rule.save()
+
+        cached = ACLExtendedRule.objects.filter(pk=rule.pk).values("_source_acladdressgroup", "_source_prefix").get()
+        self.assertEqual(cached["_source_acladdressgroup"], address_group_2.pk)
+
+    def test_switching_the_source_address_group_to_an_object_clears_its_shadow_column(self):
+        """
+        Test that re-saving with an object source clears the source address group column.
+        """
+        address_group = ACLAddressGroup.objects.create(name="address-group-1")
+        rule = ACLExtendedRule.objects.create(
+            access_list=self.extended_acl1,
+            sequence=940,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=address_group,
+        )
+
+        rule.source = self.prefix1
+        rule.save()
+
+        cached = ACLExtendedRule.objects.filter(pk=rule.pk).values("_source_acladdressgroup", "_source_prefix").get()
+        self.assertIsNone(cached["_source_acladdressgroup"])
+        self.assertEqual(cached["_source_prefix"], self.prefix1.pk)
+
+    def test_switching_the_destination_address_group_refreshes_its_shadow_column(self):
+        """
+        Test that re-saving with another address group refreshes the destination column.
+        """
+        address_group_1 = ACLAddressGroup.objects.create(name="address-group-1")
+        address_group_2 = ACLAddressGroup.objects.create(name="address-group-2")
+        rule = ACLExtendedRule.objects.create(
+            access_list=self.extended_acl1,
+            sequence=950,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            destination=address_group_1,
+        )
+
+        rule.destination = address_group_2
+        rule.save()
+
+        cached = (
+            ACLExtendedRule.objects.filter(pk=rule.pk)
+            .values("_destination_acladdressgroup", "_destination_prefix")
+            .get()
+        )
+        self.assertEqual(cached["_destination_acladdressgroup"], address_group_2.pk)
+
+    def test_switching_the_destination_address_group_to_an_object_clears_its_shadow_column(self):
+        """
+        Test that re-saving with an object destination clears the destination address group column.
+        """
+        address_group = ACLAddressGroup.objects.create(name="address-group-1")
+        rule = ACLExtendedRule.objects.create(
+            access_list=self.extended_acl1,
+            sequence=960,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            destination=address_group,
+        )
+
+        rule.destination = self.prefix1
+        rule.save()
+
+        cached = (
+            ACLExtendedRule.objects.filter(pk=rule.pk)
+            .values("_destination_acladdressgroup", "_destination_prefix")
+            .get()
+        )
+        self.assertIsNone(cached["_destination_acladdressgroup"])
+        self.assertEqual(cached["_destination_prefix"], self.prefix1.pk)
 
     def test_logging_defaults_to_disabled(self):
         """Test that a new rule logs nothing until asked to."""

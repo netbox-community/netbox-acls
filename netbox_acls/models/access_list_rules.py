@@ -11,7 +11,6 @@ from django.utils.translation import gettext_lazy as _
 from ipam.models import Aggregate, IPAddress, IPRange, Prefix
 from netbox.models import PrimaryModel
 from utilities.data import ranges_to_string_list
-from utilities.object_types import object_type_identifier
 
 from ..choices import (
     ACLFamilyChoices,
@@ -24,7 +23,9 @@ from ..constants import ACL_RULE_SOURCE_DESTINATION_MODELS
 from ..utils import infer_family_from_object, normalize_log_options, normalize_port_ranges
 from ..validators import validate_port_ranges
 from .access_lists import AccessList
+from .address_groups import ACLAddressGroup
 from .managers import ACLRuleManager
+from .mixins import CachedGenericReferenceMixin
 
 __all__ = (
     "ACLExtendedRule",
@@ -76,7 +77,7 @@ HELP_TEXT_ACL_RULE_LOG_OPTIONS = _(
 )
 
 
-class ACLRule(PrimaryModel):
+class ACLRule(CachedGenericReferenceMixin, PrimaryModel):
     """
     Abstract model for ACL Rules.
     Inherited by both ACLStandardRule and ACLExtendedRule.
@@ -129,6 +130,14 @@ class ACLRule(PrimaryModel):
     )
 
     # Cached related objects by association name for faster access
+    _source_acladdressgroup = models.ForeignKey(
+        to="netbox_acls.acladdressgroup",
+        on_delete=models.PROTECT,
+        related_name="_%(class)s_sources",
+        verbose_name=_("Source Address Group"),
+        blank=True,
+        null=True,
+    )
     _source_aggregate = models.ForeignKey(
         to="ipam.aggregate",
         on_delete=models.PROTECT,
@@ -262,23 +271,6 @@ class ACLRule(PrimaryModel):
             self.cache_related_objects(role)
 
         super().save(*args, **kwargs)
-
-    def cache_related_objects(self, role):
-        """
-        Refresh one role's shadow columns from its generic reference.
-        """
-        content_type = getattr(self, f"{role}_type")
-        label = object_type_identifier(content_type) if content_type else None
-        prefix = f"_{role}_"
-
-        # Shadow columns are located by name, so _<role>_<model> is a contract.
-        for field in self._meta.fields:
-            if not field.is_relation or not field.name.startswith(prefix):
-                continue
-            matched = field.related_model._meta.label_lower == label
-            setattr(self, field.name, getattr(self, role) if matched else None)
-
-    cache_related_objects.alters_data = True
 
     def _validate_rule_family(self):
         """
@@ -471,6 +463,14 @@ class ACLExtendedRule(ACLRule):
     )
 
     # Cached related objects by association name for faster access
+    _destination_acladdressgroup = models.ForeignKey(
+        to="netbox_acls.acladdressgroup",
+        on_delete=models.PROTECT,
+        related_name="_%(class)s_destinations",
+        verbose_name=_("Destination Address Group"),
+        blank=True,
+        null=True,
+    )
     _destination_aggregate = models.ForeignKey(
         to="ipam.aggregate",
         on_delete=models.PROTECT,
@@ -645,6 +645,7 @@ for _rule_model, _role, _accessor in (
 ):
     # The query name segment differs from the model name where that runs words together.
     for _model, _query_name in (
+        (ACLAddressGroup, "address_group"),
         (Aggregate, "aggregate"),
         (IPAddress, "ip_address"),
         (IPRange, "ip_range"),

@@ -2,12 +2,13 @@ from django.core.exceptions import ValidationError
 
 from ...choices import (
     ACLActionChoices,
+    ACLAddressFamilyChoices,
     ACLFamilyChoices,
     ACLRuleActionChoices,
     ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
-from ...models import AccessList, ACLStandardRule
+from ...models import AccessList, ACLAddressGroup, ACLStandardRule
 from .base import BaseTestCase
 
 
@@ -395,6 +396,51 @@ class TestACLStandardRule(BaseTestCase):
         with self.assertRaises(ValidationError):
             invalid_rule.full_clean()
 
+    def test_acl_standard_rule_family_v4_acl_accepts_v4_address_group(self):
+        """
+        Test that IPv4 ACL accepts rules carrying an IPv4 address group.
+        """
+        acl_v4 = AccessList.objects.create(
+            name="RF4",
+            type=self.acl_type,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=self.default_action,
+        )
+        address_group = ACLAddressGroup.objects.create(
+            name="address-group-v4",
+            family=ACLAddressFamilyChoices.FAMILY_IPV4,
+        )
+        valid_rule = ACLStandardRule(
+            access_list=acl_v4,
+            sequence=10,
+            action=ACLActionChoices.ACTION_PERMIT,
+            source=address_group,
+        )
+        valid_rule.full_clean()
+
+    def test_acl_standard_rule_family_v4_acl_rejects_v6_address_group(self):
+        """
+        Test that IPv4 ACL must not accept rules carrying an IPv6 address group.
+        """
+        acl_v4 = AccessList.objects.create(
+            name="RF4",
+            type=self.acl_type,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=self.default_action,
+        )
+        address_group = ACLAddressGroup.objects.create(
+            name="address-group-v6",
+            family=ACLAddressFamilyChoices.FAMILY_IPV6,
+        )
+        invalid_rule = ACLStandardRule(
+            access_list=acl_v4,
+            sequence=10,
+            action=ACLActionChoices.ACTION_PERMIT,
+            source=address_group,
+        )
+        with self.assertRaises(ValidationError):
+            invalid_rule.full_clean()
+
     def test_switching_the_source_clears_the_stale_shadow_column(self):
         """Test that re-saving with a new source type nulls the column the old type filled."""
         rule = ACLStandardRule.objects.create(
@@ -416,6 +462,59 @@ class TestACLStandardRule(BaseTestCase):
     def _cached_sources(rule):
         """Read the shadow columns back from the database, which is what the filters query."""
         return ACLStandardRule.objects.filter(pk=rule.pk).values("_source_prefix", "_source_ipaddress").get()
+
+    def test_remark_cannot_reference_an_address_group(self):
+        """
+        Test that a remark rule rejects an address group source.
+        """
+        address_group = ACLAddressGroup.objects.create(name="address-group-1")
+        rule = ACLStandardRule(
+            access_list=self.standard_acl1,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_REMARK,
+            remark="text",
+            source=address_group,
+        )
+        with self.assertRaises(ValidationError):
+            rule.full_clean()
+
+    def test_switching_the_address_group_source_refreshes_its_shadow_column(self):
+        """
+        Test that re-saving with another address group refreshes the address group column.
+        """
+        address_group_1 = ACLAddressGroup.objects.create(name="address-group-1")
+        address_group_2 = ACLAddressGroup.objects.create(name="address-group-2")
+        rule = ACLStandardRule.objects.create(
+            access_list=self.standard_acl1,
+            sequence=920,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=address_group_1,
+        )
+
+        rule.source = address_group_2
+        rule.save()
+
+        cached = ACLStandardRule.objects.filter(pk=rule.pk).values("_source_acladdressgroup", "_source_prefix").get()
+        self.assertEqual(cached["_source_acladdressgroup"], address_group_2.pk)
+
+    def test_switching_the_address_group_source_to_an_object_clears_its_shadow_column(self):
+        """
+        Test that re-saving with an object source clears the address group column.
+        """
+        address_group = ACLAddressGroup.objects.create(name="address-group-1")
+        rule = ACLStandardRule.objects.create(
+            access_list=self.standard_acl1,
+            sequence=930,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=address_group,
+        )
+
+        rule.source = self.prefix1
+        rule.save()
+
+        cached = ACLStandardRule.objects.filter(pk=rule.pk).values("_source_acladdressgroup", "_source_prefix").get()
+        self.assertIsNone(cached["_source_acladdressgroup"])
+        self.assertEqual(cached["_source_prefix"], self.prefix1.pk)
 
     def test_logging_defaults_to_disabled(self):
         """Test that a new rule logs nothing until asked to."""

@@ -4,13 +4,13 @@ from ...choices import (
     ACLRuleActionChoices,
     ACLTypeChoices,
 )
-from ...models import AccessList, ACLExtendedRule, ACLStandardRule
+from ...models import AccessList, ACLAddressGroup, ACLExtendedRule, ACLStandardRule
 from .base import BaseTestCase
 
 
 class TestACLRuleGenericRelations(BaseTestCase):
     """
-    Test the generic relations contributed to the ipam models.
+    Test the generic relations contributed to the ipam and address group models.
 
     Nothing reads them yet, so without these tests a wrong content type field or
     query name goes unnoticed until a view is built on top of them.
@@ -36,15 +36,19 @@ class TestACLRuleGenericRelations(BaseTestCase):
             family=ACLFamilyChoices.FAMILY_IPV4,
             default_action=ACLActionChoices.ACTION_DENY,
         )
+        cls.address_group1 = ACLAddressGroup.objects.create(name="address-group-1")
+        cls.address_group2 = ACLAddressGroup.objects.create(name="address-group-2")
 
         # Keyed by the related_query_name segment the relation uses for that model.
         cls.sources = {
+            "address_group": cls.address_group1,
             "aggregate": cls.aggregate1,
             "ip_address": cls.ip_address1,
             "ip_range": cls.ip_range1,
             "prefix": cls.prefix1,
         }
         cls.destinations = {
+            "address_group": cls.address_group2,
             "aggregate": cls.aggregate2,
             "ip_address": cls.ip_address2,
             "ip_range": cls.ip_range2,
@@ -72,7 +76,7 @@ class TestACLRuleGenericRelations(BaseTestCase):
             )
 
     def test_standard_rule_reachable_from_its_source(self):
-        """Test that a standard rule is listed on the ipam object it sources."""
+        """Test that a standard rule is listed on the object it sources."""
         for name, source in self.sources.items():
             with self.subTest(source=name):
                 self.assertEqual(
@@ -81,7 +85,7 @@ class TestACLRuleGenericRelations(BaseTestCase):
                 )
 
     def test_extended_rule_reachable_from_its_source(self):
-        """Test that an extended rule is listed on the ipam object it sources."""
+        """Test that an extended rule is listed on the object it sources."""
         for name, source in self.sources.items():
             with self.subTest(source=name):
                 self.assertEqual(
@@ -90,7 +94,7 @@ class TestACLRuleGenericRelations(BaseTestCase):
                 )
 
     def test_extended_rule_reachable_from_its_destination(self):
-        """Test that an extended rule is listed on the ipam object it targets."""
+        """Test that an extended rule is listed on the object it targets."""
         for name, destination in self.destinations.items():
             with self.subTest(destination=name):
                 self.assertEqual(

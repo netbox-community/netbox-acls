@@ -20,7 +20,7 @@ from ...forms import (
     ACLExtendedRuleForm,
     ACLExtendedRuleImportForm,
 )
-from ...models import AccessList, ACLExtendedRule
+from ...models import AccessList, ACLAddressGroup, ACLExtendedRule
 from ..views.base import build_ipam_objects
 from .base import BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin
 
@@ -160,6 +160,20 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         self.assertTrue(form.is_valid(), msg=form.errors.as_text())
         self.assertEqual(form.instance.source, self.prefix)
         self.assertEqual(form.instance.destination, self.destination_prefix)
+
+    def test_clean_assigns_address_group_source_and_destination(self):
+        """Test that a valid form assigns selected address groups to both roles."""
+        address_group = ACLAddressGroup.objects.create(name="address-group-1")
+        address_group_type = ContentType.objects.get_for_model(ACLAddressGroup).pk
+        form = self._bound_form(
+            source_content_type=address_group_type,
+            source_object_id=address_group.pk,
+            destination_content_type=address_group_type,
+            destination_object_id=address_group.pk,
+        )
+        self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+        self.assertEqual(form.instance.source, address_group)
+        self.assertEqual(form.instance.destination, address_group)
 
     def test_bulkedit_source_and_destination_querysets_follow_type(self):
         """Test that the bulk-edit pickers' querysets are resolved from the posted types."""
@@ -342,6 +356,20 @@ class ACLExtendedRuleImportFormTestCase(TestCase):
         rule = form.save()
         self.assertEqual(rule.source, self.prefix)
         self.assertEqual(rule.destination, self.ip_address)
+
+    def test_address_group_roles_resolve_from_names(self):
+        """Test that the address group values are looked up by the name field."""
+        address_group = ACLAddressGroup.objects.create(name="address-group-1")
+        form = self._form(
+            source_type="netbox_acls.acladdressgroup",
+            source=address_group.name,
+            destination_type="netbox_acls.acladdressgroup",
+            destination=address_group.name,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        rule = form.save()
+        self.assertEqual(rule.source, address_group)
+        self.assertEqual(rule.destination, address_group)
 
     def test_standard_access_list_is_rejected(self):
         """The access list column offers extended lists only."""

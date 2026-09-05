@@ -19,6 +19,7 @@ from utilities.object_types import object_type_identifier
 
 from ..choices import (
     ACLActionChoices,
+    ACLAddressFamilyChoices,
     ACLAssignmentDirectionChoices,
     ACLFamilyChoices,
     ACLProtocolChoices,
@@ -27,15 +28,19 @@ from ..choices import (
     ACLTypeChoices,
 )
 from ..constants import (
+    ACL_ADDRESS_OBJECT_LOOKUPS,
+    ACL_ADDRESS_OBJECT_MODELS,
     ACL_ASSIGNMENT_MODELS,
     ACL_ASSIGNMENT_OBJECT_LOOKUPS,
     ACL_ASSIGNMENT_OBJECT_PARENT_LOOKUPS,
     ACL_RULE_OBJECT_LOOKUPS,
     ACL_RULE_SOURCE_DESTINATION_MODELS,
 )
-from ..models import AccessList, ACLAssignment, ACLExtendedRule, ACLStandardRule
+from ..models import AccessList, ACLAddressGroup, ACLAddressGroupMember, ACLAssignment, ACLExtendedRule, ACLStandardRule
 
 __all__ = (
+    "ACLAddressGroupImportForm",
+    "ACLAddressGroupMemberImportForm",
     "ACLAssignmentImportForm",
     "ACLExtendedRuleImportForm",
     "ACLStandardRuleImportForm",
@@ -306,7 +311,8 @@ class ACLRuleImportFormMixin(ObjectImportMixin):
         label=_("Source"),
         required=False,
         help_text=_(
-            "Prefix, address or aggregate value, for example 10.0.0.0/8. IP ranges are addressable by source_id only."
+            "Prefix, address or aggregate value, for example 10.0.0.0/8, or an address group name. "
+            "IP ranges are addressable by source_id only."
         ),
     )
     source_id = forms.IntegerField(
@@ -390,7 +396,7 @@ class ACLExtendedRuleImportForm(ACLRuleImportFormMixin, PrimaryModelImportForm):
         label=_("Destination"),
         required=False,
         help_text=_(
-            "Prefix, address or aggregate value, for example 10.0.0.0/8. "
+            "Prefix, address or aggregate value, for example 10.0.0.0/8, or an address group name. "
             "IP ranges are addressable by destination_id only."
         ),
     )
@@ -432,3 +438,74 @@ class ACLExtendedRuleImportForm(ACLRuleImportFormMixin, PrimaryModelImportForm):
         help_texts = {
             "sequence": _("Rule order within the access list. Never assigned automatically on import."),
         }
+
+
+class ACLAddressGroupImportForm(PrimaryModelImportForm):
+    """
+    Import form for Address Groups.
+    """
+
+    family = CSVChoiceField(
+        label=_("Family"),
+        choices=ACLAddressFamilyChoices,
+        required=False,
+        help_text=_("IP family of the group. Defaults to ipv4."),
+    )
+
+    class Meta:
+        model = ACLAddressGroup
+        fields = (
+            "name",
+            "family",
+            "description",
+            "owner",
+            "comments",
+            "tags",
+        )
+        help_texts = {
+            "name": _("Globally unique name. Letters, numbers, underscores and hyphens only."),
+        }
+
+
+class ACLAddressGroupMemberImportForm(ObjectImportMixin, OwnerCSVMixin, NetBoxModelImportForm):
+    """
+    Import form for Address Group Members.
+    """
+
+    address_group = CSVModelChoiceField(
+        label=_("Address Group"),
+        queryset=ACLAddressGroup.objects.all(),
+        to_field_name="name",
+        help_text=_("Name of an address group. Use an address_group.id header to pick one by ID."),
+    )
+    member_type = CSVContentTypeField(
+        label=_("Member type (app & model)"),
+        queryset=ContentType.objects.filter(ACL_ADDRESS_OBJECT_MODELS),
+        help_text=_("Type of the object added to the address group, as app.model."),
+    )
+    member = forms.CharField(
+        label=_("Member"),
+        required=False,
+        help_text=_("Prefix, address or aggregate value. Use member_id for IP ranges or ambiguous values."),
+    )
+    # The model field is non-null, so the generated field would reject every row using a name.
+    member_id = forms.IntegerField(
+        label=_("Member ID"),
+        required=False,
+        help_text=_("Numeric ID of the member object, as an alternative to member."),
+    )
+
+    object_roles = ("member",)
+    object_lookups = {"member": ACL_ADDRESS_OBJECT_LOOKUPS}
+
+    class Meta:
+        model = ACLAddressGroupMember
+        # member is the GenericForeignKey's own name, which Django forbids here.
+        fields = (
+            "address_group",
+            "member_type",
+            "member_id",
+            "owner",
+            "comments",
+            "tags",
+        )

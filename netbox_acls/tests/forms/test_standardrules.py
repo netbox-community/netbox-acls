@@ -19,7 +19,7 @@ from ...forms import (
     ACLStandardRuleForm,
     ACLStandardRuleImportForm,
 )
-from ...models import AccessList, ACLStandardRule
+from ...models import AccessList, ACLAddressGroup, ACLStandardRule
 from ..views.base import build_ipam_objects
 from .base import BulkEditFieldsetTestMixin, FilterFormFieldsetTestMixin
 
@@ -158,6 +158,13 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         self.assertTrue(form.is_valid(), msg=form.errors.as_text())
         self.assertEqual(form.instance.source, self.prefix)
 
+    def test_clean_assigns_an_address_group_source(self):
+        """Test that a valid form assigns a selected address group to the instance."""
+        address_group = ACLAddressGroup.objects.create(name="address-group-1")
+        form = self._bound_form(address_group)
+        self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+        self.assertEqual(form.instance.source, address_group)
+
     def test_bulkedit_source_queryset_follows_type(self):
         """Test that the bulk-edit source picker's queryset is resolved from the posted type."""
         form = ACLStandardRuleBulkEditForm(
@@ -191,7 +198,7 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         form = ACLStandardRuleFilterForm()
         for name in ("protocol", "source_port", "destination_port"):
             self.assertNotIn(name, form.fields)
-        for model_name in ("aggregate", "ipaddress", "iprange", "prefix"):
+        for model_name in ("address_group", "aggregate", "ipaddress", "iprange", "prefix"):
             self.assertNotIn(f"destination_{model_name}_id", form.fields)
 
     def test_filterform_access_list_filtered_to_standard(self):
@@ -341,6 +348,13 @@ class ACLStandardRuleImportFormTestCase(TestCase):
         form = self._form(source_type="ipam.aggregate", source=str(self.aggregate.prefix))
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.save().source, self.aggregate)
+
+    def test_address_group_source_resolves(self):
+        """Test that the address group value is looked up by the name field."""
+        address_group = ACLAddressGroup.objects.create(name="address-group-1")
+        form = self._form(source_type="netbox_acls.acladdressgroup", source=address_group.name)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().source, address_group)
 
     def test_ip_range_value_is_rejected(self):
         """Test that an IP range has no value form and the error names the ID column."""

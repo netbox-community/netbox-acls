@@ -27,9 +27,11 @@ from ..choices import (
     ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
-from ..constants import ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
+from ..constants import ACL_ADDRESS_OBJECT_MODELS, ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
 from ..models import (
     AccessList,
+    ACLAddressGroup,
+    ACLAddressGroupMember,
     ACLAssignment,
     ACLExtendedRule,
     ACLStandardRule,
@@ -37,6 +39,8 @@ from ..models import (
 from ..models.access_list_rules import HELP_TEXT_ACL_RULE_LOG_OPTIONS
 
 __all__ = (
+    "ACLAddressGroupForm",
+    "ACLAddressGroupMemberForm",
     "ACLAssignmentForm",
     "ACLExtendedRuleForm",
     "ACLStandardRuleForm",
@@ -391,3 +395,76 @@ class ACLExtendedRuleForm(GenericObjectFormMixin, PrimaryModelForm):
             "protocol": help_text_acl_rule_logic,
             "remark": help_text_acl_remark,
         }
+
+
+class ACLAddressGroupForm(PrimaryModelForm):
+    """
+    GUI form to add or edit an ACLAddressGroup.
+    """
+
+    fieldsets = (
+        FieldSet(
+            "name",
+            "family",
+            "description",
+            "tags",
+            name=_("Address Group Details"),
+        ),
+    )
+
+    class Meta:
+        model = ACLAddressGroup
+        fields = (
+            "name",
+            "family",
+            "description",
+            "owner",
+            "comments",
+            "tags",
+        )
+
+        help_texts = {
+            "family": _("IPv4 or IPv6. Cannot change while the group has members or is referenced by rules."),
+            "name": _("Globally unique name. Letters, numbers, underscores and hyphens only."),
+        }
+
+
+class ACLAddressGroupMemberForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelForm):
+    """
+    GUI form to add or edit an ACLAddressGroupMember.
+    """
+
+    address_group = DynamicModelChoiceField(
+        queryset=ACLAddressGroup.objects.all(),
+        label=_("Address Group"),
+    )
+    member = GenericObjectChoiceField(
+        content_type_queryset=ContentType.objects.filter(ACL_ADDRESS_OBJECT_MODELS),
+        selector=True,
+        label=_("Member"),
+        help_text=_("The member must have the same IP family as the address group."),
+        hx_target_id="member-definition",
+    )
+    comments = CommentField()
+
+    fieldsets = (
+        FieldSet(
+            "address_group",
+            "tags",
+            name=_("Address Group Details"),
+        ),
+        FieldSet(
+            "member",
+            name=_("Member"),
+            html_id="member-definition",
+        ),
+    )
+
+    class Meta:
+        model = ACLAddressGroupMember
+        fields = (
+            "address_group",
+            "owner",
+            "comments",
+            "tags",
+        )

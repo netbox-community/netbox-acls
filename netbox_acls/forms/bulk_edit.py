@@ -23,6 +23,7 @@ from virtualization.models import VMInterface
 
 from ..choices import (
     ACLActionChoices,
+    ACLAddressFamilyChoices,
     ACLAssignmentDirectionUIChoices,
     ACLFamilyChoices,
     ACLProtocolChoices,
@@ -30,14 +31,16 @@ from ..choices import (
     ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
-from ..constants import ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
-from ..models import AccessList, ACLAssignment, ACLExtendedRule, ACLStandardRule
+from ..constants import ACL_ADDRESS_OBJECT_MODELS, ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
+from ..models import AccessList, ACLAddressGroup, ACLAddressGroupMember, ACLAssignment, ACLExtendedRule, ACLStandardRule
 from ..models.access_list_rules import (
     ERROR_MESSAGE_LOG_OPTIONS_WITHOUT_LOG_MATCHES,
     HELP_TEXT_ACL_RULE_LOG_OPTIONS,
 )
 
 __all__ = (
+    "ACLAddressGroupBulkEditForm",
+    "ACLAddressGroupMemberBulkEditForm",
     "ACLAssignmentBulkEditForm",
     "ACLExtendedRuleBulkEditForm",
     "ACLStandardRuleBulkEditForm",
@@ -358,3 +361,61 @@ class ACLExtendedRuleBulkEditForm(GenericObjectFormMixin, ACLRuleLoggingBulkEdit
         "description",
         "comments",
     )
+
+
+class ACLAddressGroupBulkEditForm(PrimaryModelBulkEditForm):
+    """
+    Form for bulk editing multiple ACLAddressGroup instances.
+    """
+
+    family = forms.ChoiceField(
+        choices=add_blank_choice(ACLAddressFamilyChoices),
+        required=False,
+        label=_("Family"),
+    )
+
+    model = ACLAddressGroup
+    fieldsets = (
+        FieldSet(
+            "family",
+            "description",
+            name=_("Address Group Details"),
+        ),
+    )
+    nullable_fields = (
+        "description",
+        "comments",
+    )
+
+
+class ACLAddressGroupMemberBulkEditForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelBulkEditForm):
+    """
+    Form for bulk editing multiple ACLAddressGroupMember instances.
+    """
+
+    address_group = DynamicModelChoiceField(
+        queryset=ACLAddressGroup.objects.all(),
+        required=False,
+        label=_("Address Group"),
+    )
+    member = GenericObjectChoiceField(
+        content_type_queryset=ContentType.objects.filter(ACL_ADDRESS_OBJECT_MODELS),
+        required=False,
+        selector=True,
+        label=_("Member"),
+        hx_method="post",
+    )
+    comments = CommentField()
+
+    model = ACLAddressGroupMember
+    fieldsets = (
+        FieldSet(
+            "address_group",
+            name=_("Address Group Details"),
+        ),
+        FieldSet(
+            "member",
+            name=_("Member"),
+        ),
+    )
+    nullable_fields = ("comments",)

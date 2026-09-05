@@ -9,6 +9,8 @@ from django.test import SimpleTestCase
 
 from ...ui.panels import (
     AccessListPanel,
+    ACLAddressGroupMemberPanel,
+    ACLAddressGroupPanel,
     ACLAssignmentPanel,
     ACLExtendedRuleDetailsPanel,
     ACLExtendedRulePanel,
@@ -38,6 +40,8 @@ EXPECTED_ORDER = {
         "destination_port_ranges",
     ],
     ACLRuleLoggingPanel: ["log_matches", "log_options"],
+    ACLAddressGroupPanel: ["family", "description"],
+    ACLAddressGroupMemberPanel: ["address_group", "member"],
 }
 
 

@@ -45,4 +45,22 @@ urlpatterns = (
         "extended-rules/<int:pk>/",
         include(get_model_urls("netbox_acls", "aclextendedrule")),
     ),
+    # Address Groups
+    path(
+        "address-groups/",
+        include(get_model_urls("netbox_acls", "acladdressgroup", detail=False)),
+    ),
+    path(
+        "address-groups/<int:pk>/",
+        include(get_model_urls("netbox_acls", "acladdressgroup")),
+    ),
+    # Address Group Members
+    path(
+        "address-groups/members/",
+        include(get_model_urls("netbox_acls", "acladdressgroupmember", detail=False)),
+    ),
+    path(
+        "address-groups/members/<int:pk>/",
+        include(get_model_urls("netbox_acls", "acladdressgroupmember")),
+    ),
 )

@@ -32,6 +32,8 @@ MODELS = tuple(
 
 # The card header each primary panel is expected to render.
 PRIMARY_PANEL_TITLES = {
+    "ACLAddressGroup": "ACL Address Group",
+    "ACLAddressGroupMember": "ACL Address Group Member",
     "ACLAssignment": "ACL Assignment",
     "ACLExtendedRule": "ACL Extended Rule",
     "ACLStandardRule": "ACL Standard Rule",

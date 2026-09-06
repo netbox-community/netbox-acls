@@ -21,6 +21,23 @@ from virtualization.models import VirtualMachine, VMInterface
 from . import choices, filtersets, forms, models, object_actions, tables, ui
 
 __all__ = (
+    "ACLAddressGroupACLExtendedRuleView",
+    "ACLAddressGroupACLStandardRuleView",
+    "ACLAddressGroupBulkDeleteView",
+    "ACLAddressGroupBulkEditView",
+    "ACLAddressGroupBulkImportView",
+    "ACLAddressGroupDeleteView",
+    "ACLAddressGroupEditView",
+    "ACLAddressGroupListView",
+    "ACLAddressGroupMemberBulkDeleteView",
+    "ACLAddressGroupMemberBulkEditView",
+    "ACLAddressGroupMemberBulkImportView",
+    "ACLAddressGroupMemberChildrenView",
+    "ACLAddressGroupMemberDeleteView",
+    "ACLAddressGroupMemberEditView",
+    "ACLAddressGroupMemberListView",
+    "ACLAddressGroupMemberView",
+    "ACLAddressGroupView",
     "ACLAssignmentBulkDeleteView",
     "ACLAssignmentBulkEditView",
     "ACLAssignmentBulkImportView",
@@ -53,14 +70,18 @@ __all__ = (
     "AccessListEditView",
     "AccessListListView",
     "AccessListView",
+    "AggregateACLAddressGroupMemberView",
     "AggregateACLExtendedRuleView",
     "AggregateACLStandardRuleView",
     "DeviceACLAssignmentView",
+    "IPAddressACLAddressGroupMemberView",
     "IPAddressACLExtendedRuleView",
     "IPAddressACLStandardRuleView",
+    "IPRangeACLAddressGroupMemberView",
     "IPRangeACLExtendedRuleView",
     "IPRangeACLStandardRuleView",
     "InterfaceACLAssignmentView",
+    "PrefixACLAddressGroupMemberView",
     "PrefixACLExtendedRuleView",
     "PrefixACLStandardRuleView",
     "VMInterfaceACLAssignmentView",
@@ -224,6 +245,40 @@ class ACLExtendedRuleChildrenView(generic.ObjectChildrenView):
             .select_related("owner")
             .prefetch_related("access_list", "source", "destination", "tags")
         )
+
+
+class ACLAddressGroupMemberChildrenView(generic.ObjectChildrenView):
+    """Base children view for attaching a tab of ACL Address Group Members."""
+
+    child_model = models.ACLAddressGroupMember
+    filterset = filtersets.ACLAddressGroupMemberFilterSet
+    tab = ViewTab(
+        label=_("ACL Address Groups"),
+        badge=lambda obj: obj.acladdressgroupmembers.count(),
+        permission="netbox_acls.view_acladdressgroupmember",
+        weight=1300,
+        hide_if_empty=True,
+    )
+    table = tables.ACLAddressGroupMemberTable
+    actions = ()
+
+    def get_children(self, request, parent):
+        """Return the visible memberships referencing the parent IPAM object."""
+        return (
+            models.ACLAddressGroupMember.objects.restrict(request.user, "view")
+            .filter(member_type=ContentType.objects.get_for_model(parent), member_id=parent.pk)
+            .select_related("owner")
+            .prefetch_related("address_group", "member", "tags")
+        )
+
+    def get_table(self, *args, **kwargs):
+        """Return the table with the member columns hidden."""
+        table = super().get_table(*args, **kwargs)
+
+        table.columns.hide("member_type")
+        table.columns.hide("member")
+
+        return table
 
 
 #
@@ -917,6 +972,287 @@ class IPRangeACLExtendedRuleView(ACLExtendedRuleChildrenView):
 class PrefixACLExtendedRuleView(ACLExtendedRuleChildrenView):
     """
     Children view of ACL Extended Rules referencing a Prefix.
+    """
+
+    queryset = Prefix.objects.all()
+
+
+#
+# ACLAddressGroup views
+#
+
+
+@register_model_view(models.ACLAddressGroup)
+class ACLAddressGroupView(generic.ObjectView):
+    """
+    Defines the view for the ACLAddressGroup django model.
+    """
+
+    queryset = models.ACLAddressGroup.objects.select_related("owner").prefetch_related("tags")
+    template_name = "generic/object.html"
+    layout = layout.SimpleLayout(
+        left_panels=[
+            ui.ACLAddressGroupPanel(),
+            CustomFieldsPanel(),
+        ],
+        right_panels=[
+            TagsPanel(),
+            CommentsPanel(),
+        ],
+        bottom_panels=[
+            ui.MemberTablePanel(),
+        ],
+    )
+
+
+@register_model_view(models.ACLAddressGroup, "list", path="", detail=False)
+class ACLAddressGroupListView(generic.ObjectListView):
+    """
+    Defines the list view for the ACLAddressGroup django model.
+    """
+
+    queryset = (
+        models.ACLAddressGroup.objects.annotate(
+            member_count=Count("acladdressgroupmembers", distinct=True),
+        )
+        .select_related("owner")
+        .prefetch_related("tags")
+    )
+    table = tables.ACLAddressGroupTable
+    filterset = filtersets.ACLAddressGroupFilterSet
+    filterset_form = forms.ACLAddressGroupFilterForm
+
+
+@register_model_view(models.ACLAddressGroup, "add", detail=False)
+@register_model_view(models.ACLAddressGroup, "edit")
+class ACLAddressGroupEditView(generic.ObjectEditView):
+    """
+    Defines the edit view for the ACLAddressGroup django model.
+    """
+
+    queryset = models.ACLAddressGroup.objects.select_related("owner").prefetch_related("tags")
+    form = forms.ACLAddressGroupForm
+
+
+@register_model_view(models.ACLAddressGroup, "delete")
+class ACLAddressGroupDeleteView(generic.ObjectDeleteView):
+    """
+    Defines delete view for the ACLAddressGroup django model.
+    """
+
+    queryset = models.ACLAddressGroup.objects.select_related("owner").prefetch_related("tags")
+
+
+@register_model_view(models.ACLAddressGroup, "bulk_import", path="import", detail=False)
+class ACLAddressGroupBulkImportView(generic.BulkImportView):
+    """
+    Bulk import view for importing multiple objects of ACLAddressGroup.
+    """
+
+    queryset = models.ACLAddressGroup.objects.all()
+    model_form = forms.ACLAddressGroupImportForm
+
+
+@register_model_view(models.ACLAddressGroup, "bulk_edit", path="edit", detail=False)
+class ACLAddressGroupBulkEditView(generic.BulkEditView):
+    """
+    Bulk edit view for editing multiple objects of ACLAddressGroup.
+    """
+
+    queryset = (
+        models.ACLAddressGroup.objects.annotate(
+            member_count=Count("acladdressgroupmembers", distinct=True),
+        )
+        .select_related("owner")
+        .prefetch_related("tags")
+    )
+    filterset = filtersets.ACLAddressGroupFilterSet
+    table = tables.ACLAddressGroupTable
+    form = forms.ACLAddressGroupBulkEditForm
+
+
+@register_model_view(models.ACLAddressGroup, "bulk_delete", path="delete", detail=False)
+class ACLAddressGroupBulkDeleteView(generic.BulkDeleteView):
+    """
+    Bulk delete view for deleting multiple objects of ACLAddressGroup.
+    """
+
+    queryset = (
+        models.ACLAddressGroup.objects.annotate(
+            member_count=Count("acladdressgroupmembers", distinct=True),
+        )
+        .select_related("owner")
+        .prefetch_related("tags")
+    )
+    filterset = filtersets.ACLAddressGroupFilterSet
+    table = tables.ACLAddressGroupTable
+
+
+@register_model_view(models.ACLAddressGroup, "aclstandardrules", path="acl-standard-rules")
+class ACLAddressGroupACLStandardRuleView(ACLStandardRuleChildrenView):
+    """
+    Children view of ACL Standard Rules referencing an Address Group.
+    """
+
+    queryset = models.ACLAddressGroup.objects.all()
+
+
+@register_model_view(models.ACLAddressGroup, "aclextendedrules", path="acl-extended-rules")
+class ACLAddressGroupACLExtendedRuleView(ACLExtendedRuleChildrenView):
+    """
+    Children view of ACL Extended Rules referencing an Address Group.
+    """
+
+    queryset = models.ACLAddressGroup.objects.all()
+
+
+#
+# ACLAddressGroupMember views
+#
+
+
+@register_model_view(models.ACLAddressGroupMember)
+class ACLAddressGroupMemberView(generic.ObjectView):
+    """
+    Defines the view for the ACLAddressGroupMember django model.
+    """
+
+    queryset = models.ACLAddressGroupMember.objects.select_related("owner").prefetch_related(
+        "address_group",
+        "member",
+        "tags",
+    )
+    template_name = "generic/object.html"
+    layout = layout.SimpleLayout(
+        left_panels=[
+            ui.ACLAddressGroupMemberPanel(),
+            CustomFieldsPanel(),
+        ],
+        right_panels=[
+            TagsPanel(),
+            CommentsPanel(),
+        ],
+        breadcrumbs=[
+            Breadcrumb(
+                "address_group",
+                url=filtered_list_url("plugins:netbox_acls:acladdressgroupmember_list", "address_group_id"),
+            ),
+        ],
+    )
+
+
+@register_model_view(models.ACLAddressGroupMember, "list", path="", detail=False)
+class ACLAddressGroupMemberListView(generic.ObjectListView):
+    """
+    Defines the list view for the ACLAddressGroupMember django model.
+    """
+
+    queryset = models.ACLAddressGroupMember.objects.select_related("owner").prefetch_related(
+        "address_group",
+        "member",
+        "tags",
+    )
+    table = tables.ACLAddressGroupMemberTable
+    filterset = filtersets.ACLAddressGroupMemberFilterSet
+    filterset_form = forms.ACLAddressGroupMemberFilterForm
+
+
+@register_model_view(models.ACLAddressGroupMember, "add", detail=False)
+@register_model_view(models.ACLAddressGroupMember, "edit")
+class ACLAddressGroupMemberEditView(generic.ObjectEditView):
+    """
+    Defines the edit view for the ACLAddressGroupMember django model.
+    """
+
+    queryset = models.ACLAddressGroupMember.objects.select_related("owner").prefetch_related(
+        "address_group",
+        "member",
+        "tags",
+    )
+    form = forms.ACLAddressGroupMemberForm
+
+
+@register_model_view(models.ACLAddressGroupMember, "delete")
+class ACLAddressGroupMemberDeleteView(generic.ObjectDeleteView):
+    """
+    Defines delete view for the ACLAddressGroupMember django model.
+    """
+
+    queryset = models.ACLAddressGroupMember.objects.select_related("owner").prefetch_related(
+        "address_group",
+        "member",
+        "tags",
+    )
+
+
+@register_model_view(models.ACLAddressGroupMember, "bulk_import", path="import", detail=False)
+class ACLAddressGroupMemberBulkImportView(generic.BulkImportView):
+    """
+    Bulk import view for importing multiple objects of ACLAddressGroupMember.
+    """
+
+    queryset = models.ACLAddressGroupMember.objects.all()
+    model_form = forms.ACLAddressGroupMemberImportForm
+
+
+@register_model_view(models.ACLAddressGroupMember, "bulk_edit", path="edit", detail=False)
+class ACLAddressGroupMemberBulkEditView(generic.BulkEditView):
+    """
+    Bulk edit view for editing multiple objects of ACLAddressGroupMember.
+    """
+
+    queryset = models.ACLAddressGroupMember.objects.all()
+    filterset = filtersets.ACLAddressGroupMemberFilterSet
+    table = tables.ACLAddressGroupMemberTable
+    form = forms.ACLAddressGroupMemberBulkEditForm
+
+
+@register_model_view(models.ACLAddressGroupMember, "bulk_delete", path="delete", detail=False)
+class ACLAddressGroupMemberBulkDeleteView(generic.BulkDeleteView):
+    """
+    Bulk delete view for deleting multiple objects of ACLAddressGroupMember.
+    """
+
+    queryset = models.ACLAddressGroupMember.objects.select_related("owner").prefetch_related(
+        "address_group",
+        "member",
+        "tags",
+    )
+    filterset = filtersets.ACLAddressGroupMemberFilterSet
+    table = tables.ACLAddressGroupMemberTable
+
+
+@register_model_view(Aggregate, "acladdressgroupmembers", path="acl-address-groups")
+class AggregateACLAddressGroupMemberView(ACLAddressGroupMemberChildrenView):
+    """
+    Children view of ACL Address Group Members referencing an Aggregate.
+    """
+
+    queryset = Aggregate.objects.all()
+
+
+@register_model_view(IPAddress, "acladdressgroupmembers", path="acl-address-groups")
+class IPAddressACLAddressGroupMemberView(ACLAddressGroupMemberChildrenView):
+    """
+    Children view of ACL Address Group Members referencing an IP Address.
+    """
+
+    queryset = IPAddress.objects.all()
+
+
+@register_model_view(IPRange, "acladdressgroupmembers", path="acl-address-groups")
+class IPRangeACLAddressGroupMemberView(ACLAddressGroupMemberChildrenView):
+    """
+    Children view of ACL Address Group Members referencing an IP Range.
+    """
+
+    queryset = IPRange.objects.all()
+
+
+@register_model_view(Prefix, "acladdressgroupmembers", path="acl-address-groups")
+class PrefixACLAddressGroupMemberView(ACLAddressGroupMemberChildrenView):
+    """
+    Children view of ACL Address Group Members referencing a Prefix.
     """
 
     queryset = Prefix.objects.all()

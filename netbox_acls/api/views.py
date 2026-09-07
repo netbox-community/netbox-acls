@@ -11,12 +11,16 @@ from netbox.api.viewsets import NetBoxModelViewSet
 from .. import filtersets, models
 from .serializers import (
     AccessListSerializer,
+    ACLAddressGroupMemberSerializer,
+    ACLAddressGroupSerializer,
     ACLAssignmentSerializer,
     ACLExtendedRuleSerializer,
     ACLStandardRuleSerializer,
 )
 
 __all__ = [
+    "ACLAddressGroupMemberViewSet",
+    "ACLAddressGroupViewSet",
     "ACLAssignmentViewSet",
     "ACLExtendedRuleViewSet",
     "ACLStandardRuleViewSet",
@@ -70,3 +74,29 @@ class ACLExtendedRuleViewSet(NetBoxModelViewSet):
     queryset = models.ACLExtendedRule.objects.select_related("owner").prefetch_related("access_list")
     serializer_class = ACLExtendedRuleSerializer
     filterset_class = filtersets.ACLExtendedRuleFilterSet
+
+
+class ACLAddressGroupViewSet(NetBoxModelViewSet):
+    """
+    Defines the view set for the django ACLAddressGroup model and associates it with a view.
+    """
+
+    queryset = models.ACLAddressGroup.objects.annotate(
+        member_count=Count("acladdressgroupmembers", distinct=True)
+    ).select_related("owner")
+    serializer_class = ACLAddressGroupSerializer
+    filterset_class = filtersets.ACLAddressGroupFilterSet
+
+
+class ACLAddressGroupMemberViewSet(NetBoxModelViewSet):
+    """
+    Defines the view set for the django ACLAddressGroupMember model and associates it with a view.
+    """
+
+    queryset = models.ACLAddressGroupMember.objects.select_related("owner").prefetch_related(
+        # Both referenced by ACLAddressGroupMember.__str__(), which backs display.
+        "address_group",
+        "member",
+    )
+    serializer_class = ACLAddressGroupMemberSerializer
+    filterset_class = filtersets.ACLAddressGroupMemberFilterSet

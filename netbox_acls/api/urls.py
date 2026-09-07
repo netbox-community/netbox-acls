@@ -13,5 +13,7 @@ router.register("access-lists", views.AccessListViewSet)
 router.register("assignments", views.ACLAssignmentViewSet)
 router.register("standard-acl-rules", views.ACLStandardRuleViewSet)
 router.register("extended-acl-rules", views.ACLExtendedRuleViewSet)
+router.register("address-groups", views.ACLAddressGroupViewSet)
+router.register("address-group-members", views.ACLAddressGroupMemberViewSet)
 
 urlpatterns = router.urls

@@ -7,12 +7,13 @@ import strawberry_django
 
 from utilities.querysets import RestrictedPrefetch
 
-from ..models import ACLAssignment, ACLExtendedRule, ACLStandardRule
+from ..models import ACLAddressGroupMember, ACLAssignment, ACLExtendedRule, ACLStandardRule
 
 if TYPE_CHECKING:
-    from ..graphql.types import ACLAssignmentType, ACLExtendedRuleType, ACLStandardRuleType
+    from ..graphql.types import ACLAddressGroupMemberType, ACLAssignmentType, ACLExtendedRuleType, ACLStandardRuleType
 
 __all__ = (
+    "ACLAddressGroupMemberReferences",
     "ACLAssignmentReferences",
     "ACLRuleReferences",
 )
@@ -29,6 +30,18 @@ def _restricted(accessor, model):
         return RestrictedPrefetch(accessor, info.context.request.user, "view", queryset=model.objects.all())
 
     return prefetch
+
+
+@strawberry.type
+class ACLAddressGroupMemberReferences:
+    """The address group memberships referencing an IPAM object."""
+
+    @strawberry_django.field(prefetch_related=_restricted("acladdressgroupmembers", ACLAddressGroupMember))
+    def acl_address_group_members(
+        self,
+    ) -> list[Annotated["ACLAddressGroupMemberType", strawberry.lazy("netbox_acls.graphql.types")]]:
+        """Return the address group memberships referencing this object."""
+        return self.acladdressgroupmembers.all()
 
 
 @strawberry.type

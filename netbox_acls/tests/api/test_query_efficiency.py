@@ -5,6 +5,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from dcim.choices import InterfaceTypeChoices
+from ipam.models import Prefix
 from utilities.testing import APITestCase, create_test_device, create_test_virtualmachine
 
 from ...choices import (
@@ -13,7 +14,14 @@ from ...choices import (
     ACLRuleActionChoices,
     ACLTypeChoices,
 )
-from ...models import AccessList, ACLAssignment, ACLExtendedRule, ACLStandardRule
+from ...models import (
+    AccessList,
+    ACLAddressGroup,
+    ACLAddressGroupMember,
+    ACLAssignment,
+    ACLExtendedRule,
+    ACLStandardRule,
+)
 from ..views.base import build_ipam_objects
 
 
@@ -146,3 +154,57 @@ class ACLRuleListQueryTestCase(ListQueryCountMixin, APITestCase):
             for params in ("brief=1", "fields=id,display"):
                 with self.subTest(model=model.__name__, params=params):
                     self.assertQueryCountHoldsAsRowsGrow(params)
+
+
+class ACLAddressGroupListQueryTestCase(ListQueryCountMixin, APITestCase):
+    """member_count comes from a queryset annotation, which the full and field-limited shapes render."""
+
+    model = ACLAddressGroup
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.url = reverse("plugins-api:netbox_acls-api:acladdressgroup-list")
+        cls.add_rows()
+
+    @classmethod
+    def add_rows(cls, count=2):
+        """Add `count` further address groups, each with one member."""
+        offset = cls.model.objects.count()
+        for index in range(offset, offset + count):
+            address_group = ACLAddressGroup.objects.create(name=f"address-group-{index}")
+            prefix = Prefix.objects.create(prefix=f"10.{index}.0.0/16")
+            ACLAddressGroupMember.objects.create(address_group=address_group, member=prefix)
+
+    def test_list_query_count_is_independent_of_row_count(self):
+        """Test that no list shape resolves the member count one row at a time."""
+        self.add_permissions("netbox_acls.view_acladdressgroup")
+        for params in ("limit=100", "brief=1", "fields=id,display,member_count"):
+            with self.subTest(params=params):
+                self.assertQueryCountHoldsAsRowsGrow(params)
+
+
+class ACLAddressGroupMemberListQueryTestCase(ListQueryCountMixin, APITestCase):
+    """ACLAddressGroupMember.__str__() walks address_group and member, which the narrowed shapes still render."""
+
+    model = ACLAddressGroupMember
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.address_group = ACLAddressGroup.objects.create(name="address-group-1")
+        cls.url = reverse("plugins-api:netbox_acls-api:acladdressgroupmember-list")
+        cls.add_rows()
+
+    @classmethod
+    def add_rows(cls, count=2):
+        """Add `count` further members to the address group."""
+        offset = cls.model.objects.count()
+        for index in range(offset, offset + count):
+            prefix = Prefix.objects.create(prefix=f"10.{index}.0.0/16")
+            ACLAddressGroupMember.objects.create(address_group=cls.address_group, member=prefix)
+
+    def test_narrowed_list_query_count_is_independent_of_row_count(self):
+        """Test that a brief or field-limited list does not resolve display one row at a time."""
+        self.add_permissions("netbox_acls.view_acladdressgroupmember")
+        for params in ("brief=1", "fields=id,display"):
+            with self.subTest(params=params):
+                self.assertQueryCountHoldsAsRowsGrow(params)

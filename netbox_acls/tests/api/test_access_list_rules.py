@@ -5,6 +5,7 @@ from rest_framework import status
 from ipam.models import Prefix
 from netbox_acls.choices import (
     ACLActionChoices,
+    ACLAddressFamilyChoices,
     ACLFamilyChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
@@ -13,7 +14,7 @@ from netbox_acls.choices import (
 )
 from utilities.testing import APIViewTestCases
 
-from ...models import AccessList, ACLExtendedRule, ACLStandardRule
+from ...models import AccessList, ACLAddressGroup, ACLExtendedRule, ACLStandardRule
 
 
 class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
@@ -27,6 +28,7 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
     user_permissions = (
         "ipam.view_prefix",
         "netbox_acls.view_accesslist",
+        "netbox_acls.view_acladdressgroup",
     )
 
     @classmethod
@@ -53,6 +55,11 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         )
         prefix2 = Prefix.objects.create(
             prefix="10.0.1.0/24",
+        )
+
+        # Address Group
+        address_group = ACLAddressGroup.objects.create(
+            name="address-group-1",
         )
 
         acl_standard_rules = (
@@ -105,6 +112,14 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 "description": "Rule 30",
                 "action": ACLRuleActionChoices.ACTION_REMARK,
                 "remark": "Remark 2",
+            },
+            {
+                "access_list": access_list_vm.id,
+                "sequence": 40,
+                "description": "Rule 40",
+                "action": ACLRuleActionChoices.ACTION_PERMIT,
+                "source_type": "netbox_acls.acladdressgroup",
+                "source_id": address_group.id,
             },
         ]
         cls.bulk_update_data = {
@@ -347,6 +362,22 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         self.assertHttpStatus(response, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 2)
 
+    def test_create_rejects_an_address_group_of_another_family(self):
+        """Test that an IPv4 access list rejects an IPv6 address group as source."""
+        self.add_permissions("netbox_acls.add_aclstandardrule")
+        address_group = ACLAddressGroup.objects.create(
+            name="address-group-v6",
+            family=ACLAddressFamilyChoices.FAMILY_IPV6,
+        )
+        data = {
+            **self.create_data[0],
+            "sequence": 550,
+            "source_type": "netbox_acls.acladdressgroup",
+            "source_id": address_group.id,
+        }
+        response = self.client.post(self._get_list_url(), data, format="json", **self.header)
+        self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
+
 
 class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
     """
@@ -359,6 +390,7 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
     user_permissions = (
         "ipam.view_prefix",
         "netbox_acls.view_accesslist",
+        "netbox_acls.view_acladdressgroup",
     )
 
     @classmethod
@@ -385,6 +417,11 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         )
         prefix2 = Prefix.objects.create(
             prefix="10.0.1.0/24",
+        )
+
+        # Address Group
+        address_group = ACLAddressGroup.objects.create(
+            name="address-group-1",
         )
 
         acl_extended_rules = (
@@ -461,6 +498,17 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 "source_id": prefix1.id,
                 "destination_type": "ipam.prefix",
                 "destination_id": prefix2.id,
+            },
+            {
+                "access_list": access_list_vm.id,
+                "sequence": 50,
+                "description": "Rule 50",
+                "action": ACLRuleActionChoices.ACTION_PERMIT,
+                "protocol": ACLProtocolChoices.PROTOCOL_TCP,
+                "source_type": "netbox_acls.acladdressgroup",
+                "source_id": address_group.id,
+                "destination_type": "netbox_acls.acladdressgroup",
+                "destination_id": address_group.id,
             },
         ]
         cls.bulk_update_data = {

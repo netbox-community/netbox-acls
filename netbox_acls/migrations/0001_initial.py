@@ -19,8 +19,8 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("extras", "0072_created_datetimefield"),
-        ("ipam", "0057_created_datetimefield"),
+        ("extras", "0060_squashed_0086"),
+        ("ipam", "0054_squashed_0067"),
     ]
 
     operations = [

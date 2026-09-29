@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("contenttypes", "0002_remove_content_type_name"),
-        ("extras", "0072_created_datetimefield"),
+        ("extras", "0060_squashed_0086"),
         ("extras", "0128_tableconfig"),
         ("ipam", "0081_remove_service_device_virtual_machine_add_parent_gfk_index"),
         ("users", "0015_owner"),

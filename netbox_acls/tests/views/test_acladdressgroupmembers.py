@@ -1,4 +1,5 @@
 from django.contrib.contenttypes.models import ContentType
+from django.test import override_settings
 from netaddr import IPNetwork
 
 from ipam.models import Prefix
@@ -8,6 +9,7 @@ from ...models import ACLAddressGroup, ACLAddressGroupMember
 from .base import PluginViewTestCase
 
 
+@override_settings(SESSION_ENGINE="django.contrib.sessions.backends.signed_cookies")
 class ACLAddressGroupMemberViewTestCase(PluginViewTestCase, ViewTestCases.PrimaryObjectViewTestCase):
     model = ACLAddressGroupMember
     user_permissions = ("ipam.view_prefix", "netbox_acls.view_acladdressgroup")

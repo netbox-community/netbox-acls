@@ -2,6 +2,7 @@ import json
 
 import yaml
 from django.contrib.contenttypes.models import ContentType
+from django.test import override_settings
 
 from dcim.choices import InterfaceTypeChoices
 from dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
@@ -19,6 +20,7 @@ from ...models import AccessList, ACLAssignment
 from .base import PluginViewTestCase
 
 
+@override_settings(SESSION_ENGINE="django.contrib.sessions.backends.signed_cookies")
 class ACLAssignmentViewTestCase(PluginViewTestCase, ViewTestCases.PrimaryObjectViewTestCase):
     """View tests for ACLAssignment."""
 

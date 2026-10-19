@@ -1,3 +1,5 @@
+from django.test import override_settings
+
 from utilities.testing import ViewTestCases, create_tags
 
 from ...choices import ACLAddressFamilyChoices
@@ -5,6 +7,7 @@ from ...models import ACLAddressGroup
 from .base import PluginViewTestCase
 
 
+@override_settings(SESSION_ENGINE="django.contrib.sessions.backends.signed_cookies")
 class ACLAddressGroupViewTestCase(PluginViewTestCase, ViewTestCases.PrimaryObjectViewTestCase):
     model = ACLAddressGroup
 

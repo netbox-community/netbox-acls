@@ -7,8 +7,8 @@ from netbox.ui.actions import AddObject
 from utilities.views import get_view
 
 from ...choices import ACLTypeChoices
-from ...models import AccessList, ACLExtendedRule, ACLStandardRule
-from ...ui.panels import RuleTablePanel
+from ...models import AccessList, ACLAddressGroup, ACLAddressGroupMember, ACLExtendedRule, ACLStandardRule
+from ...ui.panels import MemberTablePanel, RuleTablePanel
 from .base import UITestCase
 
 
@@ -109,3 +109,53 @@ class RuleTablePanelDeclarationTestCase(SimpleTestCase):
                 self.assertEqual(set(action.url_params), {"access_list"})
                 for key in action.url_params:
                     self.assertIn(key, form.base_fields)
+
+
+class MemberTablePanelDeclarationTestCase(SimpleTestCase):
+    @staticmethod
+    def _member_panels():
+        """Return every member table panel the address group layout declares."""
+        layout = get_view(ACLAddressGroup).layout
+        return [panel for row in layout for column in row for panel in column if isinstance(panel, MemberTablePanel)]
+
+    def test_the_group_view_lists_only_its_own_members(self):
+        """Test the group view lists only its own members."""
+        panels = self._member_panels()
+
+        self.assertEqual(len(panels), 1)
+        panel = panels[0]
+        self.assertEqual(panel.model, ACLAddressGroupMember)
+        context = {"object": ACLAddressGroup(pk=7)}
+        self.assertEqual({key: value(context) for key, value in panel.filters.items()}, {"address_group_id": 7})
+
+    def test_the_add_member_action_prefills_the_group(self):
+        """Test the Add Member action prefills the group."""
+        panel = self._member_panels()[0]
+        action = next(a for a in panel.actions if isinstance(a, AddObject))
+        context = {"object": ACLAddressGroup(pk=7)}
+        self.assertEqual(action.model, ACLAddressGroupMember)
+        self.assertEqual({key: value(context) for key, value in action.url_params.items()}, {"address_group": 7})
+        self.assertIn("address_group", get_view(ACLAddressGroupMember, "edit").form.base_fields)
+
+
+class MemberTablePanelTestCase(UITestCase):
+    """Test the member table panel on the address group detail view."""
+
+    @classmethod
+    def setUpTestData(cls):
+        """Create an address group."""
+        cls.group = ACLAddressGroup.objects.create(name="member-panel")
+
+    def test_the_panel_renders_with_member_view_permission(self):
+        """Test an empty group still offers its panel to a permitted user."""
+        self.add_permissions("netbox_acls.view_acladdressgroupmember")
+        panel = MemberTablePanel()
+
+        self.assertTrue(panel.should_render(panel.get_context(self.get_context(self.group))))
+
+    def test_the_panel_is_hidden_without_member_view_permission(self):
+        """Test group-view permission does not grant membership-view permission."""
+        self.add_permissions("netbox_acls.view_acladdressgroup")
+        panel = MemberTablePanel()
+
+        self.assertFalse(panel.should_render(panel.get_context(self.get_context(self.group))))

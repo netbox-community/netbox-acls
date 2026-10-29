@@ -14,7 +14,7 @@ from ...choices import (
     ACLTypeChoices,
 )
 from ...filtersets import ACLExtendedRuleFilterSet
-from ...models import AccessList, ACLExtendedRule
+from ...models import AccessList, ACLAddressGroup, ACLExtendedRule
 from ...utils import normalize_port_ranges
 
 
@@ -201,6 +201,19 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin)
         params = {"source_aggregate": [self.aggregate.prefix]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
 
+    def test_source_address_group(self):
+        address_group = ACLAddressGroup.objects.create(name="address-group-1")
+        ACLExtendedRule.objects.create(
+            access_list=self.access_list,
+            sequence=1000,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            source=address_group,
+        )
+        params = {"source_address_group_id": [address_group.pk]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+        params = {"source_address_group": [address_group.name]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
     def test_destination_type(self):
         params = {"destination_type": "ipam.prefix"}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
@@ -239,6 +252,19 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin)
         params = {"destination_aggregate_id": [self.aggregate.pk]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
         params = {"destination_aggregate": [self.aggregate.prefix]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_destination_address_group(self):
+        address_group = ACLAddressGroup.objects.create(name="address-group-1")
+        ACLExtendedRule.objects.create(
+            access_list=self.access_list,
+            sequence=1000,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            destination=address_group,
+        )
+        params = {"destination_address_group_id": [address_group.pk]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+        params = {"destination_address_group": [address_group.name]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
 
     # comments is a TextField, which django-filter maps to a single-valued CharFilter

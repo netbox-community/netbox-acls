@@ -9,6 +9,7 @@ from netbox.search import SearchIndex, register_search
 
 from .models.access_list_rules import ACLExtendedRule, ACLStandardRule
 from .models.access_lists import AccessList
+from .models.address_groups import ACLAddressGroup
 
 
 @register_search
@@ -77,4 +78,24 @@ class ACLExtendedRuleIndex(SearchIndex):
         "destination",
         "destination_type",
         "destination_port_ranges",
+    )
+
+
+@register_search
+class ACLAddressGroupIndex(SearchIndex):
+    """
+    NetBox search definition for the ACLAddressGroup model.
+    """
+
+    model = ACLAddressGroup
+
+    fields: tuple = (
+        ("name", 100),
+        ("description", 500),
+        ("comments", 5000),
+    )
+    display_attrs: tuple = (
+        "name",
+        "family",
+        "description",
     )

@@ -22,6 +22,7 @@ from virtualization.models import VirtualMachine, VMInterface
 
 from ..choices import (
     ACLActionChoices,
+    ACLAddressFamilyChoices,
     ACLAssignmentDirectionChoices,
     ACLFamilyChoices,
     ACLProtocolChoices,
@@ -29,15 +30,19 @@ from ..choices import (
     ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
-from ..constants import ACL_ASSIGNMENT_MODELS
+from ..constants import ACL_ADDRESS_OBJECT_MODELS, ACL_ASSIGNMENT_MODELS
 from ..models import (
     AccessList,
+    ACLAddressGroup,
+    ACLAddressGroupMember,
     ACLAssignment,
     ACLExtendedRule,
     ACLStandardRule,
 )
 
 __all__ = (
+    "ACLAddressGroupFilterForm",
+    "ACLAddressGroupMemberFilterForm",
     "ACLAssignmentFilterForm",
     "ACLExtendedRuleFilterForm",
     "ACLStandardRuleFilterForm",
@@ -261,6 +266,11 @@ class ACLRuleFilterFormMixin(forms.Form):
     )
 
     # Source selectors
+    source_address_group_id = DynamicModelMultipleChoiceField(
+        queryset=ACLAddressGroup.objects.all(),
+        required=False,
+        label=_("Source Address Group"),
+    )
     source_aggregate_id = DynamicModelMultipleChoiceField(
         queryset=Aggregate.objects.all(),
         required=False,
@@ -303,6 +313,7 @@ class ACLStandardRuleFilterForm(ACLRuleFilterFormMixin, PrimaryModelFilterSetFor
             name=_("ACL Details"),
         ),
         FieldSet(
+            "source_address_group_id",
             "source_aggregate_id",
             "source_ipaddress_id",
             "source_iprange_id",
@@ -355,6 +366,7 @@ class ACLExtendedRuleFilterForm(ACLRuleFilterFormMixin, PrimaryModelFilterSetFor
             name=_("ACL Details"),
         ),
         FieldSet(
+            "source_address_group_id",
             "source_aggregate_id",
             "source_ipaddress_id",
             "source_iprange_id",
@@ -363,6 +375,7 @@ class ACLExtendedRuleFilterForm(ACLRuleFilterFormMixin, PrimaryModelFilterSetFor
             name=_("Source Details"),
         ),
         FieldSet(
+            "destination_address_group_id",
             "destination_aggregate_id",
             "destination_ipaddress_id",
             "destination_iprange_id",
@@ -402,6 +415,11 @@ class ACLExtendedRuleFilterForm(ACLRuleFilterFormMixin, PrimaryModelFilterSetFor
     )
 
     # Destination selectors
+    destination_address_group_id = DynamicModelMultipleChoiceField(
+        queryset=ACLAddressGroup.objects.all(),
+        required=False,
+        label=_("Destination Address Group"),
+    )
     destination_aggregate_id = DynamicModelMultipleChoiceField(
         queryset=Aggregate.objects.all(),
         required=False,
@@ -425,6 +443,109 @@ class ACLExtendedRuleFilterForm(ACLRuleFilterFormMixin, PrimaryModelFilterSetFor
     destination_port = forms.IntegerField(
         label=_("Destination Port"),
         required=False,
+    )
+
+    # Tag selector
+    tag = TagFilterField(model)
+
+
+class ACLAddressGroupFilterForm(PrimaryModelFilterSetForm):
+    """
+    GUI filter form to search the django ACLAddressGroup model.
+    """
+
+    model = ACLAddressGroup
+    fieldsets = (
+        FieldSet(
+            "q",
+            "tag",
+            name=None,
+        ),
+        FieldSet(
+            "family",
+            "description",
+            name=_("Address Group Details"),
+        ),
+        FieldSet(
+            "owner_group_id",
+            "owner_id",
+            name=_("Ownership"),
+        ),
+    )
+
+    # Address Group selector
+    family = forms.MultipleChoiceField(
+        choices=ACLAddressFamilyChoices,
+        required=False,
+        label=_("Family"),
+    )
+    description = forms.CharField(
+        required=False,
+        label=_("Description"),
+    )
+
+    # Tag selector
+    tag = TagFilterField(model)
+
+
+class ACLAddressGroupMemberFilterForm(OwnerFilterMixin, NetBoxModelFilterSetForm):
+    """
+    GUI filter form to search the django ACLAddressGroupMember model.
+    """
+
+    model = ACLAddressGroupMember
+    fieldsets = (
+        FieldSet(
+            "q",
+            "tag",
+            name=None,
+        ),
+        FieldSet(
+            "address_group_id",
+            "member_type_id",
+            "member_aggregate_id",
+            "member_ipaddress_id",
+            "member_iprange_id",
+            "member_prefix_id",
+            name=_("Member Details"),
+        ),
+        FieldSet(
+            "owner_group_id",
+            "owner_id",
+            name=_("Ownership"),
+        ),
+    )
+
+    # Member selector
+    address_group_id = DynamicModelMultipleChoiceField(
+        queryset=ACLAddressGroup.objects.all(),
+        required=False,
+        label=_("Address Group"),
+    )
+    member_type_id = ContentTypeMultipleChoiceField(
+        queryset=ContentType.objects.filter(ACL_ADDRESS_OBJECT_MODELS),
+        required=False,
+        label=_("Member Type"),
+    )
+    member_aggregate_id = DynamicModelMultipleChoiceField(
+        queryset=Aggregate.objects.all(),
+        required=False,
+        label=_("Member Aggregate"),
+    )
+    member_ipaddress_id = DynamicModelMultipleChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        label=_("Member IP-Address"),
+    )
+    member_iprange_id = DynamicModelMultipleChoiceField(
+        queryset=IPRange.objects.all(),
+        required=False,
+        label=_("Member IP-Range"),
+    )
+    member_prefix_id = DynamicModelMultipleChoiceField(
+        queryset=Prefix.objects.all(),
+        required=False,
+        label=_("Member Prefix"),
     )
 
     # Tag selector

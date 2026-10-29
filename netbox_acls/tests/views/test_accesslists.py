@@ -1,6 +1,7 @@
 import html
 import re
 
+from django.test import override_settings
 from django.urls import reverse
 
 from utilities.testing import ViewTestCases, create_tags
@@ -15,6 +16,7 @@ from ...models import AccessList, ACLExtendedRule, ACLStandardRule
 from .base import PluginViewTestCase
 
 
+@override_settings(SESSION_ENGINE="django.contrib.sessions.backends.signed_cookies")
 class AccessListViewTestCase(PluginViewTestCase, ViewTestCases.PrimaryObjectViewTestCase):
     """View tests for AccessList."""
 

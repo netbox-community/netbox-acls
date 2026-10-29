@@ -3,6 +3,8 @@ import strawberry_django
 
 from .types import (
     AccessListType,
+    ACLAddressGroupMemberType,
+    ACLAddressGroupType,
     ACLAssignmentType,
     ACLExtendedRuleType,
     ACLStandardRuleType,
@@ -26,3 +28,9 @@ class NetBoxACLSQuery:
 
     acl_assignment: ACLAssignmentType = strawberry_django.field()
     acl_assignment_list: list[ACLAssignmentType] = strawberry_django.field()
+
+    acl_address_group: ACLAddressGroupType = strawberry_django.field()
+    acl_address_group_list: list[ACLAddressGroupType] = strawberry_django.field()
+
+    acl_address_group_member: ACLAddressGroupMemberType = strawberry_django.field()
+    acl_address_group_member_list: list[ACLAddressGroupMemberType] = strawberry_django.field()

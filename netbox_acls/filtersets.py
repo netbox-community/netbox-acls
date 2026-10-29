@@ -25,6 +25,7 @@ from virtualization.models import VirtualMachine, VMInterface
 
 from .choices import (
     ACLActionChoices,
+    ACLAddressFamilyChoices,
     ACLAssignmentDirectionChoices,
     ACLFamilyChoices,
     ACLProtocolChoices,
@@ -32,9 +33,11 @@ from .choices import (
     ACLTypeChoices,
 )
 from .constants import ACL_ASSIGNMENT_SITE_TRAVERSAL_PATHS
-from .models import AccessList, ACLAssignment, ACLExtendedRule, ACLStandardRule
+from .models import AccessList, ACLAddressGroup, ACLAddressGroupMember, ACLAssignment, ACLExtendedRule, ACLStandardRule
 
 __all__ = (
+    "ACLAddressGroupFilterSet",
+    "ACLAddressGroupMemberFilterSet",
     "ACLAssignmentFilterSet",
     "ACLExtendedRuleFilterSet",
     "ACLStandardRuleFilterSet",
@@ -377,6 +380,18 @@ class ACLRuleFilterSetMixin(django_filters.FilterSet):
     source_type = ContentTypeFilter(
         label=_("Source Type"),
     )
+    source_address_group = django_filters.ModelMultipleChoiceFilter(
+        field_name="_source_acladdressgroup__name",
+        queryset=ACLAddressGroup.objects.all(),
+        to_field_name="name",
+        label=_("Source Address Group (name)"),
+    )
+    source_address_group_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="_source_acladdressgroup",
+        queryset=ACLAddressGroup.objects.all(),
+        to_field_name="id",
+        label=_("Source Address Group (ID)"),
+    )
     source_aggregate = django_filters.ModelMultipleChoiceFilter(
         field_name="_source_aggregate__prefix",
         queryset=Aggregate.objects.all(),
@@ -512,6 +527,18 @@ class ACLExtendedRuleFilterSet(ACLRuleFilterSetMixin, PrimaryModelFilterSet):
     destination_type = ContentTypeFilter(
         label=_("Destination Type"),
     )
+    destination_address_group = django_filters.ModelMultipleChoiceFilter(
+        field_name="_destination_acladdressgroup__name",
+        queryset=ACLAddressGroup.objects.all(),
+        to_field_name="name",
+        label=_("Destination Address Group (name)"),
+    )
+    destination_address_group_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="_destination_acladdressgroup",
+        queryset=ACLAddressGroup.objects.all(),
+        to_field_name="id",
+        label=_("Destination Address Group (ID)"),
+    )
     destination_aggregate = django_filters.ModelMultipleChoiceFilter(
         field_name="_destination_aggregate__prefix",
         queryset=Aggregate.objects.all(),
@@ -589,3 +616,126 @@ class ACLExtendedRuleFilterSet(ACLRuleFilterSetMixin, PrimaryModelFilterSet):
             "description",
             "comments",
         )
+
+
+@register_filterset
+class ACLAddressGroupFilterSet(PrimaryModelFilterSet):
+    """
+    Define the filter set for the django model ACLAddressGroup.
+    """
+
+    family = django_filters.MultipleChoiceFilter(
+        choices=ACLAddressFamilyChoices,
+        distinct=False,
+    )
+
+    class Meta:
+        model = ACLAddressGroup
+        fields = (
+            "id",
+            "name",
+            "family",
+            "description",
+            "comments",
+        )
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        query = Q(name__icontains=value) | Q(description__icontains=value) | Q(comments__icontains=value)
+        return queryset.filter(query)
+
+
+@register_filterset
+class ACLAddressGroupMemberFilterSet(OwnerFilterMixin, NetBoxModelFilterSet):
+    """
+    Define the filter set for the django model ACLAddressGroupMember.
+    """
+
+    # Address Group
+    address_group = django_filters.ModelMultipleChoiceFilter(
+        field_name="address_group__name",
+        queryset=ACLAddressGroup.objects.all(),
+        to_field_name="name",
+        label=_("Address Group (name)"),
+    )
+    address_group_id = django_filters.ModelMultipleChoiceFilter(
+        queryset=ACLAddressGroup.objects.all(),
+        to_field_name="id",
+        label=_("Address Group (ID)"),
+    )
+
+    # Member
+    member_type = MultiValueContentTypeFilter(
+        label=_("Member Type"),
+    )
+    member_type_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="member_type",
+        queryset=ContentType.objects.all(),
+        distinct=False,
+        label=_("Member Type (ID)"),
+    )
+    member_aggregate = django_filters.ModelMultipleChoiceFilter(
+        field_name="_member_aggregate__prefix",
+        queryset=Aggregate.objects.all(),
+        to_field_name="prefix",
+        label=_("Member Aggregate (name)"),
+    )
+    member_aggregate_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="_member_aggregate",
+        queryset=Aggregate.objects.all(),
+        to_field_name="id",
+        label=_("Member Aggregate (ID)"),
+    )
+    member_ipaddress = django_filters.ModelMultipleChoiceFilter(
+        field_name="_member_ipaddress__address",
+        queryset=IPAddress.objects.all(),
+        to_field_name="address",
+        label=_("Member IP-Address (name)"),
+    )
+    member_ipaddress_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="_member_ipaddress",
+        queryset=IPAddress.objects.all(),
+        to_field_name="id",
+        label=_("Member IP-Address (ID)"),
+    )
+    member_iprange = django_filters.ModelMultipleChoiceFilter(
+        field_name="_member_iprange__start_address",
+        queryset=IPRange.objects.all(),
+        to_field_name="start_address",
+        label=_("Member IP-Range (name)"),
+    )
+    member_iprange_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="_member_iprange",
+        queryset=IPRange.objects.all(),
+        to_field_name="id",
+        label=_("Member IP-Range (ID)"),
+    )
+    member_prefix = django_filters.ModelMultipleChoiceFilter(
+        field_name="_member_prefix__prefix",
+        queryset=Prefix.objects.all(),
+        to_field_name="prefix",
+        label=_("Member Prefix (name)"),
+    )
+    member_prefix_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="_member_prefix",
+        queryset=Prefix.objects.all(),
+        to_field_name="id",
+        label=_("Member Prefix (ID)"),
+    )
+
+    class Meta:
+        model = ACLAddressGroupMember
+        fields = (
+            "id",
+            "address_group",
+            "member_type",
+            "member_id",
+            "comments",
+        )
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        query = Q(address_group__name__icontains=value) | Q(comments__icontains=value)
+        return queryset.filter(query)

@@ -12,9 +12,11 @@ from netbox.api.gfk_fields import GFKSerializerField
 from netbox.api.serializers import NetBoxModelSerializer, PrimaryModelSerializer
 from users.api.serializers_.mixins import OwnerMixin
 
-from ..constants import ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
+from ..constants import ACL_ADDRESS_OBJECT_MODELS, ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
 from ..models import (
     AccessList,
+    ACLAddressGroup,
+    ACLAddressGroupMember,
     ACLAssignment,
     ACLExtendedRule,
     ACLStandardRule,
@@ -22,6 +24,8 @@ from ..models import (
 from ..utils import normalize_log_options
 
 __all__ = [
+    "ACLAddressGroupMemberSerializer",
+    "ACLAddressGroupSerializer",
     "ACLAssignmentSerializer",
     "ACLExtendedRuleSerializer",
     "ACLStandardRuleSerializer",
@@ -274,3 +278,72 @@ class ACLExtendedRuleSerializer(ACLRuleSerializerMixin, PrimaryModelSerializer):
         Fetches the source port terms for the given object.
         """
         return obj.source_port_ranges_list
+
+
+#
+# Address Groups
+#
+
+
+class ACLAddressGroupSerializer(PrimaryModelSerializer):
+    """
+    Defines the serializer for the django ACLAddressGroup model and associates it with a view.
+    """
+
+    url = serializers.HyperlinkedIdentityField(
+        view_name="plugins-api:netbox_acls-api:acladdressgroup-detail",
+    )
+    member_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = ACLAddressGroup
+        fields = (
+            "id",
+            "url",
+            "display",
+            "name",
+            "family",
+            "description",
+            "owner",
+            "comments",
+            "tags",
+            "custom_fields",
+            "created",
+            "last_updated",
+            "member_count",
+        )
+        brief_fields = ("id", "url", "display", "name")
+
+
+class ACLAddressGroupMemberSerializer(OwnerMixin, NetBoxModelSerializer):
+    """
+    Defines the serializer for the django ACLAddressGroupMember model and associates it with a view.
+    """
+
+    url = serializers.HyperlinkedIdentityField(
+        view_name="plugins-api:netbox_acls-api:acladdressgroupmember-detail",
+    )
+    address_group = ACLAddressGroupSerializer(nested=True, required=True)
+    member_type = ContentTypeField(
+        queryset=ContentType.objects.filter(ACL_ADDRESS_OBJECT_MODELS),
+    )
+    member = GFKSerializerField(read_only=True)
+
+    class Meta:
+        model = ACLAddressGroupMember
+        fields = (
+            "id",
+            "url",
+            "display",
+            "address_group",
+            "member_type",
+            "member_id",
+            "member",
+            "owner",
+            "comments",
+            "tags",
+            "custom_fields",
+            "created",
+            "last_updated",
+        )
+        brief_fields = ("id", "url", "display", "address_group")

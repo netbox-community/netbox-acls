@@ -93,7 +93,8 @@ class ACLStandardRuleType(PrimaryObjectType):
     source_type: Annotated["ContentTypeType", strawberry.lazy("netbox.graphql.types")] | None
     source: (
         Annotated[
-            Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")]
+            Annotated["ACLAddressGroupType", strawberry.lazy("netbox_acls.graphql.types")]
+            | Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")]
             | Annotated["IPAddressType", strawberry.lazy("ipam.graphql.types")]
             | Annotated["IPRangeType", strawberry.lazy("ipam.graphql.types")]
             | Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")],
@@ -104,6 +105,7 @@ class ACLStandardRuleType(PrimaryObjectType):
     log_options: list[str] | None
 
     # Cached related source objects
+    _source_acladdressgroup: Annotated["ACLAddressGroupType", strawberry.lazy("netbox_acls.graphql.types")] | None
     _source_aggregate: Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")] | None
     _source_ipaddress: Annotated["IPAddressType", strawberry.lazy("ipam.graphql.types")] | None
     _source_iprange: Annotated["IPRangeType", strawberry.lazy("ipam.graphql.types")] | None
@@ -131,7 +133,8 @@ class ACLExtendedRuleType(PrimaryObjectType):
     source_type: Annotated["ContentTypeType", strawberry.lazy("netbox.graphql.types")] | None
     source: (
         Annotated[
-            Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")]
+            Annotated["ACLAddressGroupType", strawberry.lazy("netbox_acls.graphql.types")]
+            | Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")]
             | Annotated["IPAddressType", strawberry.lazy("ipam.graphql.types")]
             | Annotated["IPRangeType", strawberry.lazy("ipam.graphql.types")]
             | Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")],
@@ -143,7 +146,8 @@ class ACLExtendedRuleType(PrimaryObjectType):
     destination_type: Annotated["ContentTypeType", strawberry.lazy("netbox.graphql.types")] | None
     destination: (
         Annotated[
-            Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")]
+            Annotated["ACLAddressGroupType", strawberry.lazy("netbox_acls.graphql.types")]
+            | Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")]
             | Annotated["IPAddressType", strawberry.lazy("ipam.graphql.types")]
             | Annotated["IPRangeType", strawberry.lazy("ipam.graphql.types")]
             | Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")],
@@ -155,13 +159,81 @@ class ACLExtendedRuleType(PrimaryObjectType):
     log_options: list[str] | None
 
     # Cached related source objects
+    _source_acladdressgroup: Annotated["ACLAddressGroupType", strawberry.lazy("netbox_acls.graphql.types")] | None
     _source_aggregate: Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")] | None
     _source_ipaddress: Annotated["IPAddressType", strawberry.lazy("ipam.graphql.types")] | None
     _source_iprange: Annotated["IPRangeType", strawberry.lazy("ipam.graphql.types")] | None
     _source_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")] | None
 
     # Cached related destination objects
+    _destination_acladdressgroup: Annotated["ACLAddressGroupType", strawberry.lazy("netbox_acls.graphql.types")] | None
     _destination_aggregate: Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")] | None
     _destination_ipaddress: Annotated["IPAddressType", strawberry.lazy("ipam.graphql.types")] | None
     _destination_iprange: Annotated["IPRangeType", strawberry.lazy("ipam.graphql.types")] | None
     _destination_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")] | None
+
+
+@strawberry_django.type(
+    models.ACLAddressGroup,
+    fields="__all__",
+    filters=filters.ACLAddressGroupFilter,
+)
+class ACLAddressGroupType(PrimaryObjectType):
+    """
+    Defines the object type for the django model ACLAddressGroup.
+    """
+
+    # Related models
+    acladdressgroupmembers: list[
+        Annotated[
+            "ACLAddressGroupMemberType",
+            strawberry.lazy("netbox_acls.graphql.types"),
+        ]
+    ]
+    accesslist_standard_rule_sources: list[
+        Annotated[
+            "ACLStandardRuleType",
+            strawberry.lazy("netbox_acls.graphql.types"),
+        ]
+    ]
+    accesslist_extended_rule_sources: list[
+        Annotated[
+            "ACLExtendedRuleType",
+            strawberry.lazy("netbox_acls.graphql.types"),
+        ]
+    ]
+    accesslist_extended_rule_destinations: list[
+        Annotated[
+            "ACLExtendedRuleType",
+            strawberry.lazy("netbox_acls.graphql.types"),
+        ]
+    ]
+
+
+@strawberry_django.type(
+    models.ACLAddressGroupMember,
+    fields="__all__",
+    exclude=["member_type", "member_id"],
+    filters=filters.ACLAddressGroupMemberFilter,
+)
+class ACLAddressGroupMemberType(OwnerMixin, NetBoxObjectType):
+    """
+    Defines the object type for the django model ACLAddressGroupMember.
+    """
+
+    # Model fields
+    address_group: Annotated["ACLAddressGroupType", strawberry.lazy("netbox_acls.graphql.types")]
+    member_type: Annotated["ContentTypeType", strawberry.lazy("netbox.graphql.types")]
+    member: Annotated[
+        Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")]
+        | Annotated["IPAddressType", strawberry.lazy("ipam.graphql.types")]
+        | Annotated["IPRangeType", strawberry.lazy("ipam.graphql.types")]
+        | Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")],
+        strawberry.union("ACLAddressGroupMemberObjectType"),
+    ]
+
+    # Cached related member objects
+    _member_aggregate: Annotated["AggregateType", strawberry.lazy("ipam.graphql.types")] | None
+    _member_ipaddress: Annotated["IPAddressType", strawberry.lazy("ipam.graphql.types")] | None
+    _member_iprange: Annotated["IPRangeType", strawberry.lazy("ipam.graphql.types")] | None
+    _member_prefix: Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")] | None

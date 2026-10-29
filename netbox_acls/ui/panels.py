@@ -8,6 +8,8 @@ from netbox.ui.panels import ObjectAttributesPanel, ObjectsTablePanel
 from .attrs import AssignedObjectAttr, LogOptionsAttr, RuleCountAttr
 
 __all__ = (
+    "ACLAddressGroupMemberPanel",
+    "ACLAddressGroupPanel",
     "ACLAssignmentPanel",
     "ACLExtendedRuleDetailsPanel",
     "ACLExtendedRulePanel",
@@ -15,6 +17,7 @@ __all__ = (
     "ACLStandardRuleDetailsPanel",
     "ACLStandardRulePanel",
     "AccessListPanel",
+    "MemberTablePanel",
     "RuleTablePanel",
 )
 
@@ -124,3 +127,40 @@ class ACLRuleLoggingPanel(ObjectAttributesPanel):
 
     log_matches = attrs.BooleanAttr("log_matches", label=_("Log Matches"))
     log_options = LogOptionsAttr("log_options_badges", label=_("Log Options"))
+
+
+class ACLAddressGroupPanel(ObjectAttributesPanel):
+    """Identity attributes of an address group."""
+
+    title = _("ACL Address Group")
+
+    family = attrs.ChoiceAttr("family", label=_("Family"))
+    description = attrs.TextAttr("description", label=_("Description"))
+
+
+class MemberTablePanel(ObjectsTablePanel):
+    """Members of the viewed address group."""
+
+    def __init__(self):
+        super().__init__(
+            "netbox_acls.acladdressgroupmember",
+            filters={"address_group_id": lambda context: context["object"].pk},
+            exclude_columns=["address_group"],
+            title=_("Members"),
+            actions=[
+                actions.AddObject(
+                    "netbox_acls.acladdressgroupmember",
+                    url_params={"address_group": lambda context: context["object"].pk},
+                    label=_("Add Member"),
+                ),
+            ],
+        )
+
+
+class ACLAddressGroupMemberPanel(ObjectAttributesPanel):
+    """Identity attributes of an address group member."""
+
+    title = _("ACL Address Group Member")
+
+    address_group = attrs.RelatedObjectAttr("address_group", linkify=True, label=_("Address Group"))
+    member = attrs.GenericForeignKeyAttr("member", linkify=True, label=_("Member"))

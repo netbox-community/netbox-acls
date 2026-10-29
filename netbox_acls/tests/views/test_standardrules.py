@@ -1,4 +1,5 @@
 from django.contrib.contenttypes.models import ContentType
+from django.test import override_settings
 
 from ipam.models import Prefix
 from utilities.testing import ViewTestCases, create_tags
@@ -14,6 +15,7 @@ from ...models import AccessList, ACLStandardRule
 from .base import ACLRuleSequenceTestsMixin, PluginViewTestCase, build_ipam_objects
 
 
+@override_settings(SESSION_ENGINE="django.contrib.sessions.backends.signed_cookies")
 class ACLStandardRuleViewTestCase(
     ACLRuleSequenceTestsMixin,
     PluginViewTestCase,

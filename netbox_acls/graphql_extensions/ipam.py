@@ -2,7 +2,7 @@
 
 import strawberry
 
-from .base import ACLRuleReferences
+from .base import ACLAddressGroupMemberReferences, ACLRuleReferences
 
 __all__ = (
     "AggregateTypeExtension",
@@ -13,28 +13,28 @@ __all__ = (
 
 
 @strawberry.type
-class AggregateTypeExtension(ACLRuleReferences):
+class AggregateTypeExtension(ACLAddressGroupMemberReferences, ACLRuleReferences):
     """ACL additions to NetBox's Aggregate type."""
 
     models = ["ipam.aggregate"]
 
 
 @strawberry.type
-class IPAddressTypeExtension(ACLRuleReferences):
+class IPAddressTypeExtension(ACLAddressGroupMemberReferences, ACLRuleReferences):
     """ACL additions to NetBox's IPAddress type."""
 
     models = ["ipam.ipaddress"]
 
 
 @strawberry.type
-class IPRangeTypeExtension(ACLRuleReferences):
+class IPRangeTypeExtension(ACLAddressGroupMemberReferences, ACLRuleReferences):
     """ACL additions to NetBox's IPRange type."""
 
     models = ["ipam.iprange"]
 
 
 @strawberry.type
-class PrefixTypeExtension(ACLRuleReferences):
+class PrefixTypeExtension(ACLAddressGroupMemberReferences, ACLRuleReferences):
     """ACL additions to NetBox's Prefix type."""
 
     models = ["ipam.prefix"]

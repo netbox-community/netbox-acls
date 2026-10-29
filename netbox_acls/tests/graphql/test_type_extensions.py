@@ -16,7 +16,14 @@ from ...choices import (
     ACLRuleActionChoices,
     ACLTypeChoices,
 )
-from ...models import AccessList, ACLAssignment, ACLExtendedRule, ACLStandardRule
+from ...models import (
+    AccessList,
+    ACLAddressGroup,
+    ACLAddressGroupMember,
+    ACLAssignment,
+    ACLExtendedRule,
+    ACLStandardRule,
+)
 
 ASSIGNMENT_FIELDS = ("acl_assignments: [ACLAssignmentType!]!",)
 
@@ -26,16 +33,18 @@ RULE_FIELDS = (
     "acl_extended_rule_destinations: [ACLExtendedRuleType!]!",
 )
 
+ADDRESS_GROUP_FIELDS = ("acl_address_group_members: [ACLAddressGroupMemberType!]!",)
+
 CORE_TYPE_FIELDS = {
     "DeviceType": ASSIGNMENT_FIELDS,
     "InterfaceType": ASSIGNMENT_FIELDS,
     "VirtualChassisType": ASSIGNMENT_FIELDS,
     "VirtualMachineType": ASSIGNMENT_FIELDS,
     "VMInterfaceType": ASSIGNMENT_FIELDS,
-    "AggregateType": RULE_FIELDS,
-    "IPAddressType": RULE_FIELDS,
-    "IPRangeType": RULE_FIELDS,
-    "PrefixType": RULE_FIELDS,
+    "AggregateType": RULE_FIELDS + ADDRESS_GROUP_FIELDS,
+    "IPAddressType": RULE_FIELDS + ADDRESS_GROUP_FIELDS,
+    "IPRangeType": RULE_FIELDS + ADDRESS_GROUP_FIELDS,
+    "PrefixType": RULE_FIELDS + ADDRESS_GROUP_FIELDS,
 }
 
 
@@ -102,6 +111,8 @@ class GraphQLTypeExtensionQueryTestCase(APITestCase):
             source=cls.prefix,
             destination=cls.prefix,
         )
+        address_group = ACLAddressGroup.objects.create(name="Address-Group-1")
+        cls.address_group_member = ACLAddressGroupMember.objects.create(address_group=address_group, member=cls.prefix)
 
     def _query(self, query):
         """Post a GraphQL query as the test user and return the parsed data."""
@@ -156,3 +167,15 @@ class GraphQLTypeExtensionQueryTestCase(APITestCase):
         self.assertEqual(data["prefix"]["acl_standard_rule_sources"], [{"id": str(self.standard_rule.pk)}])
         self.assertEqual(data["prefix"]["acl_extended_rule_sources"], [{"id": str(self.extended_rule.pk)}])
         self.assertEqual(data["prefix"]["acl_extended_rule_destinations"], [{"id": str(self.extended_rule.pk)}])
+
+    def test_prefix_exposes_its_address_group_memberships(self):
+        """Test an IPAM object reaches the address group memberships referencing it."""
+        self.add_permissions("ipam.view_prefix", "netbox_acls.view_acladdressgroupmember")
+        data = self._query(f"{{ prefix(id: {self.prefix.pk}) {{ acl_address_group_members {{ id }} }} }}")
+        self.assertEqual(data["prefix"]["acl_address_group_members"], [{"id": str(self.address_group_member.pk)}])
+
+    def test_memberships_are_hidden_without_the_view_permission(self):
+        """Test a user who may not view address group memberships sees none through the core type."""
+        self.add_permissions("ipam.view_prefix")
+        data = self._query(f"{{ prefix(id: {self.prefix.pk}) {{ acl_address_group_members {{ id }} }} }}")
+        self.assertEqual(data["prefix"]["acl_address_group_members"], [])

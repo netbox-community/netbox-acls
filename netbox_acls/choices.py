@@ -6,6 +6,7 @@ from utilities.choices import ChoiceSet
 
 __all__ = (
     "ACLActionChoices",
+    "ACLAddressFamilyChoices",
     "ACLAssignmentDirectionChoices",
     "ACLAssignmentDirectionUIChoices",
     "ACLFamilyChoices",
@@ -48,6 +49,22 @@ class ACLFamilyChoices(ChoiceSet):
         (FAMILY_IPV4, "IPv4", "blue"),
         (FAMILY_IPV6, "IPv6", "purple"),
         (FAMILY_DUAL, "Dual", "cyan"),
+    ]
+
+
+class ACLAddressFamilyChoices(ChoiceSet):
+    """
+    Single IP families supported by address groups.
+    """
+
+    key = "ACLAddressGroup.family"
+
+    FAMILY_IPV4 = "ipv4"
+    FAMILY_IPV6 = "ipv6"
+
+    CHOICES = [
+        (FAMILY_IPV4, "IPv4", "blue"),
+        (FAMILY_IPV6, "IPv6", "purple"),
     ]
 
 

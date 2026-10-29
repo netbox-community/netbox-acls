@@ -96,6 +96,27 @@ aclassignment_item = PluginMenuItem(
     ),
 )
 
+# ACL Address Group
+acladdressgroup_item = PluginMenuItem(
+    link="plugins:netbox_acls:acladdressgroup_list",
+    link_text="Address Groups",
+    permissions=["netbox_acls.view_acladdressgroup"],
+    buttons=(
+        PluginMenuButton(
+            link="plugins:netbox_acls:acladdressgroup_add",
+            title="Add",
+            icon_class="mdi mdi-plus-thick",
+            permissions=["netbox_acls.add_acladdressgroup"],
+        ),
+        PluginMenuButton(
+            link="plugins:netbox_acls:acladdressgroup_bulk_import",
+            title="Import",
+            icon_class="mdi mdi-upload",
+            permissions=["netbox_acls.add_acladdressgroup"],
+        ),
+    ),
+)
+
 
 if plugin_settings.get("top_level_menu", True):
     menu = PluginMenu(
@@ -115,6 +136,10 @@ if plugin_settings.get("top_level_menu", True):
                     aclextendedrule_item,
                 ),
             ),
+            (
+                "Groups",
+                (acladdressgroup_item,),
+            ),
         ),
         icon_class="mdi mdi-lock",
     )
@@ -124,4 +149,5 @@ else:
         aclassignment_item,
         aclstandardrule_item,
         aclextendedrule_item,
+        acladdressgroup_item,
     )

@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.contenttypes.models import ContentType
+from django.db.backends.postgresql.psycopg_any import NumericRange
 from django.test import TestCase
 from netaddr import IPNetwork
 
@@ -44,7 +45,7 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
             default_action=ACLActionChoices.ACTION_DENY,
         )
 
-    def _bound_form(self, **overrides):
+    def _bound_form(self, instance=None, **overrides):
         """Bind the form, so the posted types reach __init__."""
         data = {
             "access_list": self.access_list.pk,
@@ -57,16 +58,18 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
             "destination_object_id": self.destination_prefix.pk,
         }
         data.update(overrides)
-        return ACLExtendedRuleForm(data=data)
+        return ACLExtendedRuleForm(data=data, instance=instance)
 
-    def _rule(self, sequence):
-        return ACLExtendedRule.objects.create(
-            access_list=self.access_list,
-            sequence=sequence,
-            action=ACLRuleActionChoices.ACTION_PERMIT,
-            source=self.prefix,
-            destination=self.destination_prefix,
-        )
+    def _rule(self, sequence, **overrides):
+        values = {
+            "access_list": self.access_list,
+            "sequence": sequence,
+            "action": ACLRuleActionChoices.ACTION_PERMIT,
+            "source": self.prefix,
+            "destination": self.destination_prefix,
+        }
+        values.update(overrides)
+        return ACLExtendedRule.objects.create(**values)
 
     def test_instance_seeds_both_object_fields(self):
         """Both roles reach the form as initial values, not just the source."""
@@ -138,7 +141,7 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
 
     def test_source_type_choices_limited(self):
         """Test that the source type picker offers only the ipam models a rule accepts."""
-        form = ACLExtendedRuleForm()
+        form = ACLExtendedRuleForm(initial={"action": ACLRuleActionChoices.ACTION_PERMIT})
         self.assertQuerySetEqual(
             form.fields["source"].content_type_field.queryset.order_by("pk"),
             ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS).order_by("pk"),
@@ -147,7 +150,7 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
 
     def test_destination_type_choices_limited(self):
         """Test that the destination type picker offers only the ipam models a rule accepts."""
-        form = ACLExtendedRuleForm()
+        form = ACLExtendedRuleForm(initial={"action": ACLRuleActionChoices.ACTION_PERMIT})
         self.assertQuerySetEqual(
             form.fields["destination"].content_type_field.queryset.order_by("pk"),
             ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS).order_by("pk"),
@@ -249,7 +252,7 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
 
     def test_logging_fields_are_present(self):
         """Test that the model form exposes both logging fields."""
-        form = ACLExtendedRuleForm()
+        form = ACLExtendedRuleForm(initial={"action": ACLRuleActionChoices.ACTION_PERMIT})
         self.assertIn("log_matches", form.fields)
         self.assertIn("log_options", form.fields)
 
@@ -291,6 +294,160 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         )
         self.assertFalse(form.is_valid())
         self.assertIn("log_options", form.errors)
+
+    def test_remark_action_removes_the_match_criteria(self):
+        """Test that a remark rule's form hides the match criteria and logging but keeps the remark."""
+        form = self._bound_form(action=ACLRuleActionChoices.ACTION_REMARK, remark="Note")
+        for field_name in (
+            "source",
+            "source_port_ranges",
+            "destination",
+            "destination_port_ranges",
+            "protocol",
+            "log_matches",
+            "log_options",
+        ):
+            with self.subTest(field_name=field_name):
+                self.assertNotIn(field_name, form.fields)
+        self.assertIn("remark", form.fields)
+
+    def test_blank_action_removes_the_match_criteria(self):
+        """Test that a new rule's form offers no match criteria until an action is picked."""
+        form = ACLExtendedRuleForm()
+        for field_name in (
+            "source",
+            "source_port_ranges",
+            "destination",
+            "destination_port_ranges",
+            "protocol",
+            "log_matches",
+            "log_options",
+        ):
+            with self.subTest(field_name=field_name):
+                self.assertNotIn(field_name, form.fields)
+        self.assertIn("remark", form.fields)
+
+    def test_deny_action_keeps_the_match_criteria(self):
+        """Test that a deny rule's form offers every match criterion."""
+        form = self._bound_form(action=ACLRuleActionChoices.ACTION_DENY)
+        for field_name in (
+            "source",
+            "source_port_ranges",
+            "destination",
+            "destination_port_ranges",
+            "protocol",
+            "log_matches",
+            "log_options",
+        ):
+            with self.subTest(field_name=field_name):
+                self.assertIn(field_name, form.fields)
+
+    def test_remark_action_drops_the_emptied_fieldsets(self):
+        """Test that a remark rule's form keeps only the fieldsets with a field left."""
+        form = self._bound_form(action=ACLRuleActionChoices.ACTION_REMARK, remark="Note")
+        self.assertEqual(
+            [str(fieldset.name) for fieldset in form.fieldsets],
+            ["Access List Details", "Rule Definition", "Remark"],
+        )
+
+    def test_icmp_protocol_removes_the_port_fields(self):
+        """Test that an ICMP rule's form hides both port fields and keeps both objects."""
+        form = self._bound_form(protocol=ACLProtocolChoices.PROTOCOL_ICMP)
+        self.assertNotIn("source_port_ranges", form.fields)
+        self.assertNotIn("destination_port_ranges", form.fields)
+        self.assertIn("source", form.fields)
+        self.assertIn("destination", form.fields)
+
+    def test_udp_protocol_keeps_the_port_fields(self):
+        """Test that a UDP rule's form keeps both port fields."""
+        form = self._bound_form(protocol=ACLProtocolChoices.PROTOCOL_UDP)
+        self.assertIn("source_port_ranges", form.fields)
+        self.assertIn("destination_port_ranges", form.fields)
+
+    def test_blank_protocol_removes_the_port_fields(self):
+        """Test that a rule without a protocol offers no port fields."""
+        form = self._bound_form(protocol="")
+        self.assertNotIn("source_port_ranges", form.fields)
+        self.assertNotIn("destination_port_ranges", form.fields)
+
+    def test_unbound_form_follows_the_stored_protocol(self):
+        """Test that the edit form of a stored UDP rule offers both port fields."""
+        form = ACLExtendedRuleForm(instance=self._rule(10, protocol=ACLProtocolChoices.PROTOCOL_UDP))
+        self.assertIn("source_port_ranges", form.fields)
+        self.assertIn("destination_port_ranges", form.fields)
+
+    def test_redraw_initial_overrides_the_stored_protocol(self):
+        """Test that the protocol of a redraw wins over the stored one."""
+        form = ACLExtendedRuleForm(
+            instance=self._rule(10, protocol=ACLProtocolChoices.PROTOCOL_TCP),
+            initial={"protocol": ACLProtocolChoices.PROTOCOL_ICMP},
+        )
+        self.assertNotIn("source_port_ranges", form.fields)
+        self.assertNotIn("destination_port_ranges", form.fields)
+
+    def test_switching_to_icmp_clears_the_stored_ports(self):
+        """Test that saving a TCP rule as ICMP clears its stored ports."""
+        rule = self._rule(
+            10,
+            protocol=ACLProtocolChoices.PROTOCOL_TCP,
+            source_port_ranges=[NumericRange(22, 23)],
+            destination_port_ranges=[NumericRange(443, 444)],
+        )
+        form = self._bound_form(instance=rule, protocol=ACLProtocolChoices.PROTOCOL_ICMP)
+        self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+
+        form.save()
+        rule.refresh_from_db()
+        self.assertEqual(rule.source_port_ranges, [])
+        self.assertEqual(rule.destination_port_ranges, [])
+
+    def test_stale_switch_to_icmp_reports_the_conflict(self):
+        """Test that a stale form switching a TCP rule with ports to ICMP reports the conflict."""
+        rule = self._rule(
+            10,
+            protocol=ACLProtocolChoices.PROTOCOL_TCP,
+            source_port_ranges=[NumericRange(22, 23)],
+            destination_port_ranges=[NumericRange(443, 444)],
+        )
+        form = self._bound_form(instance=rule, protocol=ACLProtocolChoices.PROTOCOL_ICMP, _init_time="1")
+        self.assertFalse(form.is_valid())
+        self.assertIn("__all__", form.errors)
+
+    def test_switching_to_remark_clears_the_match_criteria(self):
+        """Test that saving a rule as a remark clears every stored match criterion."""
+        rule = self._rule(
+            10,
+            protocol=ACLProtocolChoices.PROTOCOL_TCP,
+            source_port_ranges=[NumericRange(22, 23)],
+            destination_port_ranges=[NumericRange(443, 444)],
+            log_matches=True,
+            log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG],
+        )
+        # The data still carries the protocol and both objects, as a stale page would.
+        form = self._bound_form(instance=rule, action=ACLRuleActionChoices.ACTION_REMARK, remark="Note")
+        self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+
+        form.save()
+        rule.refresh_from_db()
+        self.assertIsNone(rule.source_type)
+        self.assertIsNone(rule.source_id)
+        self.assertIsNone(rule.destination_type)
+        self.assertIsNone(rule.destination_id)
+        self.assertEqual(rule.protocol, "")
+        self.assertEqual(rule.source_port_ranges, [])
+        self.assertEqual(rule.destination_port_ranges, [])
+        self.assertFalse(rule.log_matches)
+        self.assertEqual(rule.log_options, [])
+
+    def test_action_and_protocol_redraw_the_form(self):
+        """Test that changing the action or the protocol redraws the whole form."""
+        form = ACLExtendedRuleForm(initial={"action": ACLRuleActionChoices.ACTION_PERMIT})
+        for field_name in ("action", "protocol"):
+            with self.subTest(field_name=field_name):
+                attrs = form.fields[field_name].widget.attrs
+                self.assertEqual(attrs["hx-get"], ".")
+                self.assertEqual(attrs["hx-include"], "#form_fields")
+                self.assertEqual(attrs["hx-target"], "#form_fields")
 
 
 class ACLExtendedRuleImportFormTestCase(TestCase):

@@ -220,3 +220,21 @@ class ACLStandardRuleViewTestCase(
         for anchor in ("sequence", "description", "source"):
             with self.subTest(attribute=anchor):
                 self.assertContains(response, f'id="attr_{anchor}"')
+
+    def test_add_form_hides_the_criteria_for_a_remark(self):
+        """Test that an add form opened as a remark offers no match criteria."""
+        form = self._get_form(
+            "add",
+            self.add_permission,
+            query=f"?action={ACLRuleActionChoices.ACTION_REMARK}",
+        )
+        for field_name in ("source", "log_matches", "log_options"):
+            with self.subTest(field_name=field_name):
+                self.assertNotIn(field_name, form.fields)
+
+    def test_add_form_hides_the_criteria_until_an_action_is_picked(self):
+        """Test that an add form opened without an action offers no match criteria."""
+        form = self._get_form("add", self.add_permission)
+        for field_name in ("source", "log_matches", "log_options"):
+            with self.subTest(field_name=field_name):
+                self.assertNotIn(field_name, form.fields)

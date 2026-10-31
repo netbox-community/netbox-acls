@@ -261,3 +261,28 @@ class ACLExtendedRuleViewTestCase(
         ):
             with self.subTest(attribute=anchor):
                 self.assertContains(response, f'id="attr_{anchor}"')
+
+    def test_add_form_shows_the_ports_for_tcp(self):
+        """Test that an add form redrawn for TCP offers both port fields."""
+        form = self._get_form(
+            "add",
+            self.add_permission,
+            query=f"?action={ACLRuleActionChoices.ACTION_PERMIT}&protocol={ACLProtocolChoices.PROTOCOL_TCP}",
+        )
+        self.assertIn("source_port_ranges", form.fields)
+        self.assertIn("destination_port_ranges", form.fields)
+
+    def test_add_form_hides_the_criteria_until_an_action_is_picked(self):
+        """Test that an add form opened without an action offers no match criteria."""
+        form = self._get_form("add", self.add_permission)
+        for field_name in (
+            "source",
+            "source_port_ranges",
+            "destination",
+            "destination_port_ranges",
+            "protocol",
+            "log_matches",
+            "log_options",
+        ):
+            with self.subTest(field_name=field_name):
+                self.assertNotIn(field_name, form.fields)

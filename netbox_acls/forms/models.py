@@ -3,6 +3,7 @@ Defines each django model's GUI form to add or edit objects for each django mode
 """
 
 from django import forms
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
@@ -10,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from dcim.models import Interface
 from netbox.forms import NetBoxModelForm, PrimaryModelForm
 from netbox.forms.mixins import OwnerMixin
-from utilities.forms import add_blank_choice
+from utilities.forms import add_blank_choice, get_field_value
 from utilities.forms.fields import (
     CommentField,
     DynamicModelChoiceField,
@@ -19,11 +20,14 @@ from utilities.forms.fields import (
 )
 from utilities.forms.mixins import GenericObjectFormMixin
 from utilities.forms.rendering import FieldSet
+from utilities.forms.widgets import HTMXSelect
 from virtualization.models import VMInterface
 
 from ..choices import (
     ACLAssignmentDirectionChoices,
     ACLAssignmentDirectionUIChoices,
+    ACLProtocolChoices,
+    ACLRuleActionChoices,
     ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
@@ -192,7 +196,48 @@ class ACLAssignmentForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelForm):
                 self.fields["direction"].widget.attrs["value"] = "None"
 
 
-class ACLStandardRuleForm(GenericObjectFormMixin, PrimaryModelForm):
+class ACLRuleFormMixin:
+    """
+    Show only the rule fields that apply to the selected action and protocol.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Hide the fields and fieldsets that do not apply.
+        """
+        super().__init__(*args, **kwargs)
+
+        self._hidden_fields = self._get_hidden_fields()
+        for field_name in self._hidden_fields:
+            del self.fields[field_name]
+
+        # An emptied fieldset would still render its heading
+        self.fieldsets = tuple(
+            fieldset for fieldset in self.fieldsets if any(item in self.fields for item in fieldset.items)
+        )
+
+    def clean(self):
+        """
+        Clear the hidden fields on the instance, since add_error rejects a model error on a deleted one.
+        """
+        # Model validation still runs when super().clean() raises
+        for field_name in self._hidden_fields:
+            field = self.instance._meta.get_field(field_name)
+            setattr(self.instance, field_name, None if isinstance(field, GenericForeignKey) else field.get_default())
+
+        return super().clean()
+
+    def _get_hidden_fields(self) -> set[str]:
+        """
+        Return the fields that do not apply to the selected action.
+        """
+        action = get_field_value(self, "action")
+        if not action or action == ACLRuleActionChoices.ACTION_REMARK:
+            return {"source", "log_matches", "log_options"}
+        return set()
+
+
+class ACLStandardRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModelForm):
     """
     GUI form to add or edit Standard Access List.
     Requires an access_list, a sequence, and ACL rule type.
@@ -270,6 +315,10 @@ class ACLStandardRuleForm(GenericObjectFormMixin, PrimaryModelForm):
             "tags",
         )
 
+        widgets = {
+            "action": HTMXSelect(),
+        }
+
         help_texts = {
             "sequence": help_text_acl_rule_sequence,
             "action": help_text_acl_action,
@@ -277,7 +326,7 @@ class ACLStandardRuleForm(GenericObjectFormMixin, PrimaryModelForm):
         }
 
 
-class ACLExtendedRuleForm(GenericObjectFormMixin, PrimaryModelForm):
+class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModelForm):
     """
     GUI form to add or edit Extended Access List.
     Requires an access_list, a sequence, and ACL rule type.
@@ -389,12 +438,32 @@ class ACLExtendedRuleForm(GenericObjectFormMixin, PrimaryModelForm):
             "tags",
         )
 
+        widgets = {
+            "action": HTMXSelect(),
+            "protocol": HTMXSelect(),
+        }
+
         help_texts = {
             "action": help_text_acl_action,
             "sequence": help_text_acl_rule_sequence,
             "protocol": help_text_acl_rule_logic,
             "remark": help_text_acl_remark,
         }
+
+    def _get_hidden_fields(self) -> set[str]:
+        """
+        Return the fields that do not apply to the selected action or protocol.
+        """
+        hidden_fields = super()._get_hidden_fields()
+        action = get_field_value(self, "action")
+        if not action or action == ACLRuleActionChoices.ACTION_REMARK:
+            hidden_fields |= {"destination", "protocol", "source_port_ranges", "destination_port_ranges"}
+        elif get_field_value(self, "protocol") not in [
+            ACLProtocolChoices.PROTOCOL_TCP,
+            ACLProtocolChoices.PROTOCOL_UDP,
+        ]:
+            hidden_fields |= {"source_port_ranges", "destination_port_ranges"}
+        return hidden_fields
 
 
 class ACLAddressGroupForm(PrimaryModelForm):

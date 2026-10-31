@@ -42,25 +42,27 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
             default_action=ACLActionChoices.ACTION_DENY,
         )
 
-    def _bound_form(self, source):
+    def _bound_form(self, source, instance=None, **overrides):
         """Bind the form, so the posted source type reaches __init__."""
-        return ACLStandardRuleForm(
-            data={
-                "access_list": self.access_list.pk,
-                "sequence": 10,
-                "action": ACLRuleActionChoices.ACTION_PERMIT,
-                "source_content_type": ContentType.objects.get_for_model(source).pk,
-                "source_object_id": source.pk,
-            },
-        )
+        data = {
+            "access_list": self.access_list.pk,
+            "sequence": 10,
+            "action": ACLRuleActionChoices.ACTION_PERMIT,
+            "source_content_type": ContentType.objects.get_for_model(source).pk,
+            "source_object_id": source.pk,
+        }
+        data.update(overrides)
+        return ACLStandardRuleForm(data=data, instance=instance)
 
-    def _rule(self, sequence):
-        return ACLStandardRule.objects.create(
-            access_list=self.access_list,
-            sequence=sequence,
-            action=ACLRuleActionChoices.ACTION_PERMIT,
-            source=self.prefix,
-        )
+    def _rule(self, sequence, **overrides):
+        values = {
+            "access_list": self.access_list,
+            "sequence": sequence,
+            "action": ACLRuleActionChoices.ACTION_PERMIT,
+            "source": self.prefix,
+        }
+        values.update(overrides)
+        return ACLStandardRule.objects.create(**values)
 
     def test_instance_seeds_the_source_field(self):
         """An existing rule's source reaches the form as its initial value."""
@@ -145,7 +147,7 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
 
     def test_source_type_choices_limited(self):
         """Test that the source type picker offers only the ipam models a rule accepts."""
-        form = ACLStandardRuleForm()
+        form = ACLStandardRuleForm(initial={"action": ACLRuleActionChoices.ACTION_PERMIT})
         self.assertQuerySetEqual(
             form.fields["source"].content_type_field.queryset.order_by("pk"),
             ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS).order_by("pk"),
@@ -211,13 +213,13 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
 
     def test_logging_fields_are_present(self):
         """Test that the model form exposes both logging fields."""
-        form = ACLStandardRuleForm()
+        form = ACLStandardRuleForm(initial={"action": ACLRuleActionChoices.ACTION_PERMIT})
         self.assertIn("log_matches", form.fields)
         self.assertIn("log_options", form.fields)
 
     def test_log_options_group_vendor_specific_choices(self):
         """Test that a vendor-specific option is offered under its vendor's group."""
-        form = ACLStandardRuleForm()
+        form = ACLStandardRuleForm(initial={"action": ACLRuleActionChoices.ACTION_PERMIT})
         groups = {
             group: [value for value, _label in options]
             for group, options in form.fields["log_options"].choices
@@ -280,6 +282,79 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         """The filter form's action field must be a multi-select, matching the filter set."""
         form = ACLStandardRuleFilterForm()
         self.assertIsInstance(form.fields["action"], forms.MultipleChoiceField)
+
+    def test_remark_action_removes_the_match_criteria(self):
+        """Test that a remark rule's form hides the match criteria and logging but keeps the remark."""
+        form = self._bound_form(self.prefix, action=ACLRuleActionChoices.ACTION_REMARK, remark="Note")
+        for field_name in ("source", "log_matches", "log_options"):
+            with self.subTest(field_name=field_name):
+                self.assertNotIn(field_name, form.fields)
+        self.assertIn("remark", form.fields)
+
+    def test_blank_action_removes_the_match_criteria(self):
+        """Test that a new rule's form offers no match criteria until an action is picked."""
+        form = ACLStandardRuleForm()
+        for field_name in ("source", "log_matches", "log_options"):
+            with self.subTest(field_name=field_name):
+                self.assertNotIn(field_name, form.fields)
+        self.assertIn("remark", form.fields)
+
+    def test_deny_action_keeps_the_match_criteria(self):
+        """Test that a deny rule's form offers every match criterion."""
+        form = self._bound_form(self.prefix, action=ACLRuleActionChoices.ACTION_DENY)
+        for field_name in ("source", "log_matches", "log_options"):
+            with self.subTest(field_name=field_name):
+                self.assertIn(field_name, form.fields)
+
+    def test_remark_action_drops_the_emptied_fieldsets(self):
+        """Test that a remark rule's form keeps only the fieldsets with a field left."""
+        form = self._bound_form(self.prefix, action=ACLRuleActionChoices.ACTION_REMARK, remark="Note")
+        self.assertEqual(
+            [str(fieldset.name) for fieldset in form.fieldsets],
+            ["Access List Details", "Rule Definition", "Remark"],
+        )
+
+    def test_unbound_form_follows_the_stored_action(self):
+        """Test that the edit form of a stored remark rule offers no match criteria."""
+        rule = self._rule(10, action=ACLRuleActionChoices.ACTION_REMARK, remark="Note", source=None)
+        form = ACLStandardRuleForm(instance=rule)
+        for field_name in ("source", "log_matches", "log_options"):
+            with self.subTest(field_name=field_name):
+                self.assertNotIn(field_name, form.fields)
+
+    def test_switching_to_remark_clears_the_match_criteria(self):
+        """Test that saving a rule as a remark clears its stored source and logging."""
+        rule = self._rule(10, log_matches=True, log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG])
+        # The data still carries the source, as a stale page would.
+        form = self._bound_form(self.prefix, instance=rule, action=ACLRuleActionChoices.ACTION_REMARK, remark="Note")
+        self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+
+        form.save()
+        rule.refresh_from_db()
+        self.assertIsNone(rule.source_type)
+        self.assertIsNone(rule.source_id)
+        self.assertFalse(rule.log_matches)
+        self.assertEqual(rule.log_options, [])
+
+    def test_stale_switch_to_remark_reports_the_conflict(self):
+        """Test that a stale form switching a rule with logging to a remark reports the conflict."""
+        rule = self._rule(10, log_matches=True, log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG])
+        form = self._bound_form(
+            self.prefix,
+            instance=rule,
+            action=ACLRuleActionChoices.ACTION_REMARK,
+            remark="Note",
+            _init_time="1",
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("__all__", form.errors)
+
+    def test_action_redraws_the_form(self):
+        """Test that changing the action redraws the whole form."""
+        attrs = ACLStandardRuleForm().fields["action"].widget.attrs
+        self.assertEqual(attrs["hx-get"], ".")
+        self.assertEqual(attrs["hx-include"], "#form_fields")
+        self.assertEqual(attrs["hx-target"], "#form_fields")
 
 
 class ACLRuleObjectLookupTestCase(TestCase):

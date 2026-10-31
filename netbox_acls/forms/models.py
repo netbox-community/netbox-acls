@@ -68,6 +68,11 @@ help_text_acl_remark = _("Remark the rule will take.")
 help_text_acl_rule_port_ranges = _("Comma/hyphen (inclusive). Example: 22,80-81,1024-65535")
 
 
+#
+# Access Lists
+#
+
+
 class AccessListForm(PrimaryModelForm):
     """
     GUI form to add or edit an AccessList.
@@ -110,6 +115,11 @@ class AccessListForm(PrimaryModelForm):
                 _("<b>*Note:</b> CANNOT be changed if ACL Rules are associated to this Access List."),
             ),
         }
+
+
+#
+# Assignments
+#
 
 
 class ACLAssignmentForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelForm):
@@ -183,6 +193,11 @@ class ACLAssignmentForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelForm):
         self.instance.assigned_object = self.cleaned_data.get("assigned_object")
 
         return super().clean()
+
+
+#
+# Rules
+#
 
 
 class ACLRuleFormMixin:
@@ -453,6 +468,11 @@ class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
         ]:
             hidden_fields |= {"source_port_ranges", "destination_port_ranges"}
         return hidden_fields
+
+
+#
+# Address Groups
+#
 
 
 class ACLAddressGroupForm(PrimaryModelForm):

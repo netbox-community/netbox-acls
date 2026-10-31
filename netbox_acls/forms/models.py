@@ -24,7 +24,6 @@ from utilities.forms.widgets import HTMXSelect
 from virtualization.models import VMInterface
 
 from ..choices import (
-    ACLAssignmentDirectionChoices,
     ACLAssignmentDirectionUIChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
@@ -133,17 +132,13 @@ class ACLAssignmentForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelForm):
         hx_target_id="acl-assignment",
     )
     direction = forms.ChoiceField(
-        choices=add_blank_choice(ACLAssignmentDirectionChoices),
-        required=False,
+        choices=add_blank_choice(ACLAssignmentDirectionUIChoices),
         label=_("Direction"),
         help_text=_(
-            "The ACL assignment direction field is only enabled for "
-            "Device Interface or Virtual Machine Interface objects. "
-            "For other types (such as Device, Virtual Chassis, or Virtual Machine), "
-            "this field is disabled. "
-            "<b>*Note:</b> CANNOT assign 2 ACLs to the same interface & direction.",
+            "Whether the ACL filters traffic entering (ingress) or leaving (egress) the interface. "
+            "Only one ACL per address family can be assigned to the same interface and direction, "
+            "and a Dual ACL counts as both."
         ),
-        disabled=True,
     )
     comments = CommentField()
 
@@ -175,25 +170,19 @@ class ACLAssignmentForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelForm):
         """
         Initialize the ACL Assignment form.
         """
-        # The add view passes an unsaved instance rather than None, so test the pk.
-        # BaseModelForm applies initial over model_to_dict(instance), so seeding
-        # unconditionally would reset a stored direction.
-        if (instance := kwargs.get("instance")) is None or instance.pk is None:
-            initial = kwargs.get("initial", {}).copy()
-            initial.setdefault("direction", ACLAssignmentDirectionChoices.DIRECTION_NONE)
-            kwargs["initial"] = initial
-
         super().__init__(*args, **kwargs)
 
-        # With no type chosen, direction keeps its declared disabled state.
-        if (model := self.fields["assigned_object"].selected_model) is not None:
-            if model in (Interface, VMInterface):
-                self.fields["direction"].disabled = False
-                self.fields["direction"].required = True
-                self.fields["direction"].choices = add_blank_choice(ACLAssignmentDirectionUIChoices)
-            else:
-                self.fields["direction"].disabled = True
-                self.fields["direction"].widget.attrs["value"] = "None"
+        if self.fields["assigned_object"].selected_model not in (Interface, VMInterface):
+            del self.fields["direction"]
+
+    def clean(self):
+        """
+        Point the instance at the posted object, or at none, so model validation never checks a stale one.
+        """
+        # Model validation still runs when super().clean() raises
+        self.instance.assigned_object = self.cleaned_data.get("assigned_object")
+
+        return super().clean()
 
 
 class ACLRuleFormMixin:

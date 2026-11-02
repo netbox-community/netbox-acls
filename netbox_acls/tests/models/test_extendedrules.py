@@ -695,7 +695,7 @@ class TestACLExtendedRule(BaseTestCase):
             access_list=self.extended_acl1,
             sequence=10,
             action="remark",
-            remark="",
+            remark="Remark",
             source=self.prefix1,
             source_port_ranges=None,
             destination=None,
@@ -703,8 +703,9 @@ class TestACLExtendedRule(BaseTestCase):
             protocol=None,
             description="Invalid rule with action 'remark' and source prefix",
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as ctx:
             invalid_rule.full_clean()
+        self.assertIn("source", ctx.exception.message_dict)
 
     def test_acl_extended_rule_action_remark_with_source_port_ranges_fail(self):
         """
@@ -714,7 +715,7 @@ class TestACLExtendedRule(BaseTestCase):
             access_list=self.extended_acl1,
             sequence=10,
             action="remark",
-            remark="",
+            remark="Remark",
             source=self.prefix1,
             source_port_ranges=string_to_ranges("80, 443"),
             destination=None,
@@ -722,8 +723,28 @@ class TestACLExtendedRule(BaseTestCase):
             protocol=ACLProtocolChoices.PROTOCOL_TCP,
             description="Invalid rule with action 'remark' and source ports",
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as ctx:
             invalid_rule.full_clean()
+        self.assertIn("source_port_ranges", ctx.exception.message_dict)
+
+    def test_remark_port_error_wins_over_the_protocol_port_error(self):
+        """
+        Test that a remark rule's ports report the remark error, not the TCP or UDP one.
+        """
+        invalid_rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=10,
+            action="remark",
+            remark="Remark",
+            source_port_ranges=string_to_ranges("80, 443"),
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            invalid_rule.full_clean()
+        self.assertEqual(
+            ctx.exception.message_dict["source_port_ranges"],
+            ["When the action is 'remark', Source Ports must not be set."],
+        )
 
     def test_acl_extended_rule_action_remark_with_destination_prefix_fail(self):
         """
@@ -733,7 +754,7 @@ class TestACLExtendedRule(BaseTestCase):
             access_list=self.extended_acl1,
             sequence=10,
             action="remark",
-            remark="",
+            remark="Remark",
             source=None,
             source_port_ranges=None,
             destination=self.prefix1,
@@ -741,8 +762,9 @@ class TestACLExtendedRule(BaseTestCase):
             protocol=None,
             description="Invalid rule with action 'remark' and destination prefix",
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as ctx:
             invalid_rule.full_clean()
+        self.assertIn("destination", ctx.exception.message_dict)
 
     def test_acl_extended_rule_action_remark_with_destination_port_ranges_fail(self):
         """
@@ -752,7 +774,7 @@ class TestACLExtendedRule(BaseTestCase):
             access_list=self.extended_acl1,
             sequence=10,
             action="remark",
-            remark="",
+            remark="Remark",
             source=None,
             source_port_ranges=None,
             destination=self.prefix1,
@@ -760,8 +782,9 @@ class TestACLExtendedRule(BaseTestCase):
             protocol=ACLProtocolChoices.PROTOCOL_TCP,
             description="Invalid rule with action 'remark' and destination ports",
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as ctx:
             invalid_rule.full_clean()
+        self.assertIn("destination_port_ranges", ctx.exception.message_dict)
 
     def test_acl_extended_rule_action_remark_with_protocol_fail(self):
         """
@@ -771,7 +794,7 @@ class TestACLExtendedRule(BaseTestCase):
             access_list=self.extended_acl1,
             sequence=10,
             action="remark",
-            remark="",
+            remark="Remark",
             source=None,
             source_port_ranges=None,
             destination=None,
@@ -779,8 +802,9 @@ class TestACLExtendedRule(BaseTestCase):
             protocol=ACLProtocolChoices.PROTOCOL_ICMP,
             description="Invalid rule with action 'remark' and ICMP protocol",
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as ctx:
             invalid_rule.full_clean()
+        self.assertIn("protocol", ctx.exception.message_dict)
 
     def test_non_tcp_udp_protocols_reject_ports(self):
         """

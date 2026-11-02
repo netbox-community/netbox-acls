@@ -344,7 +344,19 @@ class ACLRule(CachedGenericReferenceMixin, PrimaryModel):
         if not self.log_matches and self.log_options:
             errors["log_options"] = ERROR_MESSAGE_LOG_OPTIONS_WITHOUT_LOG_MATCHES
 
+        return errors
+
+    def _validate_remark(self):
+        """
+        Return field errors for an inconsistent remark rule.
+        """
+        errors = {}
+
         if self.action == ACLRuleActionChoices.ACTION_REMARK:
+            if not self.remark:
+                errors["remark"] = ERROR_MESSAGE_NO_REMARK
+            if self.source:
+                errors["source"] = ERROR_MESSAGE_ACTION_REMARK_SOURCE_SET
             if self.log_matches:
                 errors["log_matches"] = ERROR_MESSAGE_ACTION_REMARK_LOG_MATCHES_SET
             if self.log_options:
@@ -380,10 +392,6 @@ class ACLStandardRule(ACLRule):
     def clean(self):
         """
         Validate the ACL Standard Rule inputs.
-
-        If the action is 'remark', then the remark field must be provided (non-empty),
-        and the source field must be empty.
-        Conversely, if the remark field is provided, the action must be set to 'remark'.
         """
 
         super().clean()
@@ -391,13 +399,7 @@ class ACLStandardRule(ACLRule):
 
         self.log_options = normalize_log_options(self.log_options or [])
         errors.update(self._validate_logging())
-
-        # Validate that only the remark field is filled
-        if self.action == ACLRuleActionChoices.ACTION_REMARK:
-            if not self.remark:
-                errors["remark"] = ERROR_MESSAGE_NO_REMARK
-            if self.source:
-                errors["source"] = ERROR_MESSAGE_ACTION_REMARK_SOURCE_SET
+        errors.update(self._validate_remark())
 
         if errors:
             raise ValidationError(errors)
@@ -528,16 +530,6 @@ class ACLExtendedRule(ACLRule):
     def clean(self):
         """
         Validate the ACL Extended Rule inputs.
-
-        When the action is 'remark', the remark field must be provided (non-empty),
-        and the following fields must be empty:
-          - source
-          - source_port_ranges
-          - destination
-          - destination_port_ranges
-          - protocol
-
-        Conversely, if a remark is provided, the action must be set to 'remark'.
         """
         # Validate destination assignment
         if self.destination_type and not (self.destination or self.destination_id):
@@ -557,26 +549,14 @@ class ACLExtendedRule(ACLRule):
         self.log_options = normalize_log_options(self.log_options or [])
         errors.update(self._validate_logging())
 
-        # Validate that only the remark field is filled
-        if self.action == ACLRuleActionChoices.ACTION_REMARK:
-            if not self.remark:
-                errors["remark"] = ERROR_MESSAGE_NO_REMARK
-            if self.source:
-                errors["source"] = ERROR_MESSAGE_ACTION_REMARK_SOURCE_SET
-            if self.source_port_ranges:
-                errors["source_port_ranges"] = ERROR_MESSAGE_ACTION_REMARK_SOURCE_PORTS_SET
-            if self.destination:
-                errors["destination"] = ERROR_MESSAGE_ACTION_REMARK_DESTINATION_SET
-            if self.destination_port_ranges:
-                errors["destination_port_ranges"] = ERROR_MESSAGE_ACTION_REMARK_DESTINATION_PORTS_SET
-            if self.protocol:
-                errors["protocol"] = ERROR_MESSAGE_ACTION_REMARK_PROTOCOL_SET
         # Validate that the source or destination ports are only set when the protocol is TCP or UDP
-        elif self.protocol not in [ACLProtocolChoices.PROTOCOL_TCP, ACLProtocolChoices.PROTOCOL_UDP]:
+        if self.protocol not in [ACLProtocolChoices.PROTOCOL_TCP, ACLProtocolChoices.PROTOCOL_UDP]:
             if self.source_port_ranges:
                 errors["source_port_ranges"] = ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_SOURCE_PORTS_SET
             if self.destination_port_ranges:
                 errors["destination_port_ranges"] = ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_DESTINATION_PORTS_SET
+
+        errors.update(self._validate_remark())
 
         if errors:
             raise ValidationError(errors)
@@ -588,6 +568,24 @@ class ACLExtendedRule(ACLRule):
         )
         validate_port_ranges(self.source_port_ranges, "source_port_ranges")
         validate_port_ranges(self.destination_port_ranges, "destination_port_ranges")
+
+    def _validate_remark(self):
+        """
+        Return field errors for an inconsistent remark rule, its destination, protocol and ports included.
+        """
+        errors = super()._validate_remark()
+
+        if self.action == ACLRuleActionChoices.ACTION_REMARK:
+            if self.source_port_ranges:
+                errors["source_port_ranges"] = ERROR_MESSAGE_ACTION_REMARK_SOURCE_PORTS_SET
+            if self.destination:
+                errors["destination"] = ERROR_MESSAGE_ACTION_REMARK_DESTINATION_SET
+            if self.destination_port_ranges:
+                errors["destination_port_ranges"] = ERROR_MESSAGE_ACTION_REMARK_DESTINATION_PORTS_SET
+            if self.protocol:
+                errors["protocol"] = ERROR_MESSAGE_ACTION_REMARK_PROTOCOL_SET
+
+        return errors
 
     @property
     def destination_port_ranges_list(self):

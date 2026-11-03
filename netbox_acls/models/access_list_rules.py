@@ -362,8 +362,10 @@ class ACLStandardRule(ACLRule):
         errors = {}
 
         self.log_options = normalize_log_options(self.log_options or [])
-        errors.update(self._validate_logging())
         errors.update(self._validate_remark())
+        # The remark check already reports every criterion a remark rule sets.
+        if self.action != ACLRuleActionChoices.ACTION_REMARK:
+            errors.update(self._validate_logging())
 
         if errors:
             raise ValidationError(errors)
@@ -517,18 +519,11 @@ class ACLExtendedRule(ACLRule):
         errors = {}
 
         self.log_options = normalize_log_options(self.log_options or [])
-        errors.update(self._validate_logging())
-
-        # Validate that the source or destination ports are only set when the protocol is TCP or UDP
-        if self.protocol not in [ACLProtocolChoices.PROTOCOL_TCP, ACLProtocolChoices.PROTOCOL_UDP]:
-            if self.source_port_ranges:
-                errors["source_port_ranges"] = _("Source Ports can only be set when the protocol is TCP or UDP.")
-            if self.destination_port_ranges:
-                errors["destination_port_ranges"] = _(
-                    "Destination Ports can only be set when the protocol is TCP or UDP."
-                )
-
         errors.update(self._validate_remark())
+        # The remark check already reports every criterion a remark rule sets.
+        if self.action != ACLRuleActionChoices.ACTION_REMARK:
+            errors.update(self._validate_ports())
+            errors.update(self._validate_logging())
 
         if errors:
             raise ValidationError(errors)
@@ -556,6 +551,22 @@ class ACLExtendedRule(ACLRule):
                 errors["destination_port_ranges"] = _("When the action is 'remark', Destination Ports must not be set.")
             if self.protocol:
                 errors["protocol"] = _("When the action is 'remark', Protocol must not be set.")
+
+        return errors
+
+    def _validate_ports(self):
+        """
+        Return field errors for ports on a protocol other than TCP or UDP.
+        """
+        errors = {}
+
+        if self.protocol not in [ACLProtocolChoices.PROTOCOL_TCP, ACLProtocolChoices.PROTOCOL_UDP]:
+            if self.source_port_ranges:
+                errors["source_port_ranges"] = _("Source Ports can only be set when the protocol is TCP or UDP.")
+            if self.destination_port_ranges:
+                errors["destination_port_ranges"] = _(
+                    "Destination Ports can only be set when the protocol is TCP or UDP."
+                )
 
         return errors
 

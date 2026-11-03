@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from netbox.ui import actions, attrs
 from netbox.ui.panels import ObjectAttributesPanel, ObjectsTablePanel
 
-from .attrs import AssignedObjectAttr, LogOptionsAttr, RuleCountAttr
+from .attrs import AssignedObjectAttr, BadgesAttr, RuleCountAttr
 
 __all__ = (
     "ACLAddressGroupMemberPanel",
@@ -126,7 +126,7 @@ class ACLRuleLoggingPanel(ObjectAttributesPanel):
     title = _("Logging")
 
     log_matches = attrs.BooleanAttr("log_matches", label=_("Log Matches"))
-    log_options = LogOptionsAttr("log_options_badges", label=_("Log Options"))
+    log_options = BadgesAttr("log_options_badges", label=_("Log Options"))
 
 
 class ACLAddressGroupPanel(ObjectAttributesPanel):

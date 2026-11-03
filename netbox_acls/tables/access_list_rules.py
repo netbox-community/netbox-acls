@@ -8,7 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from netbox.tables import PrimaryModelTable, columns
 
 from ..models import ACLExtendedRule, ACLStandardRule
-from .columns import LogOptionsColumn, UsedAsColumn
+from .columns import BadgesColumn, UsedAsColumn
 
 __all__ = (
     "ACLExtendedRuleTable",
@@ -46,7 +46,8 @@ class ACLRuleTable(PrimaryModelTable):
     log_matches = columns.BooleanColumn(
         verbose_name=_("Log Matches"),
     )
-    log_options_list = LogOptionsColumn(
+    log_options_list = BadgesColumn(
+        accessor="log_options_badges",
         verbose_name=_("Log Options"),
     )
 

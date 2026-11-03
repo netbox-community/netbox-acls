@@ -1,6 +1,6 @@
 """Declarative UI components for the plugin's detail views."""
 
-from .attrs import AssignedObjectAttr, LogOptionsAttr, RuleCountAttr
+from .attrs import AssignedObjectAttr, BadgesAttr, RuleCountAttr
 from .panels import (
     AccessListPanel,
     ACLAddressGroupMemberPanel,
@@ -26,7 +26,7 @@ __all__ = (
     "ACLStandardRulePanel",
     "AccessListPanel",
     "AssignedObjectAttr",
-    "LogOptionsAttr",
+    "BadgesAttr",
     "MemberTablePanel",
     "RuleCountAttr",
     "RuleTablePanel",

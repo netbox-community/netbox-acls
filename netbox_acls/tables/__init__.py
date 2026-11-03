@@ -5,7 +5,7 @@ Import each of the directory's scripts.
 from .access_list_rules import ACLExtendedRuleTable, ACLExtendedRuleUsageTable, ACLRuleTable, ACLStandardRuleTable
 from .access_lists import AccessListTable, ACLAssignmentTable
 from .address_groups import ACLAddressGroupMemberTable, ACLAddressGroupTable
-from .columns import LogOptionsColumn, UsedAsColumn
+from .columns import BadgesColumn, UsedAsColumn
 
 __all__ = (
     "ACLAddressGroupMemberTable",
@@ -16,6 +16,6 @@ __all__ = (
     "ACLRuleTable",
     "ACLStandardRuleTable",
     "AccessListTable",
-    "LogOptionsColumn",
+    "BadgesColumn",
     "UsedAsColumn",
 )

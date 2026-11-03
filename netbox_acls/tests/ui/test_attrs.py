@@ -8,7 +8,7 @@ from virtualization.models import VirtualMachine, VMInterface
 
 from ...choices import ACLRuleActionChoices, ACLTypeChoices
 from ...models import AccessList, ACLStandardRule
-from ...ui.attrs import AssignedObjectAttr, LogOptionsAttr, RuleCountAttr
+from ...ui.attrs import AssignedObjectAttr, BadgesAttr, RuleCountAttr
 
 
 class AssignedObjectAttrTestCase(SimpleTestCase):
@@ -37,19 +37,19 @@ class AssignedObjectAttrTestCase(SimpleTestCase):
                 self.assertEqual(context["content_type"], type(target)._meta.verbose_name)
 
 
-class LogOptionsAttrTestCase(TestCase):
-    """Test the log options attribute."""
+class BadgesAttrTestCase(TestCase):
+    """Test the badges attribute."""
 
     def test_empty_log_options_resolve_to_none(self):
         """Test that a rule with no log options renders the placeholder."""
         rule = ACLStandardRule(log_options=[])
-        self.assertIsNone(LogOptionsAttr("log_options_badges").get_value(rule))
+        self.assertIsNone(BadgesAttr("log_options_badges").get_value(rule))
 
     def test_stored_log_options_render_as_badges(self):
         """Test that each stored log option renders as its colored badge."""
         rule = ACLStandardRule(log_options=["syslog", "cisco-log-input"])
 
-        rendered = LogOptionsAttr("log_options_badges").render(rule, {"name": "log_options"})
+        rendered = BadgesAttr("log_options_badges").render(rule, {"name": "log_options"})
 
         self.assertInHTML('<span class="badge text-bg-blue">Syslog</span>', rendered)
         self.assertInHTML('<span class="badge text-bg-purple">Log-input</span>', rendered)

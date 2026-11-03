@@ -3,6 +3,7 @@ Defines each django model's GUI form to add or edit objects for each django mode
 """
 
 from django import forms
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
@@ -10,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from dcim.models import Interface
 from netbox.forms import NetBoxModelForm, PrimaryModelForm
 from netbox.forms.mixins import OwnerMixin
-from utilities.forms import add_blank_choice
+from utilities.forms import add_blank_choice, get_field_value
 from utilities.forms.fields import (
     CommentField,
     DynamicModelChoiceField,
@@ -19,11 +20,13 @@ from utilities.forms.fields import (
 )
 from utilities.forms.mixins import GenericObjectFormMixin
 from utilities.forms.rendering import FieldSet
+from utilities.forms.widgets import HTMXSelect
 from virtualization.models import VMInterface
 
 from ..choices import (
-    ACLAssignmentDirectionChoices,
     ACLAssignmentDirectionUIChoices,
+    ACLProtocolChoices,
+    ACLRuleActionChoices,
     ACLRuleLogOptionChoices,
     ACLTypeChoices,
 )
@@ -36,7 +39,6 @@ from ..models import (
     ACLExtendedRule,
     ACLStandardRule,
 )
-from ..models.access_list_rules import HELP_TEXT_ACL_RULE_LOG_OPTIONS
 
 __all__ = (
     "ACLAddressGroupForm",
@@ -47,22 +49,10 @@ __all__ = (
     "AccessListForm",
 )
 
-# Sets a standard mark_safe help_text value to be used by the various classes
-help_text_acl_rule_logic = mark_safe(
-    _("<b>*Note:</b> CANNOT be set if action is set to remark."),
-)
-# Sets a standard mark_safe help_text value to be used by the various classes
-help_text_acl_rule_port_logic = mark_safe(
-    _("<b>*Note:</b> CANNOT be set if action is set to remark. Only valid when protocol is TCP or UDP.")
-)
-# Sets a standard help_text value to be used by the various classes for acl action
-help_text_acl_action = _("Action the rule will take (remark, deny, or allow).")
-# Sets a standard help_text value to be used by the various classes for acl sequence
-help_text_acl_rule_sequence = _("Determines the order of the rule in the ACL processing.")
-# Standard help_text value to be used by the various classes for acl remark
-help_text_acl_remark = _("Remark the rule will take.")
-# Sets a standard help_text value to be used by the fields for acl port ranges
-help_text_acl_rule_port_ranges = _("Comma/hyphen (inclusive). Example: 22,80-81,1024-65535")
+
+#
+# Access Lists
+#
 
 
 class AccessListForm(PrimaryModelForm):
@@ -109,6 +99,11 @@ class AccessListForm(PrimaryModelForm):
         }
 
 
+#
+# Assignments
+#
+
+
 class ACLAssignmentForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelForm):
     """
     GUI form to add or edit ACL assignments
@@ -129,17 +124,13 @@ class ACLAssignmentForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelForm):
         hx_target_id="acl-assignment",
     )
     direction = forms.ChoiceField(
-        choices=add_blank_choice(ACLAssignmentDirectionChoices),
-        required=False,
+        choices=add_blank_choice(ACLAssignmentDirectionUIChoices),
         label=_("Direction"),
         help_text=_(
-            "The ACL assignment direction field is only enabled for "
-            "Device Interface or Virtual Machine Interface objects. "
-            "For other types (such as Device, Virtual Chassis, or Virtual Machine), "
-            "this field is disabled. "
-            "<b>*Note:</b> CANNOT assign 2 ACLs to the same interface & direction.",
+            "Whether the ACL filters traffic entering (ingress) or leaving (egress) the interface. "
+            "Only one ACL per address family can be assigned to the same interface and direction, "
+            "and a Dual ACL counts as both."
         ),
-        disabled=True,
     )
     comments = CommentField()
 
@@ -171,28 +162,68 @@ class ACLAssignmentForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelForm):
         """
         Initialize the ACL Assignment form.
         """
-        # The add view passes an unsaved instance rather than None, so test the pk.
-        # BaseModelForm applies initial over model_to_dict(instance), so seeding
-        # unconditionally would reset a stored direction.
-        if (instance := kwargs.get("instance")) is None or instance.pk is None:
-            initial = kwargs.get("initial", {}).copy()
-            initial.setdefault("direction", ACLAssignmentDirectionChoices.DIRECTION_NONE)
-            kwargs["initial"] = initial
-
         super().__init__(*args, **kwargs)
 
-        # With no type chosen, direction keeps its declared disabled state.
-        if (model := self.fields["assigned_object"].selected_model) is not None:
-            if model in (Interface, VMInterface):
-                self.fields["direction"].disabled = False
-                self.fields["direction"].required = True
-                self.fields["direction"].choices = add_blank_choice(ACLAssignmentDirectionUIChoices)
-            else:
-                self.fields["direction"].disabled = True
-                self.fields["direction"].widget.attrs["value"] = "None"
+        if self.fields["assigned_object"].selected_model not in (Interface, VMInterface):
+            del self.fields["direction"]
+
+    def clean(self):
+        """
+        Point the instance at the posted object, or at none, so model validation never checks a stale one.
+        """
+        # Model validation still runs when super().clean() raises
+        self.instance.assigned_object = self.cleaned_data.get("assigned_object")
+
+        return super().clean()
 
 
-class ACLStandardRuleForm(GenericObjectFormMixin, PrimaryModelForm):
+#
+# Rules
+#
+
+
+class ACLRuleFormMixin:
+    """
+    Show only the rule fields that apply to the selected action and protocol.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Hide the fields and fieldsets that do not apply.
+        """
+        super().__init__(*args, **kwargs)
+
+        self._hidden_fields = self._get_hidden_fields()
+        for field_name in self._hidden_fields:
+            del self.fields[field_name]
+
+        # An emptied fieldset would still render its heading
+        self.fieldsets = tuple(
+            fieldset for fieldset in self.fieldsets if any(item in self.fields for item in fieldset.items)
+        )
+
+    def clean(self):
+        """
+        Clear the hidden fields on the instance, since add_error rejects a model error on a deleted one.
+        """
+        # Model validation still runs when super().clean() raises
+        for field_name in self._hidden_fields:
+            field = self.instance._meta.get_field(field_name)
+            setattr(self.instance, field_name, None if isinstance(field, GenericForeignKey) else field.get_default())
+
+        return super().clean()
+
+    def _get_hidden_fields(self) -> set[str]:
+        """
+        Return the fields that do not apply to the selected action.
+        """
+        action = get_field_value(self, "action")
+        if not action or action == ACLRuleActionChoices.ACTION_REMARK:
+            return {"source", "log_matches", "log_options"}
+        return set()
+
+
+class ACLStandardRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModelForm):
     """
     GUI form to add or edit Standard Access List.
     Requires an access_list, a sequence, and ACL rule type.
@@ -216,7 +247,7 @@ class ACLStandardRuleForm(GenericObjectFormMixin, PrimaryModelForm):
         required=False,
         selector=True,
         label=_("Source"),
-        help_text=help_text_acl_rule_logic,
+        help_text=_("Leave empty to match any source."),
         hx_target_id="source-definition",
     )
 
@@ -224,7 +255,10 @@ class ACLStandardRuleForm(GenericObjectFormMixin, PrimaryModelForm):
         choices=ACLRuleLogOptionChoices,
         required=False,
         label=_("Log options"),
-        help_text=HELP_TEXT_ACL_RULE_LOG_OPTIONS,
+        help_text=_(
+            "Optional logging attributes. Leave empty for the target platform's default. "
+            "Vendor-specific options are grouped by vendor and are platform-dependent."
+        ),
     )
 
     fieldsets = (
@@ -270,14 +304,12 @@ class ACLStandardRuleForm(GenericObjectFormMixin, PrimaryModelForm):
             "tags",
         )
 
-        help_texts = {
-            "sequence": help_text_acl_rule_sequence,
-            "action": help_text_acl_action,
-            "remark": help_text_acl_remark,
+        widgets = {
+            "action": HTMXSelect(),
         }
 
 
-class ACLExtendedRuleForm(GenericObjectFormMixin, PrimaryModelForm):
+class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModelForm):
     """
     GUI form to add or edit Extended Access List.
     Requires an access_list, a sequence, and ACL rule type.
@@ -301,13 +333,16 @@ class ACLExtendedRuleForm(GenericObjectFormMixin, PrimaryModelForm):
         required=False,
         selector=True,
         label=_("Source"),
-        help_text=help_text_acl_rule_logic,
+        help_text=_("Leave empty to match any source."),
         hx_target_id="source-definition",
     )
     source_port_ranges = NumericRangeArrayField(
         required=False,
         label=_("Source Port Ranges"),
-        help_text=(help_text_acl_rule_port_logic + " " + help_text_acl_rule_port_ranges),
+        help_text=_(
+            "Comma-separated port numbers. An inclusive range may be specified using a hyphen "
+            "(e.g. 22,80-81,1024-65535). Leave empty to match any port."
+        ),
     )
 
     # Destination
@@ -316,20 +351,26 @@ class ACLExtendedRuleForm(GenericObjectFormMixin, PrimaryModelForm):
         required=False,
         selector=True,
         label=_("Destination"),
-        help_text=help_text_acl_rule_logic,
+        help_text=_("Leave empty to match any destination."),
         hx_target_id="destination-definition",
     )
     destination_port_ranges = NumericRangeArrayField(
         required=False,
         label=_("Destination Port Ranges"),
-        help_text=(help_text_acl_rule_port_logic + " " + help_text_acl_rule_port_ranges),
+        help_text=_(
+            "Comma-separated port numbers. An inclusive range may be specified using a hyphen "
+            "(e.g. 22,80-81,1024-65535). Leave empty to match any port."
+        ),
     )
 
     log_options = forms.MultipleChoiceField(
         choices=ACLRuleLogOptionChoices,
         required=False,
         label=_("Log options"),
-        help_text=HELP_TEXT_ACL_RULE_LOG_OPTIONS,
+        help_text=_(
+            "Optional logging attributes. Leave empty for the target platform's default. "
+            "Vendor-specific options are grouped by vendor and are platform-dependent."
+        ),
     )
 
     fieldsets = (
@@ -389,12 +430,30 @@ class ACLExtendedRuleForm(GenericObjectFormMixin, PrimaryModelForm):
             "tags",
         )
 
-        help_texts = {
-            "action": help_text_acl_action,
-            "sequence": help_text_acl_rule_sequence,
-            "protocol": help_text_acl_rule_logic,
-            "remark": help_text_acl_remark,
+        widgets = {
+            "action": HTMXSelect(),
+            "protocol": HTMXSelect(),
         }
+
+    def _get_hidden_fields(self) -> set[str]:
+        """
+        Return the fields that do not apply to the selected action or protocol.
+        """
+        hidden_fields = super()._get_hidden_fields()
+        action = get_field_value(self, "action")
+        if not action or action == ACLRuleActionChoices.ACTION_REMARK:
+            hidden_fields |= {"destination", "protocol", "source_port_ranges", "destination_port_ranges"}
+        elif get_field_value(self, "protocol") not in [
+            ACLProtocolChoices.PROTOCOL_TCP,
+            ACLProtocolChoices.PROTOCOL_UDP,
+        ]:
+            hidden_fields |= {"source_port_ranges", "destination_port_ranges"}
+        return hidden_fields
+
+
+#
+# Address Groups
+#
 
 
 class ACLAddressGroupForm(PrimaryModelForm):

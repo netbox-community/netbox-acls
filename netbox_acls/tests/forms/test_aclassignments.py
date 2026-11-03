@@ -76,18 +76,14 @@ class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTes
             },
         )
 
-    def test_direction_defaults_to_none_on_an_add_form(self):
-        """ObjectEditView passes an unsaved instance on add, not None, so cover that shape."""
+    def test_add_form_without_a_type_removes_the_direction(self):
+        """Test that an add form offers no direction until an interface type is picked."""
         for kwargs in ({}, {"instance": ACLAssignment()}):
             with self.subTest(instance="unsaved" if kwargs else "absent"):
-                form = ACLAssignmentForm(**kwargs)
-                self.assertEqual(
-                    form.initial["direction"],
-                    ACLAssignmentDirectionChoices.DIRECTION_NONE,
-                )
+                self.assertNotIn("direction", ACLAssignmentForm(**kwargs).fields)
 
     def test_edit_form_keeps_the_stored_direction(self):
-        """Seeding the default must not overwrite a saved value."""
+        """Test that the edit form of an interface assignment shows its stored direction."""
         assignment = ACLAssignment.objects.create(
             access_list=self.access_list,
             assigned_object=self.interface,
@@ -95,9 +91,18 @@ class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTes
         )
         form = ACLAssignmentForm(instance=assignment)
         self.assertEqual(
-            form.initial["direction"],
+            form["direction"].value(),
             ACLAssignmentDirectionChoices.DIRECTION_EGRESS,
         )
+
+    def test_edit_form_of_a_host_assignment_removes_the_direction(self):
+        """Test that the edit form of a stored host assignment offers no direction."""
+        assignment = ACLAssignment.objects.create(
+            access_list=self.access_list,
+            assigned_object=self.device,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+        self.assertNotIn("direction", ACLAssignmentForm(instance=assignment).fields)
 
     def test_assigned_object_queryset_follows_type(self):
         """Test that the object picker's queryset is resolved from the posted content type."""
@@ -115,6 +120,14 @@ class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTes
                 self.assertFalse(form.fields["direction"].disabled)
                 self.assertTrue(form.fields["direction"].required)
 
+    def test_interface_direction_omits_the_host_value(self):
+        """Test that an interface assignment's direction offers no N/A choice."""
+        form = self._bound_form(Interface, self.interface)
+        self.assertNotIn(
+            ACLAssignmentDirectionChoices.DIRECTION_NONE,
+            dict(form.fields["direction"].choices),
+        )
+
     def test_ui_direction_choices_mirror_the_model_set(self):
         """Test the narrowed GUI choices stay the model set without the host-only value."""
         self.assertEqual(
@@ -126,14 +139,116 @@ class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTes
             },
         )
 
-    def test_direction_disabled_for_host_types(self):
-        """Test that the direction is disabled for host assignments."""
+    def test_host_types_remove_the_direction(self):
+        """Test that a host assignment's form offers no direction."""
         form = self._bound_form(
             Device,
             self.device,
             direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
         )
-        self.assertTrue(form.fields["direction"].disabled)
+        self.assertNotIn("direction", form.fields)
+
+    def test_host_assignment_saves_without_a_direction(self):
+        """Test that a host assignment posted without a direction saves with none."""
+        form = ACLAssignmentForm(
+            data={
+                "access_list": self.access_list.pk,
+                "assigned_object_content_type": ContentType.objects.get_for_model(Device).pk,
+                "assigned_object_object_id": self.device.pk,
+            },
+        )
+        self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+
+        assignment = form.save()
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.direction, ACLAssignmentDirectionChoices.DIRECTION_NONE)
+
+    def test_host_type_without_an_object_reports_the_missing_object(self):
+        """Test that an interface assignment switched to a host type without an object reports the object."""
+        ipv6_acl = AccessList.objects.create(
+            name="testacl2",
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV6,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        assignment = ACLAssignment.objects.create(
+            access_list=self.access_list,
+            assigned_object=self.interface,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+        ACLAssignment.objects.create(
+            access_list=ipv6_acl,
+            assigned_object=self.interface,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+        form = ACLAssignmentForm(
+            data={
+                "access_list": ipv6_acl.pk,
+                "assigned_object_content_type": ContentType.objects.get_for_model(Device).pk,
+            },
+            instance=assignment,
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("assigned_object", form.errors)
+
+    def test_stale_host_type_without_an_object_reports_the_missing_object(self):
+        """Test that a stale form switching an interface assignment to a host type without an object reports it."""
+        ipv6_acl = AccessList.objects.create(
+            name="testacl2",
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV6,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        assignment = ACLAssignment.objects.create(
+            access_list=self.access_list,
+            assigned_object=self.interface,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+        ACLAssignment.objects.create(
+            access_list=ipv6_acl,
+            assigned_object=self.interface,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+        form = ACLAssignmentForm(
+            data={
+                "access_list": ipv6_acl.pk,
+                "assigned_object_content_type": ContentType.objects.get_for_model(Device).pk,
+                "_init_time": "1",
+            },
+            instance=assignment,
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("assigned_object", form.errors)
+
+    def test_stale_switch_to_a_host_reports_the_conflict(self):
+        """Test that a stale form switching an interface assignment to a device reports the conflict."""
+        ipv6_acl = AccessList.objects.create(
+            name="testacl2",
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV6,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        assignment = ACLAssignment.objects.create(
+            access_list=self.access_list,
+            assigned_object=self.interface,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+        ACLAssignment.objects.create(
+            access_list=ipv6_acl,
+            assigned_object=self.interface,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+        form = ACLAssignmentForm(
+            data={
+                "access_list": ipv6_acl.pk,
+                "assigned_object_content_type": ContentType.objects.get_for_model(Device).pk,
+                "assigned_object_object_id": self.device.pk,
+                "_init_time": "1",
+            },
+            instance=assignment,
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("__all__", form.errors)
 
     def test_assigned_object_type_choices_limited(self):
         """Test that the assignment type picker offers only the assignable models."""

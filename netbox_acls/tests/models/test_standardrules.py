@@ -304,12 +304,13 @@ class TestACLStandardRule(BaseTestCase):
             access_list=self.standard_acl1,
             sequence=10,
             action="remark",
-            remark="",
+            remark="Remark",
             source=self.prefix1,
             description="Invalid rule with action 'remark' and source prefix",
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError) as ctx:
             invalid_rule.full_clean()
+        self.assertIn("source", ctx.exception.message_dict)
 
     def test_invalid_aci_standard_rule_source_object(self):
         """

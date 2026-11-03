@@ -33,49 +33,6 @@ __all__ = (
     "ACLStandardRule",
 )
 
-# Error message when the action is 'remark', but no remark is provided.
-ERROR_MESSAGE_NO_REMARK = _("When the action is 'remark', a remark is required.")
-
-# Error message when the action is 'remark', but the source is set.
-ERROR_MESSAGE_ACTION_REMARK_SOURCE_SET = _("When the action is 'remark', the Source must not be set.")
-
-# Error message when the action is 'remark', but the source_port_ranges are set.
-ERROR_MESSAGE_ACTION_REMARK_SOURCE_PORTS_SET = _("When the action is 'remark', Source Ports must not be set.")
-
-# Error message when the action is 'remark', but the destination is set.
-ERROR_MESSAGE_ACTION_REMARK_DESTINATION_SET = _("When the action is 'remark', the Destination must not be set.")
-
-# Error message when the action is 'remark', but the destination_port_ranges are set.
-ERROR_MESSAGE_ACTION_REMARK_DESTINATION_PORTS_SET = _("When the action is 'remark', Destination Ports must not be set.")
-
-# Error message when the action is 'remark', but the protocol is set.
-ERROR_MESSAGE_ACTION_REMARK_PROTOCOL_SET = _("When the action is 'remark', Protocol must not be set.")
-
-# Error message when log options are set but logging is disabled.
-ERROR_MESSAGE_LOG_OPTIONS_WITHOUT_LOG_MATCHES = _("Log options require Log matches to be enabled.")
-
-# Error message when the action is 'remark', but logging is enabled.
-ERROR_MESSAGE_ACTION_REMARK_LOG_MATCHES_SET = _("When the action is 'remark', Log matches must not be enabled.")
-
-# Error message when the action is 'remark', but log options are set.
-ERROR_MESSAGE_ACTION_REMARK_LOG_OPTIONS_SET = _("When the action is 'remark', Log options must not be set.")
-
-# Error message when the protocol is not 'TCP' or 'UDP', but the source ports are set.
-ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_SOURCE_PORTS_SET = _(
-    "Source Ports can only be set when the protocol is TCP or UDP."
-)
-
-# Error message when the protocol is not 'TCP' or 'UDP', but the destination ports are set.
-ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_DESTINATION_PORTS_SET = _(
-    "Destination Ports can only be set when the protocol is TCP or UDP."
-)
-
-# Help text for the log options field, shared by the model and both form modules.
-HELP_TEXT_ACL_RULE_LOG_OPTIONS = _(
-    "Optional logging attributes. Leave empty for the target platform's default. "
-    "Vendor-specific options are grouped by vendor and are platform-dependent."
-)
-
 
 class ACLRule(CachedGenericReferenceMixin, PrimaryModel):
     """
@@ -90,7 +47,9 @@ class ACLRule(CachedGenericReferenceMixin, PrimaryModel):
     )
 
     # Rule
-    sequence = models.PositiveIntegerField()
+    sequence = models.PositiveIntegerField(
+        help_text=_("Determines the order of the rule in the ACL processing."),
+    )
     description = models.CharField(
         verbose_name=_("Description"),
         max_length=500,
@@ -100,6 +59,7 @@ class ACLRule(CachedGenericReferenceMixin, PrimaryModel):
         verbose_name=_("Action"),
         max_length=30,
         choices=ACLRuleActionChoices,
+        help_text=_("Permit or deny matching traffic. A remark carries a comment only, with no match criteria."),
     )
 
     # Remark
@@ -107,6 +67,7 @@ class ACLRule(CachedGenericReferenceMixin, PrimaryModel):
         verbose_name=_("Remark"),
         max_length=500,
         blank=True,
+        help_text=_("Free-text comment. Required when the action is remark."),
     )
 
     # Source
@@ -185,7 +146,10 @@ class ACLRule(CachedGenericReferenceMixin, PrimaryModel):
         verbose_name=_("Log options"),
         default=list,
         blank=True,
-        help_text=HELP_TEXT_ACL_RULE_LOG_OPTIONS,
+        help_text=_(
+            "Optional logging attributes. Leave empty for the target platform's default. "
+            "Vendor-specific options are grouped by vendor and are platform-dependent."
+        ),
     )
 
     objects = ACLRuleManager()
@@ -342,7 +306,7 @@ class ACLRule(CachedGenericReferenceMixin, PrimaryModel):
         errors = {}
 
         if not self.log_matches and self.log_options:
-            errors["log_options"] = ERROR_MESSAGE_LOG_OPTIONS_WITHOUT_LOG_MATCHES
+            errors["log_options"] = _("Log options require Log matches to be enabled.")
 
         return errors
 
@@ -354,13 +318,13 @@ class ACLRule(CachedGenericReferenceMixin, PrimaryModel):
 
         if self.action == ACLRuleActionChoices.ACTION_REMARK:
             if not self.remark:
-                errors["remark"] = ERROR_MESSAGE_NO_REMARK
+                errors["remark"] = _("When the action is 'remark', a remark is required.")
             if self.source:
-                errors["source"] = ERROR_MESSAGE_ACTION_REMARK_SOURCE_SET
+                errors["source"] = _("When the action is 'remark', the Source must not be set.")
             if self.log_matches:
-                errors["log_matches"] = ERROR_MESSAGE_ACTION_REMARK_LOG_MATCHES_SET
+                errors["log_matches"] = _("When the action is 'remark', Log matches must not be enabled.")
             if self.log_options:
-                errors["log_options"] = ERROR_MESSAGE_ACTION_REMARK_LOG_OPTIONS_SET
+                errors["log_options"] = _("When the action is 'remark', Log options must not be set.")
 
         return errors
 
@@ -434,7 +398,10 @@ class ACLExtendedRule(ACLRule):
         verbose_name=_("Source Port Ranges"),
         default=list,
         blank=True,
-        help_text=_("Inclusive port ranges (e.g., 10-20,22,80-81)."),
+        help_text=_(
+            "Comma-separated port numbers. An inclusive range may be specified using a hyphen "
+            "(e.g. 22,80-81,1024-65535). Leave empty to match any port."
+        ),
     )
 
     # Destination
@@ -461,7 +428,10 @@ class ACLExtendedRule(ACLRule):
         verbose_name=_("Destination Port Ranges"),
         default=list,
         blank=True,
-        help_text=_("Inclusive port ranges (e.g., 10-20,22,80-81)."),
+        help_text=_(
+            "Comma-separated port numbers. An inclusive range may be specified using a hyphen "
+            "(e.g. 22,80-81,1024-65535). Leave empty to match any port."
+        ),
     )
 
     # Cached related objects by association name for faster access
@@ -552,9 +522,11 @@ class ACLExtendedRule(ACLRule):
         # Validate that the source or destination ports are only set when the protocol is TCP or UDP
         if self.protocol not in [ACLProtocolChoices.PROTOCOL_TCP, ACLProtocolChoices.PROTOCOL_UDP]:
             if self.source_port_ranges:
-                errors["source_port_ranges"] = ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_SOURCE_PORTS_SET
+                errors["source_port_ranges"] = _("Source Ports can only be set when the protocol is TCP or UDP.")
             if self.destination_port_ranges:
-                errors["destination_port_ranges"] = ERROR_MESSAGE_PROTOCOL_NOT_TCP_OR_UDP_WITH_DESTINATION_PORTS_SET
+                errors["destination_port_ranges"] = _(
+                    "Destination Ports can only be set when the protocol is TCP or UDP."
+                )
 
         errors.update(self._validate_remark())
 
@@ -577,13 +549,13 @@ class ACLExtendedRule(ACLRule):
 
         if self.action == ACLRuleActionChoices.ACTION_REMARK:
             if self.source_port_ranges:
-                errors["source_port_ranges"] = ERROR_MESSAGE_ACTION_REMARK_SOURCE_PORTS_SET
+                errors["source_port_ranges"] = _("When the action is 'remark', Source Ports must not be set.")
             if self.destination:
-                errors["destination"] = ERROR_MESSAGE_ACTION_REMARK_DESTINATION_SET
+                errors["destination"] = _("When the action is 'remark', the Destination must not be set.")
             if self.destination_port_ranges:
-                errors["destination_port_ranges"] = ERROR_MESSAGE_ACTION_REMARK_DESTINATION_PORTS_SET
+                errors["destination_port_ranges"] = _("When the action is 'remark', Destination Ports must not be set.")
             if self.protocol:
-                errors["protocol"] = ERROR_MESSAGE_ACTION_REMARK_PROTOCOL_SET
+                errors["protocol"] = _("When the action is 'remark', Protocol must not be set.")
 
         return errors
 

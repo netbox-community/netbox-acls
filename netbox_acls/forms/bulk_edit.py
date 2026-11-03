@@ -33,10 +33,6 @@ from ..choices import (
 )
 from ..constants import ACL_ADDRESS_OBJECT_MODELS, ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
 from ..models import AccessList, ACLAddressGroup, ACLAddressGroupMember, ACLAssignment, ACLExtendedRule, ACLStandardRule
-from ..models.access_list_rules import (
-    ERROR_MESSAGE_LOG_OPTIONS_WITHOUT_LOG_MATCHES,
-    HELP_TEXT_ACL_RULE_LOG_OPTIONS,
-)
 
 __all__ = (
     "ACLAddressGroupBulkEditForm",
@@ -46,8 +42,6 @@ __all__ = (
     "ACLStandardRuleBulkEditForm",
     "AccessListBulkEditForm",
 )
-
-ERROR_MESSAGE_CLEAR_LOG_OPTIONS_WITH_SELECTION = _("Clear log options cannot be combined with a log option selection.")
 
 
 class AccessListBulkEditForm(PrimaryModelBulkEditForm):
@@ -154,7 +148,10 @@ class ACLRuleLoggingBulkEditMixin(forms.Form):
         choices=ACLRuleLogOptionChoices,
         required=False,
         label=_("Log options"),
-        help_text=HELP_TEXT_ACL_RULE_LOG_OPTIONS,
+        help_text=_(
+            "Optional logging attributes. Leave empty for the target platform's default. "
+            "Vendor-specific options are grouped by vendor and are platform-dependent."
+        ),
     )
     clear_log_options = forms.BooleanField(
         required=False,
@@ -171,11 +168,11 @@ class ACLRuleLoggingBulkEditMixin(forms.Form):
         if cleaned_data.get("log_options"):
             if cleaned_data.get("clear_log_options"):
                 raise forms.ValidationError(
-                    {"clear_log_options": ERROR_MESSAGE_CLEAR_LOG_OPTIONS_WITH_SELECTION},
+                    {"clear_log_options": _("Clear log options cannot be combined with a log option selection.")},
                 )
             if cleaned_data.get("log_matches") is False:
                 raise forms.ValidationError(
-                    {"log_options": ERROR_MESSAGE_LOG_OPTIONS_WITHOUT_LOG_MATCHES},
+                    {"log_options": _("Log options require Log matches to be enabled.")},
                 )
 
         if cleaned_data.get("log_matches") is False or cleaned_data.get("clear_log_options"):

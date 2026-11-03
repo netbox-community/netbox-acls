@@ -39,7 +39,6 @@ from ..models import (
     ACLExtendedRule,
     ACLStandardRule,
 )
-from ..models.access_list_rules import HELP_TEXT_ACL_RULE_LOG_OPTIONS
 
 __all__ = (
     "ACLAddressGroupForm",
@@ -49,23 +48,6 @@ __all__ = (
     "ACLStandardRuleForm",
     "AccessListForm",
 )
-
-# Sets a standard mark_safe help_text value to be used by the various classes
-help_text_acl_rule_logic = mark_safe(
-    _("<b>*Note:</b> CANNOT be set if action is set to remark."),
-)
-# Sets a standard mark_safe help_text value to be used by the various classes
-help_text_acl_rule_port_logic = mark_safe(
-    _("<b>*Note:</b> CANNOT be set if action is set to remark. Only valid when protocol is TCP or UDP.")
-)
-# Sets a standard help_text value to be used by the various classes for acl action
-help_text_acl_action = _("Action the rule will take (remark, deny, or allow).")
-# Sets a standard help_text value to be used by the various classes for acl sequence
-help_text_acl_rule_sequence = _("Determines the order of the rule in the ACL processing.")
-# Standard help_text value to be used by the various classes for acl remark
-help_text_acl_remark = _("Remark the rule will take.")
-# Sets a standard help_text value to be used by the fields for acl port ranges
-help_text_acl_rule_port_ranges = _("Comma/hyphen (inclusive). Example: 22,80-81,1024-65535")
 
 
 #
@@ -265,7 +247,7 @@ class ACLStandardRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
         required=False,
         selector=True,
         label=_("Source"),
-        help_text=help_text_acl_rule_logic,
+        help_text=_("Leave empty to match any source."),
         hx_target_id="source-definition",
     )
 
@@ -273,7 +255,10 @@ class ACLStandardRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
         choices=ACLRuleLogOptionChoices,
         required=False,
         label=_("Log options"),
-        help_text=HELP_TEXT_ACL_RULE_LOG_OPTIONS,
+        help_text=_(
+            "Optional logging attributes. Leave empty for the target platform's default. "
+            "Vendor-specific options are grouped by vendor and are platform-dependent."
+        ),
     )
 
     fieldsets = (
@@ -323,12 +308,6 @@ class ACLStandardRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
             "action": HTMXSelect(),
         }
 
-        help_texts = {
-            "sequence": help_text_acl_rule_sequence,
-            "action": help_text_acl_action,
-            "remark": help_text_acl_remark,
-        }
-
 
 class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModelForm):
     """
@@ -354,13 +333,16 @@ class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
         required=False,
         selector=True,
         label=_("Source"),
-        help_text=help_text_acl_rule_logic,
+        help_text=_("Leave empty to match any source."),
         hx_target_id="source-definition",
     )
     source_port_ranges = NumericRangeArrayField(
         required=False,
         label=_("Source Port Ranges"),
-        help_text=(help_text_acl_rule_port_logic + " " + help_text_acl_rule_port_ranges),
+        help_text=_(
+            "Comma-separated port numbers. An inclusive range may be specified using a hyphen "
+            "(e.g. 22,80-81,1024-65535). Leave empty to match any port."
+        ),
     )
 
     # Destination
@@ -369,20 +351,26 @@ class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
         required=False,
         selector=True,
         label=_("Destination"),
-        help_text=help_text_acl_rule_logic,
+        help_text=_("Leave empty to match any destination."),
         hx_target_id="destination-definition",
     )
     destination_port_ranges = NumericRangeArrayField(
         required=False,
         label=_("Destination Port Ranges"),
-        help_text=(help_text_acl_rule_port_logic + " " + help_text_acl_rule_port_ranges),
+        help_text=_(
+            "Comma-separated port numbers. An inclusive range may be specified using a hyphen "
+            "(e.g. 22,80-81,1024-65535). Leave empty to match any port."
+        ),
     )
 
     log_options = forms.MultipleChoiceField(
         choices=ACLRuleLogOptionChoices,
         required=False,
         label=_("Log options"),
-        help_text=HELP_TEXT_ACL_RULE_LOG_OPTIONS,
+        help_text=_(
+            "Optional logging attributes. Leave empty for the target platform's default. "
+            "Vendor-specific options are grouped by vendor and are platform-dependent."
+        ),
     )
 
     fieldsets = (
@@ -445,13 +433,6 @@ class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
         widgets = {
             "action": HTMXSelect(),
             "protocol": HTMXSelect(),
-        }
-
-        help_texts = {
-            "action": help_text_acl_action,
-            "sequence": help_text_acl_rule_sequence,
-            "protocol": help_text_acl_rule_logic,
-            "remark": help_text_acl_remark,
         }
 
     def _get_hidden_fields(self) -> set[str]:

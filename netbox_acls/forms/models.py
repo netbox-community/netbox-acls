@@ -20,14 +20,18 @@ from utilities.forms.fields import (
 )
 from utilities.forms.mixins import GenericObjectFormMixin
 from utilities.forms.rendering import FieldSet
-from utilities.forms.widgets import HTMXSelect
+from utilities.forms.widgets import HTMXSelect, NumberWithOptions
 from virtualization.models import VMInterface
 
 from ..choices import (
     ACLAssignmentDirectionUIChoices,
+    ACLICMPTypeChoices,
+    ACLICMPv4TypeChoices,
+    ACLICMPv6TypeChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
     ACLRuleLogOptionChoices,
+    ACLTCPFlagChoices,
     ACLTypeChoices,
 )
 from ..constants import ACL_ADDRESS_OBJECT_MODELS, ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
@@ -363,6 +367,13 @@ class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
         ),
     )
 
+    tcp_flags = forms.MultipleChoiceField(
+        choices=ACLTCPFlagChoices,
+        required=False,
+        label=_("TCP Flags"),
+        help_text=_("Unselected flags are ignored. ACK and RST with Any is the stateless established match."),
+    )
+
     log_options = forms.MultipleChoiceField(
         choices=ACLRuleLogOptionChoices,
         required=False,
@@ -406,6 +417,16 @@ class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
             html_id="destination-definition",
         ),
         FieldSet(
+            "icmp_type",
+            "icmp_code",
+            name=_("ICMP"),
+        ),
+        FieldSet(
+            "tcp_flags",
+            "tcp_flags_match",
+            name=_("TCP Flags"),
+        ),
+        FieldSet(
             "log_matches",
             "log_options",
             name=_("Logging"),
@@ -422,6 +443,10 @@ class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
             "source_port_ranges",
             "destination_port_ranges",
             "protocol",
+            "icmp_type",
+            "icmp_code",
+            "tcp_flags",
+            "tcp_flags_match",
             "log_matches",
             "log_options",
             "description",
@@ -433,7 +458,21 @@ class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
         widgets = {
             "action": HTMXSelect(),
             "protocol": HTMXSelect(),
+            "icmp_type": NumberWithOptions(options=ACLICMPTypeChoices),
         }
+
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Offer the ICMP type presets of the selected protocol's family.
+        """
+        super().__init__(*args, **kwargs)
+
+        if "icmp_type" in self.fields:
+            protocol = get_field_value(self, "protocol")
+            if protocol == ACLProtocolChoices.PROTOCOL_ICMPV4:
+                self.fields["icmp_type"].widget.options = ACLICMPv4TypeChoices
+            elif protocol == ACLProtocolChoices.PROTOCOL_ICMPV6:
+                self.fields["icmp_type"].widget.options = ACLICMPv6TypeChoices
 
     def _get_hidden_fields(self) -> set[str]:
         """
@@ -442,12 +481,31 @@ class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
         hidden_fields = super()._get_hidden_fields()
         action = get_field_value(self, "action")
         if not action or action == ACLRuleActionChoices.ACTION_REMARK:
-            hidden_fields |= {"destination", "protocol", "source_port_ranges", "destination_port_ranges"}
-        elif get_field_value(self, "protocol") not in [
-            ACLProtocolChoices.PROTOCOL_TCP,
-            ACLProtocolChoices.PROTOCOL_UDP,
-        ]:
-            hidden_fields |= {"source_port_ranges", "destination_port_ranges"}
+            hidden_fields |= {
+                "destination",
+                "protocol",
+                "source_port_ranges",
+                "destination_port_ranges",
+                "icmp_type",
+                "icmp_code",
+                "tcp_flags",
+                "tcp_flags_match",
+            }
+        else:
+            protocol = get_field_value(self, "protocol")
+            if protocol not in [
+                ACLProtocolChoices.PROTOCOL_TCP,
+                ACLProtocolChoices.PROTOCOL_UDP,
+            ]:
+                hidden_fields |= {"source_port_ranges", "destination_port_ranges"}
+            if protocol not in [
+                ACLProtocolChoices.PROTOCOL_ICMP,
+                ACLProtocolChoices.PROTOCOL_ICMPV4,
+                ACLProtocolChoices.PROTOCOL_ICMPV6,
+            ]:
+                hidden_fields |= {"icmp_type", "icmp_code"}
+            if protocol != ACLProtocolChoices.PROTOCOL_TCP:
+                hidden_fields |= {"tcp_flags", "tcp_flags_match"}
         return hidden_fields
 
 

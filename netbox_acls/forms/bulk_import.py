@@ -25,6 +25,8 @@ from ..choices import (
     ACLProtocolChoices,
     ACLRuleActionChoices,
     ACLRuleLogOptionChoices,
+    ACLTCPFlagChoices,
+    ACLTCPFlagMatchChoices,
     ACLTypeChoices,
 )
 from ..constants import (
@@ -383,7 +385,10 @@ class ACLExtendedRuleImportForm(ACLRuleImportFormMixin, PrimaryModelImportForm):
         label=_("Protocol"),
         choices=ACLProtocolChoices,
         required=False,
-        help_text=_("Port ranges apply to tcp and udp only."),
+        help_text=_(
+            "Port ranges apply to tcp and udp only. "
+            "ICMP follows the ACL or address family. ICMPv4 and ICMPv6 select the family explicitly."
+        ),
     )
     source_port_ranges = NumericRangeArrayField(required=False)
     destination_type = CSVContentTypeField(
@@ -406,6 +411,20 @@ class ACLExtendedRuleImportForm(ACLRuleImportFormMixin, PrimaryModelImportForm):
         help_text=_("Numeric ID of the destination object, as an alternative to destination."),
     )
     destination_port_ranges = NumericRangeArrayField(required=False)
+    tcp_flags = CSVMultipleChoiceField(
+        label=_("TCP Flags"),
+        choices=ACLTCPFlagChoices,
+        required=False,
+        help_text=_(
+            'TCP flag values separated by commas, encased with double quotes (e.g. "ack,rst"). Requires protocol tcp.'
+        ),
+    )
+    tcp_flags_match = CSVChoiceField(
+        label=_("TCP Flags Match"),
+        choices=ACLTCPFlagMatchChoices,
+        required=False,
+        help_text=_("Defaults to all for new rules. A blank value keeps the stored mode on update."),
+    )
 
     object_roles = ("source", "destination")
     object_lookups = {
@@ -428,6 +447,10 @@ class ACLExtendedRuleImportForm(ACLRuleImportFormMixin, PrimaryModelImportForm):
             "destination_type",
             "destination_id",
             "destination_port_ranges",
+            "icmp_type",
+            "icmp_code",
+            "tcp_flags",
+            "tcp_flags_match",
             "log_matches",
             "log_options",
             "description",

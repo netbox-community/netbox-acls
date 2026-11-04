@@ -9,9 +9,14 @@ from ipam.models import Prefix
 from ...choices import (
     ACLActionChoices,
     ACLFamilyChoices,
+    ACLICMPTypeChoices,
+    ACLICMPv4TypeChoices,
+    ACLICMPv6TypeChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
     ACLRuleLogOptionChoices,
+    ACLTCPFlagChoices,
+    ACLTCPFlagMatchChoices,
     ACLTypeChoices,
 )
 from ...constants import ACL_RULE_SOURCE_DESTINATION_MODELS
@@ -52,6 +57,7 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
             "sequence": 10,
             "action": ACLRuleActionChoices.ACTION_PERMIT,
             "protocol": ACLProtocolChoices.PROTOCOL_TCP,
+            "tcp_flags_match": ACLTCPFlagMatchChoices.MATCH_ALL,
             "source_content_type": ContentType.objects.get_for_model(Prefix).pk,
             "source_object_id": self.prefix.pk,
             "destination_content_type": ContentType.objects.get_for_model(Prefix).pk,
@@ -226,7 +232,7 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         """Test that the nullable list stays exhaustive for this form."""
         self.assertEqual(
             ACLExtendedRuleBulkEditForm.nullable_fields,
-            ("remark", "source", "destination", "description", "comments"),
+            ("remark", "source", "destination", "icmp_type", "icmp_code", "description", "comments"),
         )
 
     def test_filterform_access_list_filtered_to_extended(self):
@@ -240,7 +246,7 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
     def test_choice_filters_accept_multiple_values(self):
         """The filter form's choice fields must be multi-selects, matching the filter set."""
         form = ACLExtendedRuleFilterForm()
-        for field_name in ("action", "protocol"):
+        for field_name in ("action", "protocol", "tcp_flags", "tcp_flags_match"):
             with self.subTest(field_name=field_name):
                 self.assertIsInstance(form.fields[field_name], forms.MultipleChoiceField)
 
@@ -250,11 +256,22 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.cleaned_data["protocol"], [ACLProtocolChoices.PROTOCOL_GRE])
 
+    def test_filterform_icmp_type_offers_the_family_labelled_presets(self):
+        """Test that the filter form's ICMP type offers the presets of both families."""
+        form = ACLExtendedRuleFilterForm()
+        self.assertIs(form.fields["icmp_type"].widget.original_widget.options, ACLICMPTypeChoices)
+
     def test_logging_fields_are_present(self):
         """Test that the model form exposes both logging fields."""
         form = ACLExtendedRuleForm(initial={"action": ACLRuleActionChoices.ACTION_PERMIT})
         self.assertIn("log_matches", form.fields)
         self.assertIn("log_options", form.fields)
+
+    def test_form_keeps_an_icmp_type_and_code_of_zero(self):
+        """Test that the model form passes an ICMP type and code of zero to the rule."""
+        form = self._bound_form(protocol=ACLProtocolChoices.PROTOCOL_ICMP, icmp_type=0, icmp_code=0)
+        self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+        self.assertEqual((form.instance.icmp_type, form.instance.icmp_code), (0, 0))
 
     def test_form_rejects_options_without_log_matches(self):
         """Test that the model form surfaces the consistency error per field."""
@@ -304,6 +321,10 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
             "destination",
             "destination_port_ranges",
             "protocol",
+            "icmp_type",
+            "icmp_code",
+            "tcp_flags",
+            "tcp_flags_match",
             "log_matches",
             "log_options",
         ):
@@ -320,6 +341,10 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
             "destination",
             "destination_port_ranges",
             "protocol",
+            "icmp_type",
+            "icmp_code",
+            "tcp_flags",
+            "tcp_flags_match",
             "log_matches",
             "log_options",
         ):
@@ -336,6 +361,8 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
             "destination",
             "destination_port_ranges",
             "protocol",
+            "tcp_flags",
+            "tcp_flags_match",
             "log_matches",
             "log_options",
         ):
@@ -349,6 +376,60 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
             [str(fieldset.name) for fieldset in form.fieldsets],
             ["Access List Details", "Rule Definition", "Remark"],
         )
+
+    def test_tcp_rule_offers_the_tcp_flags_fieldset(self):
+        """Test that a TCP rule's form shows the TCP Flags fieldset and drops the ICMP one."""
+        form = self._bound_form(protocol=ACLProtocolChoices.PROTOCOL_TCP)
+        self.assertEqual(
+            [str(fieldset.name) for fieldset in form.fieldsets],
+            [
+                "Access List Details",
+                "Rule Definition",
+                "Remark",
+                "Protocol",
+                "Source Definition",
+                "Destination Definition",
+                "TCP Flags",
+                "Logging",
+            ],
+        )
+
+    def test_icmp_rule_offers_the_icmp_fieldset(self):
+        """Test that an ICMP rule's form shows the ICMP fieldset and drops the TCP Flags one."""
+        form = self._bound_form(protocol=ACLProtocolChoices.PROTOCOL_ICMP)
+        self.assertEqual(
+            [str(fieldset.name) for fieldset in form.fieldsets],
+            [
+                "Access List Details",
+                "Rule Definition",
+                "Remark",
+                "Protocol",
+                "Source Definition",
+                "Destination Definition",
+                "ICMP",
+                "Logging",
+            ],
+        )
+
+    def test_icmpv4_protocol_offers_the_icmpv4_type_presets(self):
+        """Test that an ICMPv4 rule's type field offers the ICMPv4 presets."""
+        form = self._bound_form(protocol=ACLProtocolChoices.PROTOCOL_ICMPV4)
+        self.assertIs(form.fields["icmp_type"].widget.options, ACLICMPv4TypeChoices)
+
+    def test_icmpv6_protocol_offers_the_icmpv6_type_presets(self):
+        """Test that an ICMPv6 rule's type field offers the ICMPv6 presets."""
+        form = self._bound_form(protocol=ACLProtocolChoices.PROTOCOL_ICMPV6)
+        self.assertIs(form.fields["icmp_type"].widget.options, ACLICMPv6TypeChoices)
+
+    def test_icmp_protocol_offers_the_family_labelled_type_presets(self):
+        """Test that an ICMP rule's type field offers the presets of both families."""
+        form = self._bound_form(protocol=ACLProtocolChoices.PROTOCOL_ICMP)
+        self.assertIs(form.fields["icmp_type"].widget.options, ACLICMPTypeChoices)
+
+    def test_family_labelled_type_presets_name_both_families(self):
+        """Test that the combined presets carry each family's number under its family label."""
+        self.assertIn((8, "ICMPv4: Echo request (8)"), ACLICMPTypeChoices.CHOICES)
+        self.assertIn((128, "ICMPv6: Echo request (128)"), ACLICMPTypeChoices.CHOICES)
 
     def test_icmp_protocol_removes_the_port_fields(self):
         """Test that an ICMP rule's form hides both port fields and keeps both objects."""
@@ -369,6 +450,58 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         form = self._bound_form(protocol="")
         self.assertNotIn("source_port_ranges", form.fields)
         self.assertNotIn("destination_port_ranges", form.fields)
+
+    def test_icmp_protocols_keep_the_icmp_fields(self):
+        """Test that an ICMP, ICMPv4 or ICMPv6 rule's form offers the ICMP type and code."""
+        for protocol in (
+            ACLProtocolChoices.PROTOCOL_ICMP,
+            ACLProtocolChoices.PROTOCOL_ICMPV4,
+            ACLProtocolChoices.PROTOCOL_ICMPV6,
+        ):
+            with self.subTest(protocol=protocol):
+                form = self._bound_form(protocol=protocol)
+                self.assertIn("icmp_type", form.fields)
+                self.assertIn("icmp_code", form.fields)
+
+    def test_other_protocols_remove_the_icmp_fields(self):
+        """Test that every protocol other than the ICMP ones hides the ICMP type and code."""
+        icmp_protocols = {
+            ACLProtocolChoices.PROTOCOL_ICMP,
+            ACLProtocolChoices.PROTOCOL_ICMPV4,
+            ACLProtocolChoices.PROTOCOL_ICMPV6,
+        }
+        other_protocols = [protocol for protocol in ACLProtocolChoices.values() if protocol not in icmp_protocols]
+        self.assertIn(ACLProtocolChoices.PROTOCOL_IP, other_protocols)
+        for protocol in other_protocols:
+            with self.subTest(protocol=protocol):
+                form = self._bound_form(protocol=protocol)
+                self.assertNotIn("icmp_type", form.fields)
+                self.assertNotIn("icmp_code", form.fields)
+
+    def test_tcp_protocol_keeps_the_tcp_flag_fields(self):
+        """Test that a TCP rule's form offers the TCP flags and their match mode."""
+        form = self._bound_form(protocol=ACLProtocolChoices.PROTOCOL_TCP)
+        self.assertIn("tcp_flags", form.fields)
+        self.assertIn("tcp_flags_match", form.fields)
+
+    def test_other_protocols_remove_the_tcp_flag_fields(self):
+        """Test that every protocol other than TCP hides the TCP flags and their match mode."""
+        other_protocols = [
+            protocol for protocol in ACLProtocolChoices.values() if protocol != ACLProtocolChoices.PROTOCOL_TCP
+        ]
+        self.assertIn(ACLProtocolChoices.PROTOCOL_IP, other_protocols)
+        for protocol in other_protocols:
+            with self.subTest(protocol=protocol):
+                form = self._bound_form(protocol=protocol)
+                self.assertNotIn("tcp_flags", form.fields)
+                self.assertNotIn("tcp_flags_match", form.fields)
+
+    def test_blank_protocol_removes_the_icmp_and_tcp_flag_fields(self):
+        """Test that a rule without a protocol offers no ICMP or TCP flag fields."""
+        form = self._bound_form(protocol="")
+        for field_name in ("icmp_type", "icmp_code", "tcp_flags", "tcp_flags_match"):
+            with self.subTest(field_name=field_name):
+                self.assertNotIn(field_name, form.fields)
 
     def test_unbound_form_follows_the_stored_protocol(self):
         """Test that the edit form of a stored UDP rule offers both port fields."""
@@ -401,6 +534,40 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         self.assertEqual(rule.source_port_ranges, [])
         self.assertEqual(rule.destination_port_ranges, [])
 
+    def test_switching_to_udp_clears_the_stored_tcp_flags(self):
+        """Test that saving a TCP rule as UDP clears its stored TCP flags and resets their match mode to all."""
+        rule = self._rule(
+            10,
+            protocol=ACLProtocolChoices.PROTOCOL_TCP,
+            tcp_flags=[ACLTCPFlagChoices.FLAG_SYN, ACLTCPFlagChoices.FLAG_ACK],
+            tcp_flags_match=ACLTCPFlagMatchChoices.MATCH_ANY,
+        )
+        # The data still carries the flags and the match mode, as a stale page would.
+        form = self._bound_form(
+            instance=rule,
+            protocol=ACLProtocolChoices.PROTOCOL_UDP,
+            tcp_flags=[ACLTCPFlagChoices.FLAG_ACK],
+            tcp_flags_match=ACLTCPFlagMatchChoices.MATCH_ANY,
+        )
+        self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+
+        form.save()
+        rule.refresh_from_db()
+        self.assertEqual(rule.tcp_flags, [])
+        self.assertEqual(rule.tcp_flags_match, ACLTCPFlagMatchChoices.MATCH_ALL)
+
+    def test_switching_to_tcp_clears_the_stored_icmp_type_and_code(self):
+        """Test that saving an ICMP rule as TCP clears its stored ICMP type and code."""
+        rule = self._rule(10, protocol=ACLProtocolChoices.PROTOCOL_ICMP, icmp_type=8, icmp_code=0)
+        # The data still carries the ICMP type and code, as a stale page would.
+        form = self._bound_form(instance=rule, protocol=ACLProtocolChoices.PROTOCOL_TCP, icmp_type=8, icmp_code=0)
+        self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+
+        form.save()
+        rule.refresh_from_db()
+        self.assertIsNone(rule.icmp_type)
+        self.assertIsNone(rule.icmp_code)
+
     def test_stale_switch_to_icmp_reports_the_conflict(self):
         """Test that a stale form switching a TCP rule with ports to ICMP reports the conflict."""
         rule = self._rule(
@@ -420,11 +587,19 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
             protocol=ACLProtocolChoices.PROTOCOL_TCP,
             source_port_ranges=[NumericRange(22, 23)],
             destination_port_ranges=[NumericRange(443, 444)],
+            tcp_flags=[ACLTCPFlagChoices.FLAG_ACK],
+            tcp_flags_match=ACLTCPFlagMatchChoices.MATCH_ANY,
             log_matches=True,
             log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG],
         )
-        # The data still carries the protocol and both objects, as a stale page would.
-        form = self._bound_form(instance=rule, action=ACLRuleActionChoices.ACTION_REMARK, remark="Note")
+        # The data still carries the protocol, both objects and the TCP flags, as a stale page would.
+        form = self._bound_form(
+            instance=rule,
+            action=ACLRuleActionChoices.ACTION_REMARK,
+            remark="Note",
+            tcp_flags=[ACLTCPFlagChoices.FLAG_ACK],
+            tcp_flags_match=ACLTCPFlagMatchChoices.MATCH_ANY,
+        )
         self.assertTrue(form.is_valid(), msg=form.errors.as_text())
 
         form.save()
@@ -436,6 +611,8 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         self.assertEqual(rule.protocol, "")
         self.assertEqual(rule.source_port_ranges, [])
         self.assertEqual(rule.destination_port_ranges, [])
+        self.assertEqual(rule.tcp_flags, [])
+        self.assertEqual(rule.tcp_flags_match, ACLTCPFlagMatchChoices.MATCH_ALL)
         self.assertFalse(rule.log_matches)
         self.assertEqual(rule.log_options, [])
 
@@ -448,6 +625,56 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
                 self.assertEqual(attrs["hx-get"], ".")
                 self.assertEqual(attrs["hx-include"], "#form_fields")
                 self.assertEqual(attrs["hx-target"], "#form_fields")
+
+    def test_bulkedit_clear_empties_the_tcp_flags(self):
+        """Test that the clear control empties the TCP flags."""
+        form = ACLExtendedRuleBulkEditForm(
+            data={"clear_tcp_flags": True, "pk": [self._rule(40).pk]},
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["tcp_flags"], [])
+        self.assertIn("tcp_flags", form.changed_data)
+
+    def test_bulkedit_clear_rejects_an_explicit_tcp_flag_selection(self):
+        """Test that clearing and selecting TCP flags at once is rejected."""
+        form = ACLExtendedRuleBulkEditForm(
+            data={
+                "clear_tcp_flags": True,
+                "tcp_flags": [ACLTCPFlagChoices.FLAG_ACK],
+                "pk": [self._rule(50).pk],
+            },
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("clear_tcp_flags", form.errors)
+
+    def test_bulkedit_blank_fields_leave_icmp_and_tcp_flags_unchanged(self):
+        """Test that blank ICMP and TCP flag inputs stay out of the applied changes."""
+        form = ACLExtendedRuleBulkEditForm(
+            data={"description": "Bulk edited", "pk": [self._rule(60).pk]},
+        )
+        self.assertIn("icmp_type", form.fields)
+        self.assertIn("icmp_code", form.fields)
+        self.assertIn("tcp_flags", form.fields)
+        self.assertIn("tcp_flags_match", form.fields)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertNotIn("icmp_type", form.changed_data)
+        self.assertNotIn("icmp_code", form.changed_data)
+        self.assertNotIn("tcp_flags", form.changed_data)
+        self.assertNotIn("tcp_flags_match", form.changed_data)
+
+    def test_bulkedit_applies_an_icmp_type_of_zero(self):
+        """Test that an ICMP type of zero counts as a change."""
+        form = ACLExtendedRuleBulkEditForm(
+            data={"icmp_type": "0", "pk": [self._rule(70).pk]},
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["icmp_type"], 0)
+        self.assertIn("icmp_type", form.changed_data)
+
+    def test_bulkedit_icmp_type_offers_the_family_labelled_presets(self):
+        """Test that the bulk edit ICMP type offers the presets of both families."""
+        form = ACLExtendedRuleBulkEditForm()
+        self.assertIs(form.fields["icmp_type"].widget.options, ACLICMPTypeChoices)
 
 
 class ACLExtendedRuleImportFormTestCase(TestCase):
@@ -599,3 +826,47 @@ class ACLExtendedRuleImportFormTestCase(TestCase):
         updated = form.save()
         self.assertIsNone(updated.destination)
         self.assertEqual(updated.source, self.prefix)
+
+    def test_icmp_type_and_code_of_zero_are_imported(self):
+        """Test that an ICMP type and code of zero import as zero."""
+        form = self._form(protocol=ACLProtocolChoices.PROTOCOL_ICMP, icmp_type="0", icmp_code="0")
+        self.assertTrue(form.is_valid(), form.errors)
+        rule = form.save()
+        self.assertEqual((rule.icmp_type, rule.icmp_code), (0, 0))
+
+    def test_blank_tcp_flags_match_cell_keeps_the_default(self):
+        """Test that a blank TCP flags match cell imports the default."""
+        form = self._form(tcp_flags_match="")
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().tcp_flags_match, ACLTCPFlagMatchChoices.MATCH_ALL)
+
+    def test_blank_tcp_flags_match_cell_keeps_the_stored_match(self):
+        """Test that a blank TCP flags match cell keeps the stored match on update."""
+        rule = self._form(tcp_flags_match=ACLTCPFlagMatchChoices.MATCH_ANY).save()
+        form = self._form(instance=rule, tcp_flags_match="")
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().tcp_flags_match, ACLTCPFlagMatchChoices.MATCH_ANY)
+
+    def test_tcp_flags_are_imported_canonically(self):
+        """Test that imported TCP flags deduplicate and reach the database in header-bit order."""
+        form = self._form(tcp_flags="ack,syn,ack", tcp_flags_match=ACLTCPFlagMatchChoices.MATCH_ANY)
+        self.assertTrue(form.is_valid(), form.errors)
+        rule = form.save()
+        rule.refresh_from_db()
+        self.assertEqual(rule.tcp_flags, [ACLTCPFlagChoices.FLAG_SYN, ACLTCPFlagChoices.FLAG_ACK])
+        self.assertEqual(rule.tcp_flags_match, ACLTCPFlagMatchChoices.MATCH_ANY)
+
+    def test_update_changing_protocol_with_an_omitted_tcp_flags_column_is_rejected(self):
+        """Test that an update leaving TCP flags on a UDP rule reports a row error."""
+        rule = self._form(tcp_flags=ACLTCPFlagChoices.FLAG_ACK).save()
+
+        form = ACLExtendedRuleImportForm(data={"protocol": ACLProtocolChoices.PROTOCOL_UDP}, instance=rule)
+        # BulkImportView deletes every field the record omits.
+        for name in set(form.fields) - {"protocol"}:
+            del form.fields[name]
+
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            "tcp_flags: TCP Flags can only be set when the protocol is TCP.",
+            form.non_field_errors(),
+        )

@@ -7,6 +7,7 @@ from ..choices import (
     ACLFamilyChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
+    ACLTCPFlagMatchChoices,
     ACLTypeChoices,
 )
 
@@ -17,6 +18,7 @@ __all__ = (
     "ACLFamilyEnum",
     "ACLProtocolEnum",
     "ACLRuleActionEnum",
+    "ACLTCPFlagMatchEnum",
     "ACLTypeEnum",
 )
 
@@ -40,6 +42,7 @@ ACLAssignmentDirectionEnum = strawberry.enum(ACLAssignmentDirectionChoices.as_en
 
 ACLProtocolEnum = strawberry.enum(ACLProtocolChoices.as_enum())
 ACLRuleActionEnum = strawberry.enum(ACLRuleActionChoices.as_enum())
+ACLTCPFlagMatchEnum = strawberry.enum(ACLTCPFlagMatchChoices.as_enum())
 
 #
 # Address Groups

@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from ..enums import (
         ACLProtocolEnum,
         ACLRuleActionEnum,
+        ACLTCPFlagMatchEnum,
     )
     from .access_lists import AccessListFilter
 
@@ -93,3 +94,19 @@ class ACLExtendedRuleFilter(ACLRuleFilterMixin):
     protocol: BaseFilterLookup[Annotated["ACLProtocolEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None = (
         strawberry_django.filter_field()
     )
+
+    # ICMP
+    icmp_type: Annotated["IntegerLookup", strawberry.lazy("netbox.graphql.filter_lookups")] | None = (
+        strawberry_django.filter_field()
+    )
+    icmp_code: Annotated["IntegerLookup", strawberry.lazy("netbox.graphql.filter_lookups")] | None = (
+        strawberry_django.filter_field()
+    )
+
+    # TCP flags
+    tcp_flags: Annotated["StringArrayLookup", strawberry.lazy("netbox.graphql.filter_lookups")] | None = (
+        strawberry_django.filter_field()
+    )
+    tcp_flags_match: (
+        BaseFilterLookup[Annotated["ACLTCPFlagMatchEnum", strawberry.lazy("netbox_acls.graphql.enums")]] | None
+    ) = strawberry_django.filter_field()

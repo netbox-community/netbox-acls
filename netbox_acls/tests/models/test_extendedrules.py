@@ -1,4 +1,4 @@
-from django.core.exceptions import ValidationError
+from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.db.backends.postgresql.psycopg_any import NumericRange
 
 from utilities.data import string_to_ranges
@@ -10,6 +10,8 @@ from ...choices import (
     ACLProtocolChoices,
     ACLRuleActionChoices,
     ACLRuleLogOptionChoices,
+    ACLTCPFlagChoices,
+    ACLTCPFlagMatchChoices,
     ACLTypeChoices,
 )
 from ...models import AccessList, ACLAddressGroup, ACLExtendedRule
@@ -822,7 +824,7 @@ class TestACLExtendedRule(BaseTestCase):
             for field_name in ("source_port_ranges", "destination_port_ranges"):
                 with self.subTest(protocol=protocol, field=field_name):
                     invalid_rule = ACLExtendedRule(
-                        access_list=self.extended_acl1,
+                        access_list=self.extended_acl_dual,
                         sequence=10,
                         action="permit",
                         remark="",
@@ -1496,4 +1498,636 @@ class TestACLExtendedRule(BaseTestCase):
                 ACLRuleLogOptionChoices.OPTION_CISCO_LOG_INPUT,
                 ACLRuleLogOptionChoices.OPTION_SYSLOG,
             ],
+        )
+
+    def test_icmp_type_and_code_zero_persist_as_zero(self):
+        """
+        Test that an ICMP type and code of zero persist as zero.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=100,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+            icmp_type=0,
+            icmp_code=0,
+        )
+        rule.full_clean()
+        rule.save()
+        rule.refresh_from_db()
+        self.assertEqual((rule.icmp_type, rule.icmp_code), (0, 0))
+
+    def test_icmp_type_and_code_accept_255(self):
+        """
+        Test that the largest ICMP type and code pass validation.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=101,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+            icmp_type=255,
+            icmp_code=255,
+        )
+        rule.full_clean()
+
+    def test_icmp_type_above_255_is_rejected(self):
+        """
+        Test that an ICMP type above 255 fails validation.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=102,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+            icmp_type=256,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertIn("icmp_type", ctx.exception.message_dict)
+
+    def test_icmp_code_above_255_is_rejected(self):
+        """
+        Test that an ICMP code above 255 fails validation.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=103,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+            icmp_type=3,
+            icmp_code=256,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertIn("icmp_code", ctx.exception.message_dict)
+
+    def test_negative_icmp_type_is_rejected(self):
+        """
+        Test that a negative ICMP type fails validation.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=104,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+            icmp_type=-1,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertIn("icmp_type", ctx.exception.message_dict)
+
+    def test_icmp_type_without_code_is_valid(self):
+        """
+        Test that an ICMP type without a code passes validation.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=105,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+            icmp_type=8,
+        )
+        rule.full_clean()
+
+    def test_icmp_code_requires_an_icmp_type(self):
+        """
+        Test that an ICMP code without a type fails validation.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=106,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+            icmp_code=0,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertEqual(
+            ctx.exception.message_dict["icmp_code"],
+            ["ICMP Code requires an ICMP Type."],
+        )
+
+    def test_icmp_type_requires_the_icmp_protocol(self):
+        """
+        Test that an ICMP type fails validation with every other protocol and without one.
+        """
+        icmp_protocols = {
+            ACLProtocolChoices.PROTOCOL_ICMP,
+            ACLProtocolChoices.PROTOCOL_ICMPV4,
+            ACLProtocolChoices.PROTOCOL_ICMPV6,
+        }
+        other_protocols = [
+            protocol for protocol in [*ACLProtocolChoices.values(), ""] if protocol not in icmp_protocols
+        ]
+        self.assertIn(ACLProtocolChoices.PROTOCOL_IP, other_protocols)
+        for protocol in other_protocols:
+            with self.subTest(protocol=protocol):
+                rule = ACLExtendedRule(
+                    access_list=self.extended_acl1,
+                    sequence=107,
+                    action=ACLRuleActionChoices.ACTION_PERMIT,
+                    protocol=protocol,
+                    icmp_type=8,
+                )
+                with self.assertRaises(ValidationError) as ctx:
+                    rule.full_clean()
+                self.assertEqual(
+                    ctx.exception.message_dict["icmp_type"],
+                    ["ICMP Type can only be set when the protocol is ICMP, ICMPv4 or ICMPv6."],
+                )
+
+    def test_icmp_code_requires_the_icmp_protocol(self):
+        """
+        Test that an ICMP code fails validation with every other protocol and without one.
+        """
+        icmp_protocols = {
+            ACLProtocolChoices.PROTOCOL_ICMP,
+            ACLProtocolChoices.PROTOCOL_ICMPV4,
+            ACLProtocolChoices.PROTOCOL_ICMPV6,
+        }
+        other_protocols = [
+            protocol for protocol in [*ACLProtocolChoices.values(), ""] if protocol not in icmp_protocols
+        ]
+        self.assertIn(ACLProtocolChoices.PROTOCOL_IP, other_protocols)
+        for protocol in other_protocols:
+            with self.subTest(protocol=protocol):
+                rule = ACLExtendedRule(
+                    access_list=self.extended_acl1,
+                    sequence=108,
+                    action=ACLRuleActionChoices.ACTION_PERMIT,
+                    protocol=protocol,
+                    icmp_code=0,
+                )
+                with self.assertRaises(ValidationError) as ctx:
+                    rule.full_clean()
+                self.assertEqual(
+                    ctx.exception.message_dict["icmp_code"],
+                    ["ICMP Code can only be set when the protocol is ICMP, ICMPv4 or ICMPv6."],
+                )
+
+    def test_remark_rule_rejects_an_icmp_type(self):
+        """
+        Test that a remark reports the remark error for an ICMP type.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=109,
+            action=ACLRuleActionChoices.ACTION_REMARK,
+            remark="Remark",
+            icmp_type=8,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertEqual(
+            ctx.exception.message_dict["icmp_type"],
+            ["When the action is 'remark', ICMP Type must not be set."],
+        )
+
+    def test_remark_rule_rejects_an_icmp_code_of_zero(self):
+        """
+        Test that a remark reports the remark error for an ICMP code of zero.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=110,
+            action=ACLRuleActionChoices.ACTION_REMARK,
+            remark="Remark",
+            icmp_code=0,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertEqual(
+            ctx.exception.message_dict["icmp_code"],
+            ["When the action is 'remark', ICMP Code must not be set."],
+        )
+
+    def test_icmp_type_in_an_ipv6_acl_is_valid(self):
+        """
+        Test that an IPv6 ACL takes an ICMP type without any source or destination.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl_v6,
+            sequence=111,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+            icmp_type=128,
+        )
+        rule.full_clean()
+
+    def test_icmp_type_in_a_dual_acl_resolves_from_an_ipv4_source(self):
+        """
+        Test that an IPv4 source resolves the ICMP family in a dual-stack ACL.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl_dual,
+            sequence=112,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+            source=self.prefix1,
+            icmp_type=8,
+        )
+        rule.full_clean()
+
+    def test_icmp_type_in_a_dual_acl_resolves_from_an_ipv6_destination(self):
+        """
+        Test that an IPv6 destination resolves the ICMP family in a dual-stack ACL.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl_dual,
+            sequence=113,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+            destination=self.prefix1_v6,
+            icmp_type=128,
+        )
+        rule.full_clean()
+
+    def test_icmp_type_in_a_dual_acl_resolves_from_an_address_group(self):
+        """
+        Test that an address group's family resolves the ICMP family in a dual-stack ACL.
+        """
+        address_group = ACLAddressGroup.objects.create(
+            name="address-group-v6",
+            family=ACLAddressFamilyChoices.FAMILY_IPV6,
+        )
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl_dual,
+            sequence=114,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+            source=address_group,
+            icmp_type=128,
+        )
+        rule.full_clean()
+
+    def test_icmp_type_in_a_dual_acl_without_endpoints_is_rejected(self):
+        """
+        Test that a dual-stack ACL rejects an ICMP type it cannot place in a family.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl_dual,
+            sequence=115,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+            icmp_type=8,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertEqual(
+            ctx.exception.message_dict["icmp_type"],
+            [
+                (
+                    "Select ICMPv4 or ICMPv6 when specifying an ICMP Type in a Dual ACL "
+                    "without address criteria that determine the family."
+                )
+            ],
+        )
+
+    def test_untyped_icmp_rule_in_a_dual_acl_stays_valid(self):
+        """
+        Test that an ICMP rule without a type needs no family in a dual-stack ACL.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl_dual,
+            sequence=116,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+        )
+        rule.full_clean()
+
+    def test_icmpv4_rule_in_an_ipv4_acl_is_valid(self):
+        """
+        Test that an IPv4 ACL takes a typed ICMPv4 rule.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=131,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMPV4,
+            icmp_type=8,
+            icmp_code=0,
+        )
+        rule.full_clean()
+
+    def test_icmpv6_rule_in_an_ipv4_acl_is_rejected(self):
+        """
+        Test that an IPv4 ACL rejects ICMPv6 even without an ICMP type.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=132,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMPV6,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertEqual(
+            ctx.exception.message_dict[NON_FIELD_ERRORS],
+            ["IPv4 ACL: Rule contains IPv6 criteria."],
+        )
+
+    def test_icmpv6_rule_in_an_ipv6_acl_is_valid(self):
+        """
+        Test that an IPv6 ACL takes a typed ICMPv6 rule.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl_v6,
+            sequence=133,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMPV6,
+            icmp_type=128,
+            icmp_code=0,
+        )
+        rule.full_clean()
+
+    def test_icmpv4_rule_in_an_ipv6_acl_is_rejected(self):
+        """
+        Test that an IPv6 ACL rejects ICMPv4 even without an ICMP type.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl_v6,
+            sequence=134,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMPV4,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertEqual(
+            ctx.exception.message_dict[NON_FIELD_ERRORS],
+            ["IPv6 ACL: Rule contains IPv4 criteria."],
+        )
+
+    def test_icmpv4_type_in_a_dual_acl_without_endpoints_is_valid(self):
+        """
+        Test that ICMPv4 places an ICMP type in a dual-stack ACL without any source or destination.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl_dual,
+            sequence=135,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMPV4,
+            icmp_type=8,
+            icmp_code=0,
+        )
+        rule.full_clean()
+
+    def test_icmpv6_type_in_a_dual_acl_without_endpoints_is_valid(self):
+        """
+        Test that ICMPv6 places an ICMP type in a dual-stack ACL without any source or destination.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl_dual,
+            sequence=136,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMPV6,
+            icmp_type=128,
+            icmp_code=0,
+        )
+        rule.full_clean()
+
+    def test_icmpv4_rule_with_an_ipv4_source_in_a_dual_acl_is_valid(self):
+        """
+        Test that ICMPv4 agrees with an IPv4 source in a dual-stack ACL.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl_dual,
+            sequence=137,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMPV4,
+            source=self.prefix1,
+        )
+        rule.full_clean()
+
+    def test_icmpv6_rule_with_an_ipv4_source_in_a_dual_acl_is_rejected(self):
+        """
+        Test that ICMPv6 conflicts with an IPv4 source in a dual-stack ACL.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl_dual,
+            sequence=138,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMPV6,
+            source=self.prefix1,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertEqual(
+            ctx.exception.message_dict[NON_FIELD_ERRORS],
+            ["Dual-stack ACL: A single rule must not mix IPv4 and IPv6 criteria."],
+        )
+
+    def test_icmpv4_rule_with_an_ipv6_address_group_in_a_dual_acl_is_rejected(self):
+        """
+        Test that ICMPv4 conflicts with an IPv6 address group in a dual-stack ACL.
+        """
+        address_group = ACLAddressGroup.objects.create(
+            name="address-group-v6",
+            family=ACLAddressFamilyChoices.FAMILY_IPV6,
+        )
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl_dual,
+            sequence=139,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMPV4,
+            destination=address_group,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertEqual(
+            ctx.exception.message_dict[NON_FIELD_ERRORS],
+            ["Dual-stack ACL: A single rule must not mix IPv4 and IPv6 criteria."],
+        )
+
+    def test_tcp_flags_are_canonicalized(self):
+        """
+        Test that TCP flags deduplicate and reach the database in header-bit order.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=117,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_TCP,
+            tcp_flags=[
+                ACLTCPFlagChoices.FLAG_ACK,
+                ACLTCPFlagChoices.FLAG_SYN,
+                ACLTCPFlagChoices.FLAG_ACK,
+            ],
+        )
+        rule.full_clean()
+        rule.save()
+        rule.refresh_from_db()
+        self.assertEqual(
+            rule.tcp_flags,
+            [
+                ACLTCPFlagChoices.FLAG_SYN,
+                ACLTCPFlagChoices.FLAG_ACK,
+            ],
+        )
+
+    def test_tcp_flags_require_the_tcp_protocol(self):
+        """
+        Test that TCP flags fail validation with every other protocol and without one.
+        """
+        other_protocols = [
+            protocol for protocol in [*ACLProtocolChoices.values(), ""] if protocol != ACLProtocolChoices.PROTOCOL_TCP
+        ]
+        self.assertIn(ACLProtocolChoices.PROTOCOL_IP, other_protocols)
+        for protocol in other_protocols:
+            with self.subTest(protocol=protocol):
+                rule = ACLExtendedRule(
+                    access_list=self.extended_acl_dual,
+                    sequence=118,
+                    action=ACLRuleActionChoices.ACTION_PERMIT,
+                    protocol=protocol,
+                    tcp_flags=[ACLTCPFlagChoices.FLAG_ACK],
+                )
+                with self.assertRaises(ValidationError) as ctx:
+                    rule.full_clean()
+                self.assertEqual(
+                    ctx.exception.message_dict["tcp_flags"],
+                    ["TCP Flags can only be set when the protocol is TCP."],
+                )
+
+    def test_remark_rule_rejects_tcp_flags(self):
+        """
+        Test that a remark reports the remark error for TCP flags.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=119,
+            action=ACLRuleActionChoices.ACTION_REMARK,
+            remark="Remark",
+            tcp_flags=[ACLTCPFlagChoices.FLAG_ACK],
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertEqual(
+            ctx.exception.message_dict["tcp_flags"],
+            ["When the action is 'remark', TCP Flags must not be set."],
+        )
+
+    def test_unsupported_tcp_flag_is_rejected(self):
+        """
+        Test that a value outside the TCP flag choice set fails validation.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=120,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_TCP,
+            tcp_flags=["ns"],
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertIn("tcp_flags", ctx.exception.message_dict)
+
+    def test_tcp_flags_match_defaults_to_all(self):
+        """
+        Test that the stored TCP flag match mode defaults to all.
+        """
+        rule = ACLExtendedRule.objects.create(
+            access_list=self.extended_acl1,
+            sequence=121,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_TCP,
+        )
+        rule.refresh_from_db()
+        self.assertEqual(rule.tcp_flags_match, ACLTCPFlagMatchChoices.MATCH_ALL)
+
+    def test_unsupported_tcp_flags_match_is_rejected(self):
+        """
+        Test that a match mode outside the choice set fails validation.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=122,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_TCP,
+            tcp_flags_match="most",
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rule.full_clean()
+        self.assertIn("tcp_flags_match", ctx.exception.message_dict)
+
+    def test_any_match_without_flags_stays_valid(self):
+        """
+        Test that a match mode without TCP flags passes validation on any protocol.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=123,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_UDP,
+            tcp_flags_match=ACLTCPFlagMatchChoices.MATCH_ANY,
+        )
+        rule.full_clean()
+
+    def test_established_flags_with_any_match_are_valid(self):
+        """
+        Test that ACK and RST with the any match mode pass validation.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=124,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_TCP,
+            tcp_flags=[
+                ACLTCPFlagChoices.FLAG_ACK,
+                ACLTCPFlagChoices.FLAG_RST,
+            ],
+            tcp_flags_match=ACLTCPFlagMatchChoices.MATCH_ANY,
+        )
+        rule.full_clean()
+
+    def test_clone_carries_an_icmp_type_and_code_of_zero(self):
+        """
+        Test that cloning reproduces an ICMP type and code of zero.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=125,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+            icmp_type=0,
+            icmp_code=0,
+        )
+        rule.full_clean()
+        rule.save()
+
+        attrs = rule.clone()
+        self.assertEqual((attrs["icmp_type"], attrs["icmp_code"]), (0, 0))
+
+    def test_clone_carries_the_tcp_flags_and_match(self):
+        """
+        Test that cloning reproduces the TCP flags and their match mode.
+        """
+        rule = ACLExtendedRule(
+            access_list=self.extended_acl1,
+            sequence=126,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_TCP,
+            tcp_flags=[
+                ACLTCPFlagChoices.FLAG_RST,
+                ACLTCPFlagChoices.FLAG_ACK,
+            ],
+            tcp_flags_match=ACLTCPFlagMatchChoices.MATCH_ANY,
+        )
+        rule.full_clean()
+        rule.save()
+
+        attrs = rule.clone()
+        self.assertEqual(attrs["tcp_flags"], ["rst", "ack"])
+        self.assertEqual(attrs["tcp_flags_match"], "any")
+
+    def test_tcp_flags_badges_pair_labels_with_colors(self):
+        """
+        Test that the badge helper pairs each TCP flag label with its color.
+        """
+        rule = ACLExtendedRule(
+            tcp_flags=["ack", "rst"],
+        )
+        self.assertEqual(
+            rule.tcp_flags_badges,
+            [("ACK", "blue"), ("RST", "red")],
         )

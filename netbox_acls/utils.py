@@ -8,12 +8,13 @@ from django.core.exceptions import ValidationError
 from django.db.backends.postgresql.psycopg_any import NumericRange
 from django.utils.translation import gettext_lazy as _
 
-from .choices import ACLFamilyChoices
+from .choices import ACLFamilyChoices, ACLTCPFlagChoices
 
 __all__ = (
     "infer_family_from_object",
     "normalize_log_options",
     "normalize_port_ranges",
+    "normalize_tcp_flags",
 )
 
 
@@ -87,3 +88,11 @@ def normalize_port_ranges(ranges: Iterable[NumericRange], field_name: str = "__a
         collapsed.append(r)
 
     return collapsed
+
+
+def normalize_tcp_flags(flags: Iterable[str]) -> list[str]:
+    """
+    Deduplicate TCP flags and order them by header bit, unknown values last.
+    """
+    order = {flag: index for index, flag in enumerate(ACLTCPFlagChoices.values())}
+    return sorted(set(flags), key=lambda flag: (order.get(flag, len(order)), flag))

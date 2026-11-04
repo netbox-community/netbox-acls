@@ -5,6 +5,7 @@ Define the django models for this plugin.
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.postgres.fields import ArrayField, IntegerRangeField
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -17,10 +18,12 @@ from ..choices import (
     ACLProtocolChoices,
     ACLRuleActionChoices,
     ACLRuleLogOptionChoices,
+    ACLTCPFlagChoices,
+    ACLTCPFlagMatchChoices,
     ACLTypeChoices,
 )
 from ..constants import ACL_RULE_SOURCE_DESTINATION_MODELS
-from ..utils import infer_family_from_object, normalize_log_options, normalize_port_ranges
+from ..utils import infer_family_from_object, normalize_log_options, normalize_port_ranges, normalize_tcp_flags
 from ..validators import validate_port_ranges
 from .access_lists import AccessList
 from .address_groups import ACLAddressGroup
@@ -238,7 +241,7 @@ class ACLRule(CachedGenericReferenceMixin, PrimaryModel):
 
     def _validate_rule_family(self):
         """
-        Validates that the ACL rule's family matches the source and destination families.
+        Validates that the ACL rule's family matches the source, destination and protocol families.
         """
         # access_list is non-null, so its descriptor raises rather than returning None when unset.
         if not self.access_list_id:
@@ -261,7 +264,14 @@ class ACLRule(CachedGenericReferenceMixin, PrimaryModel):
             if fam:
                 families.add(fam)
 
-        # Enforce
+        # Protocol (extended only)
+        protocol = getattr(self, "protocol", None)
+        if protocol == ACLProtocolChoices.PROTOCOL_ICMPV4:
+            families.add(ACLFamilyChoices.FAMILY_IPV4)
+        elif protocol == ACLProtocolChoices.PROTOCOL_ICMPV6:
+            families.add(ACLFamilyChoices.FAMILY_IPV6)
+
+        # Reject criteria from the other family, or mixed families in a dual-stack ACL
         if acl_family == ACLFamilyChoices.FAMILY_IPV4 and ACLFamilyChoices.FAMILY_IPV6 in families:
             raise ValidationError(_("IPv4 ACL: Rule contains IPv6 criteria."))
         if acl_family == ACLFamilyChoices.FAMILY_IPV6 and ACLFamilyChoices.FAMILY_IPV4 in families:
@@ -375,7 +385,8 @@ class ACLExtendedRule(ACLRule):
     """
     Inherits ACLRule.
 
-    Add ACLExtendedRule specific fields: source_port_ranges, destination, destination_port_ranges, and protocol
+    Add ACLExtendedRule specific fields: source_port_ranges, destination, destination_port_ranges,
+    protocol, icmp_type, icmp_code, tcp_flags, and tcp_flags_match
     """
 
     access_list = models.ForeignKey(
@@ -392,6 +403,7 @@ class ACLExtendedRule(ACLRule):
         max_length=30,
         choices=ACLProtocolChoices,
         blank=True,
+        help_text=_("ICMP follows the ACL or address family. ICMPv4 and ICMPv6 select the family explicitly."),
     )
 
     # Source
@@ -433,6 +445,45 @@ class ACLExtendedRule(ACLRule):
         help_text=_(
             "Comma-separated port numbers. An inclusive range may be specified using a hyphen "
             "(e.g. 22,80-81,1024-65535). Leave empty to match any port."
+        ),
+    )
+
+    # ICMP
+    icmp_type = models.PositiveSmallIntegerField(
+        verbose_name=_("ICMP Type"),
+        blank=True,
+        null=True,
+        validators=[MaxValueValidator(255)],
+        help_text=_(
+            "ICMP type number from 0 to 255, interpreted using the rule's IP family. Leave empty to match any type."
+        ),
+    )
+    icmp_code = models.PositiveSmallIntegerField(
+        verbose_name=_("ICMP Code"),
+        blank=True,
+        null=True,
+        validators=[MaxValueValidator(255)],
+        help_text=_("ICMP code number from 0 to 255. Requires an ICMP type. Leave empty to match any code."),
+    )
+
+    # TCP flags
+    tcp_flags = ArrayField(
+        base_field=models.CharField(
+            max_length=30,
+            choices=ACLTCPFlagChoices,
+        ),
+        verbose_name=_("TCP Flags"),
+        default=list,
+        blank=True,
+        help_text=_("Unselected flags are ignored. ACK and RST with Any is the stateless established match."),
+    )
+    tcp_flags_match = models.CharField(
+        verbose_name=_("TCP Flags Match"),
+        max_length=30,
+        choices=ACLTCPFlagMatchChoices,
+        default=ACLTCPFlagMatchChoices.MATCH_ALL,
+        help_text=_(
+            "All requires every selected flag to be set. Any requires at least one. Ignored when no flags are selected."
         ),
     )
 
@@ -483,6 +534,10 @@ class ACLExtendedRule(ACLRule):
         "destination",
         "destination_port_ranges",
         "protocol",
+        "icmp_type",
+        "icmp_code",
+        "tcp_flags",
+        "tcp_flags_match",
     )
 
     cached_object_roles = ("source", "destination")
@@ -519,10 +574,13 @@ class ACLExtendedRule(ACLRule):
         errors = {}
 
         self.log_options = normalize_log_options(self.log_options or [])
+        self.tcp_flags = normalize_tcp_flags(self.tcp_flags or [])
         errors.update(self._validate_remark())
         # The remark check already reports every criterion a remark rule sets.
         if self.action != ACLRuleActionChoices.ACTION_REMARK:
             errors.update(self._validate_ports())
+            errors.update(self._validate_icmp())
+            errors.update(self._validate_tcp_flags())
             errors.update(self._validate_logging())
 
         if errors:
@@ -538,7 +596,7 @@ class ACLExtendedRule(ACLRule):
 
     def _validate_remark(self):
         """
-        Return field errors for an inconsistent remark rule, its destination, protocol and ports included.
+        Return field errors for an inconsistent remark rule, every extended match criterion included.
         """
         errors = super()._validate_remark()
 
@@ -551,6 +609,12 @@ class ACLExtendedRule(ACLRule):
                 errors["destination_port_ranges"] = _("When the action is 'remark', Destination Ports must not be set.")
             if self.protocol:
                 errors["protocol"] = _("When the action is 'remark', Protocol must not be set.")
+            if self.icmp_type is not None:
+                errors["icmp_type"] = _("When the action is 'remark', ICMP Type must not be set.")
+            if self.icmp_code is not None:
+                errors["icmp_code"] = _("When the action is 'remark', ICMP Code must not be set.")
+            if self.tcp_flags:
+                errors["tcp_flags"] = _("When the action is 'remark', TCP Flags must not be set.")
 
         return errors
 
@@ -567,6 +631,49 @@ class ACLExtendedRule(ACLRule):
                 errors["destination_port_ranges"] = _(
                     "Destination Ports can only be set when the protocol is TCP or UDP."
                 )
+
+        return errors
+
+    def _validate_icmp(self):
+        """
+        Return field errors for ICMP criteria lacking an ICMP protocol, a type for a code, or a known family for a type.
+        """
+        errors = {}
+
+        if self.protocol not in [
+            ACLProtocolChoices.PROTOCOL_ICMP,
+            ACLProtocolChoices.PROTOCOL_ICMPV4,
+            ACLProtocolChoices.PROTOCOL_ICMPV6,
+        ]:
+            if self.icmp_type is not None:
+                errors["icmp_type"] = _("ICMP Type can only be set when the protocol is ICMP, ICMPv4 or ICMPv6.")
+            if self.icmp_code is not None:
+                errors["icmp_code"] = _("ICMP Code can only be set when the protocol is ICMP, ICMPv4 or ICMPv6.")
+        elif self.icmp_type is None and self.icmp_code is not None:
+            errors["icmp_code"] = _("ICMP Code requires an ICMP Type.")
+        elif (
+            self.protocol == ACLProtocolChoices.PROTOCOL_ICMP
+            and self.icmp_type is not None
+            and self.access_list_id
+            and self.access_list.family == ACLFamilyChoices.FAMILY_DUAL
+            and not self.source
+            and not self.destination
+        ):
+            errors["icmp_type"] = _(
+                "Select ICMPv4 or ICMPv6 when specifying an ICMP Type in a Dual ACL "
+                "without address criteria that determine the family."
+            )
+
+        return errors
+
+    def _validate_tcp_flags(self):
+        """
+        Return field errors for TCP flags on a protocol other than TCP.
+        """
+        errors = {}
+
+        if self.tcp_flags and self.protocol != ACLProtocolChoices.PROTOCOL_TCP:
+            errors["tcp_flags"] = _("TCP Flags can only be set when the protocol is TCP.")
 
         return errors
 
@@ -613,6 +720,21 @@ class ACLExtendedRule(ACLRule):
         Return the display color associated with the rule protocol.
         """
         return ACLProtocolChoices.colors.get(self.protocol)
+
+    def get_tcp_flags_match_color(self):
+        """
+        Return the display color associated with the TCP flag match mode.
+        """
+        return ACLTCPFlagMatchChoices.colors.get(self.tcp_flags_match)
+
+    @property
+    def tcp_flags_badges(self) -> list[tuple[str, str | None]]:
+        """
+        Return the display label and badge color of each stored TCP flag.
+        """
+        labels = dict(self._meta.get_field("tcp_flags").base_field.flatchoices)
+        colors = ACLTCPFlagChoices.colors
+        return [(str(labels.get(value, value)), colors.get(value)) for value in self.tcp_flags]
 
 
 #

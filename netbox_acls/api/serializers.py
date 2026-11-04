@@ -21,7 +21,7 @@ from ..models import (
     ACLExtendedRule,
     ACLStandardRule,
 )
-from ..utils import normalize_log_options
+from ..utils import normalize_log_options, normalize_tcp_flags
 
 __all__ = [
     "ACLAddressGroupMemberSerializer",
@@ -254,6 +254,10 @@ class ACLExtendedRuleSerializer(ACLRuleSerializerMixin, PrimaryModelSerializer):
             "destination",
             "destination_port_ranges",
             "destination_port_terms",
+            "icmp_type",
+            "icmp_code",
+            "tcp_flags",
+            "tcp_flags_match",
             "log_matches",
             "log_options",
             "description",
@@ -278,6 +282,12 @@ class ACLExtendedRuleSerializer(ACLRuleSerializerMixin, PrimaryModelSerializer):
         Fetches the source port terms for the given object.
         """
         return obj.source_port_ranges_list
+
+    def validate_tcp_flags(self, value):
+        """
+        Store TCP flags canonically.
+        """
+        return normalize_tcp_flags(value)
 
 
 #

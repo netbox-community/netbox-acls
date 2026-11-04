@@ -2,7 +2,7 @@ from django.db.models import Case, CharField, Value, When
 
 from utilities.testing import TableTestCases
 
-from ...choices import ACLRuleUsageChoices
+from ...choices import ACLRuleUsageChoices, ACLTCPFlagMatchChoices
 from ...models import ACLExtendedRule
 from ...tables import ACLExtendedRuleTable, ACLExtendedRuleUsageTable
 
@@ -31,6 +31,44 @@ class ACLExtendedRuleTableTestCase(TableTestCases.StandardTableTestCase):
             table.rows[0].get_cell_value("log_options_list"),
             "Syslog, Log-input",
         )
+
+    def test_icmp_and_tcp_flag_columns_are_available_but_not_default(self):
+        """Test that the ICMP and TCP flag columns exist but none shows by default."""
+        self.assertIn("icmp_type", ACLExtendedRuleTable.base_columns)
+        self.assertIn("icmp_code", ACLExtendedRuleTable.base_columns)
+        self.assertIn("tcp_flags_list", ACLExtendedRuleTable.base_columns)
+        self.assertIn("tcp_flags_match", ACLExtendedRuleTable.base_columns)
+        self.assertNotIn("icmp_type", ACLExtendedRuleTable.Meta.default_columns)
+        self.assertNotIn("icmp_code", ACLExtendedRuleTable.Meta.default_columns)
+        self.assertNotIn("tcp_flags_list", ACLExtendedRuleTable.Meta.default_columns)
+        self.assertNotIn("tcp_flags_match", ACLExtendedRuleTable.Meta.default_columns)
+
+    def test_tcp_flags_column_exports_the_labels(self):
+        """Test that the TCP flags column exports the plain labels."""
+        rule = ACLExtendedRule(tcp_flags=["ack", "rst"])
+        table = ACLExtendedRuleTable([rule])
+        self.assertEqual(
+            table.rows[0].get_cell_value("tcp_flags_list"),
+            "ACK, RST",
+        )
+
+    def test_tcp_flags_match_column_exports_the_stored_mode_without_flags(self):
+        """Test that the match column exports the stored mode of a rule without flags."""
+        expected = {
+            ACLTCPFlagMatchChoices.MATCH_ALL: "All",
+            ACLTCPFlagMatchChoices.MATCH_ANY: "Any",
+        }
+        for mode, label in expected.items():
+            with self.subTest(tcp_flags_match=mode):
+                rule = ACLExtendedRule(tcp_flags=[], tcp_flags_match=mode)
+                table = ACLExtendedRuleTable([rule])
+                self.assertEqual(table.rows[0].get_cell_value("tcp_flags_match"), label)
+
+    def test_icmp_type_column_shows_zero(self):
+        """Test that the ICMP type column shows a type of zero."""
+        rule = ACLExtendedRule(icmp_type=0)
+        table = ACLExtendedRuleTable([rule])
+        self.assertEqual(str(table.rows[0].get_cell("icmp_type")), "0")
 
 
 class ACLExtendedRuleUsageTableTestCase(TableTestCases.StandardTableTestCase):

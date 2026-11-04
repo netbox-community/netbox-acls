@@ -120,6 +120,13 @@ class ACLExtendedRuleTable(ACLRuleTable):
         orderable=False,
     )
 
+    # TCP flags
+    tcp_flags_list = BadgesColumn(
+        accessor="tcp_flags_badges",
+        verbose_name=_("TCP Flags"),
+    )
+    tcp_flags_match = columns.ChoiceFieldColumn()
+
     class Meta(ACLRuleTable.Meta):
         model = ACLExtendedRule
         fields = ACLRuleTable.Meta.fields + (
@@ -128,6 +135,10 @@ class ACLExtendedRuleTable(ACLRuleTable):
             "destination",
             "destination_type",
             "destination_port_ranges_list",
+            "icmp_type",
+            "icmp_code",
+            "tcp_flags_list",
+            "tcp_flags_match",
         )
         default_columns = (
             "access_list",

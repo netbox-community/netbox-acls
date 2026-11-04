@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from netbox.ui import actions, attrs
 from netbox.ui.panels import ObjectAttributesPanel, ObjectsTablePanel
 
+from ..choices import ACLProtocolChoices
 from .attrs import AssignedObjectAttr, BadgesAttr, RuleCountAttr
 
 __all__ = (
@@ -12,7 +13,9 @@ __all__ = (
     "ACLAddressGroupPanel",
     "ACLAssignmentPanel",
     "ACLExtendedRuleDetailsPanel",
+    "ACLExtendedRuleICMPPanel",
     "ACLExtendedRulePanel",
+    "ACLExtendedRuleTCPFlagsPanel",
     "ACLRuleLoggingPanel",
     "ACLStandardRuleDetailsPanel",
     "ACLStandardRulePanel",
@@ -118,6 +121,42 @@ class ACLExtendedRuleDetailsPanel(ObjectAttributesPanel):
         "destination_port_ranges_list",
         label=_("Destination Port Ranges"),
     )
+
+
+class ACLExtendedRuleICMPPanel(ObjectAttributesPanel):
+    """ICMP criteria of an extended ACL rule, shown for the ICMP protocols."""
+
+    title = _("ICMP")
+
+    icmp_type = attrs.NumericAttr("icmp_type", label=_("ICMP Type"))
+    icmp_code = attrs.NumericAttr("icmp_code", label=_("ICMP Code"))
+
+    def should_render(self, context):
+        """Render only on a rule whose protocol carries ICMP criteria."""
+        rule = context.get("object")
+        if rule is None or rule.protocol not in [
+            ACLProtocolChoices.PROTOCOL_ICMP,
+            ACLProtocolChoices.PROTOCOL_ICMPV4,
+            ACLProtocolChoices.PROTOCOL_ICMPV6,
+        ]:
+            return False
+        return super().should_render(context)
+
+
+class ACLExtendedRuleTCPFlagsPanel(ObjectAttributesPanel):
+    """TCP flag criteria of an extended ACL rule, shown for TCP."""
+
+    title = _("TCP Flags")
+
+    tcp_flags = BadgesAttr("tcp_flags_badges", label=_("TCP Flags"))
+    tcp_flags_match = attrs.ChoiceAttr("tcp_flags_match", label=_("TCP Flags Match"))
+
+    def should_render(self, context):
+        """Render only on a TCP rule."""
+        rule = context.get("object")
+        if rule is None or rule.protocol != ACLProtocolChoices.PROTOCOL_TCP:
+            return False
+        return super().should_render(context)
 
 
 class ACLRuleLoggingPanel(ObjectAttributesPanel):

@@ -3,12 +3,24 @@
 from django.test import SimpleTestCase
 from django.urls import reverse
 
+from extras.ui.panels import CustomFieldsPanel, TagsPanel
 from netbox.ui.actions import AddObject
+from netbox.ui.panels import CommentsPanel, PluginContentPanel
 from utilities.views import get_view
 
-from ...choices import ACLTypeChoices
+from ...choices import ACLProtocolChoices, ACLTCPFlagChoices, ACLTypeChoices
 from ...models import AccessList, ACLAddressGroup, ACLAddressGroupMember, ACLExtendedRule, ACLStandardRule
-from ...ui.panels import MemberTablePanel, RuleTablePanel
+from ...ui.panels import (
+    ACLExtendedRuleDetailsPanel,
+    ACLExtendedRuleICMPPanel,
+    ACLExtendedRulePanel,
+    ACLExtendedRuleTCPFlagsPanel,
+    ACLRuleLoggingPanel,
+    ACLStandardRuleDetailsPanel,
+    ACLStandardRulePanel,
+    MemberTablePanel,
+    RuleTablePanel,
+)
 from .base import UITestCase
 
 
@@ -159,3 +171,115 @@ class MemberTablePanelTestCase(UITestCase):
         panel = MemberTablePanel()
 
         self.assertFalse(panel.should_render(panel.get_context(self.get_context(self.group))))
+
+
+class ACLExtendedRuleICMPPanelTestCase(UITestCase):
+    """Test when the extended rule detail view shows its ICMP panel."""
+
+    def test_the_panel_renders_for_the_icmp_protocols(self):
+        """Test an ICMP, ICMPv4 or ICMPv6 rule shows the ICMP panel."""
+        panel = ACLExtendedRuleICMPPanel()
+        for protocol in (
+            ACLProtocolChoices.PROTOCOL_ICMP,
+            ACLProtocolChoices.PROTOCOL_ICMPV4,
+            ACLProtocolChoices.PROTOCOL_ICMPV6,
+        ):
+            with self.subTest(protocol=protocol):
+                rule = ACLExtendedRule(protocol=protocol)
+                self.assertTrue(panel.should_render(panel.get_context(self.get_context(rule))))
+
+    def test_the_panel_is_hidden_for_other_protocols(self):
+        """Test every other protocol, and a rule without one, hides the ICMP panel."""
+        panel = ACLExtendedRuleICMPPanel()
+        icmp_protocols = {
+            ACLProtocolChoices.PROTOCOL_ICMP,
+            ACLProtocolChoices.PROTOCOL_ICMPV4,
+            ACLProtocolChoices.PROTOCOL_ICMPV6,
+        }
+        other_protocols = [
+            protocol for protocol in [*ACLProtocolChoices.values(), ""] if protocol not in icmp_protocols
+        ]
+        self.assertIn(ACLProtocolChoices.PROTOCOL_IP, other_protocols)
+        for protocol in other_protocols:
+            with self.subTest(protocol=protocol):
+                rule = ACLExtendedRule(protocol=protocol)
+                self.assertFalse(panel.should_render(panel.get_context(self.get_context(rule))))
+
+
+class ACLExtendedRuleTCPFlagsPanelTestCase(UITestCase):
+    """Test when the extended rule detail view shows its TCP Flags panel."""
+
+    def test_the_panel_renders_for_tcp(self):
+        """Test a TCP rule shows the TCP Flags panel."""
+        panel = ACLExtendedRuleTCPFlagsPanel()
+        rule = ACLExtendedRule(protocol=ACLProtocolChoices.PROTOCOL_TCP)
+
+        self.assertTrue(panel.should_render(panel.get_context(self.get_context(rule))))
+
+    def test_the_panel_is_hidden_for_other_protocols(self):
+        """Test every other protocol, and a rule without one, hides the TCP Flags panel."""
+        panel = ACLExtendedRuleTCPFlagsPanel()
+        other_protocols = [
+            protocol for protocol in [*ACLProtocolChoices.values(), ""] if protocol != ACLProtocolChoices.PROTOCOL_TCP
+        ]
+        self.assertIn(ACLProtocolChoices.PROTOCOL_IP, other_protocols)
+        for protocol in other_protocols:
+            with self.subTest(protocol=protocol):
+                rule = ACLExtendedRule(protocol=protocol)
+                self.assertFalse(panel.should_render(panel.get_context(self.get_context(rule))))
+
+
+class ACLExtendedRuleTCPFlagsPanelDeclarationTestCase(SimpleTestCase):
+    """Test how the extended rule detail view declares its TCP Flags panel."""
+
+    def test_tcp_flags_resolve_to_badges(self):
+        """Test the TCP flags attribute resolves the stored flags to badge labels and colors."""
+        layout = get_view(ACLExtendedRule).layout
+        panel = next(
+            panel
+            for row in layout
+            for column in row
+            for panel in column
+            if isinstance(panel, ACLExtendedRuleTCPFlagsPanel)
+        )
+        rule = ACLExtendedRule(tcp_flags=[ACLTCPFlagChoices.FLAG_SYN, ACLTCPFlagChoices.FLAG_ACK])
+
+        self.assertEqual(panel._attrs["tcp_flags"].get_value(rule), [("SYN", "green"), ("ACK", "blue")])
+
+
+class ACLRuleViewLayoutDeclarationTestCase(SimpleTestCase):
+    """Test where the rule detail views place their panels."""
+
+    def test_the_standard_rule_view_shows_logging_on_the_right(self):
+        """Test the standard rule view keeps its details on the left and opens the right column with Logging."""
+        left, right = get_view(ACLStandardRule).layout.rows[0].columns
+
+        self.assertEqual(
+            [type(panel) for panel in left],
+            [ACLStandardRulePanel, ACLStandardRuleDetailsPanel, PluginContentPanel],
+        )
+        self.assertEqual(
+            [type(panel) for panel in right],
+            [ACLRuleLoggingPanel, CustomFieldsPanel, TagsPanel, CommentsPanel, PluginContentPanel],
+        )
+
+    def test_the_extended_rule_view_shows_icmp_tcp_flags_and_logging_on_the_right(self):
+        """Test the extended rule view keeps its details on the left and opens the right column with the criteria."""
+        left, right = get_view(ACLExtendedRule).layout.rows[0].columns
+
+        self.assertEqual(
+            [type(panel) for panel in left],
+            [ACLExtendedRulePanel, ACLExtendedRuleDetailsPanel, PluginContentPanel],
+        )
+        self.assertEqual(
+            [type(panel) for panel in right],
+            [
+                ACLExtendedRuleICMPPanel,
+                ACLExtendedRuleTCPFlagsPanel,
+                ACLRuleLoggingPanel,
+                CustomFieldsPanel,
+                TagsPanel,
+                CommentsPanel,
+                PluginContentPanel,
+            ],
+        )

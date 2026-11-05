@@ -10,9 +10,11 @@ from dcim.models import Interface
 from netbox.forms import NetBoxModelBulkEditForm, PrimaryModelBulkEditForm
 from netbox.forms.mixins import OwnerMixin
 from utilities.forms.fields import (
+    ChoiceField,
     CommentField,
     DynamicModelChoiceField,
     GenericObjectChoiceField,
+    MultipleChoiceField,
     NumericRangeArrayField,
 )
 from utilities.forms.mixins import GenericObjectFormMixin
@@ -52,17 +54,17 @@ class AccessListBulkEditForm(PrimaryModelBulkEditForm):
     Form for bulk editing multiple AccessList instances.
     """
 
-    type = forms.ChoiceField(
+    type = ChoiceField(
         choices=add_blank_choice(ACLTypeChoices),
         required=False,
         label=_("Type"),
     )
-    family = forms.ChoiceField(
+    family = ChoiceField(
         choices=add_blank_choice(ACLFamilyChoices),
         required=False,
         label=_("Family"),
     )
-    default_action = forms.ChoiceField(
+    default_action = ChoiceField(
         choices=add_blank_choice(ACLActionChoices),
         required=False,
         label=_("Default Action"),
@@ -102,7 +104,7 @@ class ACLAssignmentBulkEditForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelB
         label=_("Assignment Object"),
         hx_method="post",
     )
-    direction = forms.ChoiceField(
+    direction = ChoiceField(
         choices=add_blank_choice(ACLAssignmentDirectionUIChoices),
         required=False,
         label=_("Direction"),
@@ -147,7 +149,7 @@ class ACLRuleLoggingBulkEditMixin(forms.Form):
         label=_("Log matches"),
         help_text=_("Setting this to No also removes every log option from the selected rules."),
     )
-    log_options = forms.MultipleChoiceField(
+    log_options = MultipleChoiceField(
         choices=ACLRuleLogOptionChoices,
         required=False,
         label=_("Log options"),
@@ -201,7 +203,7 @@ class ACLStandardRuleBulkEditForm(GenericObjectFormMixin, ACLRuleLoggingBulkEdit
     )
 
     # Rule
-    action = forms.ChoiceField(
+    action = ChoiceField(
         choices=add_blank_choice(ACLRuleActionChoices),
         required=False,
         label=_("Action"),
@@ -272,7 +274,7 @@ class ACLExtendedRuleBulkEditForm(GenericObjectFormMixin, ACLRuleLoggingBulkEdit
     )
 
     # Rule
-    action = forms.ChoiceField(
+    action = ChoiceField(
         choices=add_blank_choice(ACLRuleActionChoices),
         required=False,
         label=_("Action"),
@@ -286,11 +288,10 @@ class ACLExtendedRuleBulkEditForm(GenericObjectFormMixin, ACLRuleLoggingBulkEdit
     )
 
     # Protocol
-    protocol = forms.ChoiceField(
+    protocol = ChoiceField(
         choices=add_blank_choice(ACLProtocolChoices),
         required=False,
         label=_("Protocol"),
-        help_text=_("ICMP follows the ACL or address family. ICMPv4 and ICMPv6 select the family explicitly."),
     )
 
     # Source
@@ -335,7 +336,7 @@ class ACLExtendedRuleBulkEditForm(GenericObjectFormMixin, ACLRuleLoggingBulkEdit
     )
 
     # TCP flags
-    tcp_flags = forms.MultipleChoiceField(
+    tcp_flags = MultipleChoiceField(
         choices=ACLTCPFlagChoices,
         required=False,
         label=_("TCP Flags"),
@@ -346,7 +347,7 @@ class ACLExtendedRuleBulkEditForm(GenericObjectFormMixin, ACLRuleLoggingBulkEdit
         label=_("Clear TCP flags"),
         help_text=_("Remove every TCP flag while leaving TCP Flags Match as it is."),
     )
-    tcp_flags_match = forms.ChoiceField(
+    tcp_flags_match = ChoiceField(
         choices=add_blank_choice(ACLTCPFlagMatchChoices),
         required=False,
         label=_("TCP Flags Match"),
@@ -433,7 +434,7 @@ class ACLAddressGroupBulkEditForm(PrimaryModelBulkEditForm):
     Form for bulk editing multiple ACLAddressGroup instances.
     """
 
-    family = forms.ChoiceField(
+    family = ChoiceField(
         choices=add_blank_choice(ACLAddressFamilyChoices),
         required=False,
         label=_("Family"),

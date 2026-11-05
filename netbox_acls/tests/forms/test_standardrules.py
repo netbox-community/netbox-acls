@@ -299,6 +299,14 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
                 self.assertNotIn(field_name, form.fields)
         self.assertIn("remark", form.fields)
 
+    def test_cleared_action_removes_the_match_criteria(self):
+        """Test that an edited rule's form offers no match criteria once its action is cleared."""
+        form = self._bound_form(self.prefix, instance=self._rule(10), action="")
+        for field_name in ("source", "log_matches", "log_options"):
+            with self.subTest(field_name=field_name):
+                self.assertNotIn(field_name, form.fields)
+        self.assertIn("remark", form.fields)
+
     def test_deny_action_keeps_the_match_criteria(self):
         """Test that a deny rule's form offers every match criterion."""
         form = self._bound_form(self.prefix, action=ACLRuleActionChoices.ACTION_DENY)

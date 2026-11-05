@@ -2,7 +2,6 @@
 Defines each django model's GUI form to add or edit objects for each django model.
 """
 
-from django import forms
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils.safestring import mark_safe
@@ -11,20 +10,25 @@ from django.utils.translation import gettext_lazy as _
 from dcim.models import Interface
 from netbox.forms import NetBoxModelForm, PrimaryModelForm
 from netbox.forms.mixins import OwnerMixin
-from utilities.forms import add_blank_choice, get_field_value
 from utilities.forms.fields import (
+    ChoiceField,
     CommentField,
     DynamicModelChoiceField,
     GenericObjectChoiceField,
+    MultipleChoiceField,
     NumericRangeArrayField,
 )
 from utilities.forms.mixins import GenericObjectFormMixin
 from utilities.forms.rendering import FieldSet
+from utilities.forms.utils import add_blank_choice
 from utilities.forms.widgets import HTMXSelect, NumberWithOptions
 from virtualization.models import VMInterface
 
 from ..choices import (
+    ACLActionChoices,
+    ACLAddressFamilyChoices,
     ACLAssignmentDirectionUIChoices,
+    ACLFamilyChoices,
     ACLICMPTypeChoices,
     ACLICMPv4TypeChoices,
     ACLICMPv6TypeChoices,
@@ -32,6 +36,7 @@ from ..choices import (
     ACLRuleActionChoices,
     ACLRuleLogOptionChoices,
     ACLTCPFlagChoices,
+    ACLTCPFlagMatchChoices,
     ACLTypeChoices,
 )
 from ..constants import ACL_ADDRESS_OBJECT_MODELS, ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
@@ -65,6 +70,24 @@ class AccessListForm(PrimaryModelForm):
     Requires a device, a name, a type, and a default_action.
     """
 
+    type = ChoiceField(
+        choices=add_blank_choice(ACLTypeChoices),
+        label=_("Type"),
+        help_text=_("Cannot change while the access list has rules."),
+    )
+    family = ChoiceField(
+        choices=ACLFamilyChoices,
+        initial=ACLFamilyChoices.FAMILY_IPV4,
+        label=_("Family"),
+        help_text=_("Cannot change while the access list has rules."),
+    )
+    default_action = ChoiceField(
+        choices=ACLActionChoices,
+        initial=ACLActionChoices.ACTION_DENY,
+        label=_("Default Action"),
+        help_text=_("Applies to traffic that matches no rule."),
+    )
+
     fieldsets = (
         FieldSet(
             "name",
@@ -91,15 +114,7 @@ class AccessListForm(PrimaryModelForm):
         )
 
         help_texts = {
-            "default_action": _("The default behavior of the ACL."),
-            "family": _(
-                "Determines whether this ACL contains IPv4, IPv6, or dual-stack rules."
-                "Cannot be changed if rules are associated."
-            ),
             "name": _("The name uniqueness per device is case insensitive."),
-            "type": mark_safe(
-                _("<b>*Note:</b> CANNOT be changed if ACL Rules are associated to this Access List."),
-            ),
         }
 
 
@@ -127,11 +142,10 @@ class ACLAssignmentForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelForm):
         label=_("Assignment Object"),
         hx_target_id="acl-assignment",
     )
-    direction = forms.ChoiceField(
+    direction = ChoiceField(
         choices=add_blank_choice(ACLAssignmentDirectionUIChoices),
         label=_("Direction"),
         help_text=_(
-            "Whether the ACL filters traffic entering (ingress) or leaving (egress) the interface. "
             "Only one ACL per address family can be assigned to the same interface and direction, "
             "and a Dual ACL counts as both."
         ),
@@ -221,7 +235,7 @@ class ACLRuleFormMixin:
         """
         Return the fields that do not apply to the selected action.
         """
-        action = get_field_value(self, "action")
+        action = self["action"].value()
         if not action or action == ACLRuleActionChoices.ACTION_REMARK:
             return {"source", "log_matches", "log_options"}
         return set()
@@ -245,6 +259,13 @@ class ACLStandardRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
         ),
     )
 
+    # Rule
+    action = ChoiceField(
+        choices=add_blank_choice(ACLRuleActionChoices),
+        widget=HTMXSelect(),
+        label=_("Action"),
+    )
+
     # Source
     source = GenericObjectChoiceField(
         content_type_queryset=ContentType.objects.filter(ACL_RULE_SOURCE_DESTINATION_MODELS),
@@ -255,7 +276,7 @@ class ACLStandardRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
         hx_target_id="source-definition",
     )
 
-    log_options = forms.MultipleChoiceField(
+    log_options = MultipleChoiceField(
         choices=ACLRuleLogOptionChoices,
         required=False,
         label=_("Log options"),
@@ -308,10 +329,6 @@ class ACLStandardRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
             "tags",
         )
 
-        widgets = {
-            "action": HTMXSelect(),
-        }
-
 
 class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModelForm):
     """
@@ -329,6 +346,21 @@ class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
         help_text=mark_safe(
             _("<b>*Note:</b> This field will only display Extended ACLs."),
         ),
+    )
+
+    # Rule
+    action = ChoiceField(
+        choices=add_blank_choice(ACLRuleActionChoices),
+        widget=HTMXSelect(),
+        label=_("Action"),
+    )
+
+    # Protocol
+    protocol = ChoiceField(
+        choices=add_blank_choice(ACLProtocolChoices),
+        required=False,
+        widget=HTMXSelect(),
+        label=_("Protocol"),
     )
 
     # Source
@@ -367,14 +399,21 @@ class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
         ),
     )
 
-    tcp_flags = forms.MultipleChoiceField(
+    # TCP flags
+    tcp_flags = MultipleChoiceField(
         choices=ACLTCPFlagChoices,
         required=False,
         label=_("TCP Flags"),
         help_text=_("Unselected flags are ignored. ACK and RST with Any is the stateless established match."),
     )
+    tcp_flags_match = ChoiceField(
+        choices=ACLTCPFlagMatchChoices,
+        initial=ACLTCPFlagMatchChoices.MATCH_ALL,
+        label=_("TCP Flags Match"),
+        help_text=_("Ignored when no flags are selected."),
+    )
 
-    log_options = forms.MultipleChoiceField(
+    log_options = MultipleChoiceField(
         choices=ACLRuleLogOptionChoices,
         required=False,
         label=_("Log options"),
@@ -456,8 +495,6 @@ class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
         )
 
         widgets = {
-            "action": HTMXSelect(),
-            "protocol": HTMXSelect(),
             "icmp_type": NumberWithOptions(options=ACLICMPTypeChoices),
         }
 
@@ -468,7 +505,7 @@ class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
         super().__init__(*args, **kwargs)
 
         if "icmp_type" in self.fields:
-            protocol = get_field_value(self, "protocol")
+            protocol = self["protocol"].value()
             if protocol == ACLProtocolChoices.PROTOCOL_ICMPV4:
                 self.fields["icmp_type"].widget.options = ACLICMPv4TypeChoices
             elif protocol == ACLProtocolChoices.PROTOCOL_ICMPV6:
@@ -479,7 +516,7 @@ class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
         Return the fields that do not apply to the selected action or protocol.
         """
         hidden_fields = super()._get_hidden_fields()
-        action = get_field_value(self, "action")
+        action = self["action"].value()
         if not action or action == ACLRuleActionChoices.ACTION_REMARK:
             hidden_fields |= {
                 "destination",
@@ -492,7 +529,7 @@ class ACLExtendedRuleForm(ACLRuleFormMixin, GenericObjectFormMixin, PrimaryModel
                 "tcp_flags_match",
             }
         else:
-            protocol = get_field_value(self, "protocol")
+            protocol = self["protocol"].value()
             if protocol not in [
                 ACLProtocolChoices.PROTOCOL_TCP,
                 ACLProtocolChoices.PROTOCOL_UDP,
@@ -519,6 +556,13 @@ class ACLAddressGroupForm(PrimaryModelForm):
     GUI form to add or edit an ACLAddressGroup.
     """
 
+    family = ChoiceField(
+        choices=ACLAddressFamilyChoices,
+        initial=ACLAddressFamilyChoices.FAMILY_IPV4,
+        label=_("Family"),
+        help_text=_("Cannot change while the group has members or is referenced by rules."),
+    )
+
     fieldsets = (
         FieldSet(
             "name",
@@ -541,7 +585,6 @@ class ACLAddressGroupForm(PrimaryModelForm):
         )
 
         help_texts = {
-            "family": _("IPv4 or IPv6. Cannot change while the group has members or is referenced by rules."),
             "name": _("Globally unique name. Letters, numbers, underscores and hyphens only."),
         }
 

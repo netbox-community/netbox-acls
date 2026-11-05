@@ -12,6 +12,8 @@ from ...choices import (
     ACLProtocolChoices,
     ACLRuleActionChoices,
     ACLRuleLogOptionChoices,
+    ACLTCPFlagChoices,
+    ACLTCPFlagMatchChoices,
     ACLTypeChoices,
 )
 from ...models import AccessList, ACLExtendedRule
@@ -108,6 +110,8 @@ class ACLExtendedRuleViewTestCase(
             "action": ACLRuleActionChoices.ACTION_PERMIT,
             "remark": "",
             "protocol": ACLProtocolChoices.PROTOCOL_TCP,
+            "tcp_flags": [ACLTCPFlagChoices.FLAG_RST, ACLTCPFlagChoices.FLAG_ACK],
+            "tcp_flags_match": ACLTCPFlagMatchChoices.MATCH_ANY,
             "source_content_type": ContentType.objects.get_for_model(Prefix).pk,
             "source_object_id": cls.source_prefix.pk,
             "source_port_ranges": "1024-2048",
@@ -123,23 +127,25 @@ class ACLExtendedRuleViewTestCase(
 
         cls.bulk_edit_data = {
             "description": "Bulk edited",
+            "tcp_flags_match": ACLTCPFlagMatchChoices.MATCH_ANY,
         }
 
-        # Ten columns, so every row carries nine commas. Ports need tcp or udp.
+        # Fourteen columns, so every row carries thirteen separators. Ports need tcp or udp.
         cls.csv_data = (
             (
                 "access_list,sequence,action,protocol,source_type,source,source_port_ranges,"
-                "destination_type,destination,destination_port_ranges"
+                "destination_type,destination,destination_port_ranges,icmp_type,icmp_code,tcp_flags,tcp_flags_match"
             ),
             (
                 f"{cls.access_list.name},210,permit,tcp,ipam.prefix,{cls.source_prefix.prefix},1024-2048,"
-                f"ipam.prefix,{cls.destination_prefix.prefix},80-81"
+                f'ipam.prefix,{cls.destination_prefix.prefix},80-81,,,"ack,rst",any'
             ),
             (
                 f"{cls.access_list.name},220,deny,udp,ipam.prefix,{cls.source_prefix.prefix},53,"
-                f"ipam.prefix,{cls.destination_prefix.prefix},"
+                f"ipam.prefix,{cls.destination_prefix.prefix},,,,,all"
             ),
-            f"{cls.access_list.name},230,permit,ip,,,,,,",
+            f"{cls.access_list.name},230,permit,ip,,,,,,,,,,all",
+            f"{cls.access_list.name},240,permit,icmp,,,,,,,0,0,,all",
         )
 
         cls.csv_update_data = (
@@ -227,6 +233,66 @@ class ACLExtendedRuleViewTestCase(
         rule.refresh_from_db()
         self.assertFalse(rule.log_matches)
 
+    def test_bulk_edit_clears_tcp_flags_while_the_match_stays(self):
+        """Test that TCP flags can be cleared without also resetting the match."""
+        rules = [
+            ACLExtendedRule.objects.create(
+                access_list=self.access_list,
+                sequence=sequence,
+                action=ACLRuleActionChoices.ACTION_PERMIT,
+                source=self.source_prefix,
+                protocol=ACLProtocolChoices.PROTOCOL_TCP,
+                tcp_flags=[ACLTCPFlagChoices.FLAG_ACK, ACLTCPFlagChoices.FLAG_RST],
+                tcp_flags_match=ACLTCPFlagMatchChoices.MATCH_ANY,
+            )
+            for sequence in (240, 250)
+        ]
+        self.add_permissions("netbox_acls.change_aclextendedrule", "netbox_acls.view_aclextendedrule")
+
+        response = self.client.post(
+            self._get_url("bulk_edit"),
+            {
+                "pk": [rule.pk for rule in rules],
+                "_apply": True,
+                "clear_tcp_flags": True,
+            },
+        )
+        self.assertHttpStatus(response, 302)
+
+        for rule in rules:
+            rule.refresh_from_db()
+            self.assertEqual(rule.tcp_flags, [])
+            self.assertEqual(rule.tcp_flags_match, ACLTCPFlagMatchChoices.MATCH_ANY)
+
+    def test_bulk_edit_stores_an_icmp_type_of_zero(self):
+        """Test that bulk edit stores an ICMP type of zero."""
+        rules = [
+            ACLExtendedRule.objects.create(
+                access_list=self.access_list,
+                sequence=sequence,
+                action=ACLRuleActionChoices.ACTION_PERMIT,
+                source=self.source_prefix,
+                protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+                icmp_type=8,
+            )
+            for sequence in (260, 270)
+        ]
+        self.add_permissions("netbox_acls.change_aclextendedrule", "netbox_acls.view_aclextendedrule")
+
+        response = self.client.post(
+            self._get_url("bulk_edit"),
+            {
+                "pk": [rule.pk for rule in rules],
+                "_apply": True,
+                "icmp_type": "0",
+            },
+        )
+        self.assertHttpStatus(response, 302)
+
+        for rule in rules:
+            rule.refresh_from_db()
+            self.assertEqual(rule.icmp_type, 0)
+
     def test_detail_view_renders_the_rule_attributes(self):
         """Test that the detail view renders the rule attributes."""
         self.add_permissions("netbox_acls.view_aclextendedrule")
@@ -281,6 +347,10 @@ class ACLExtendedRuleViewTestCase(
             "destination",
             "destination_port_ranges",
             "protocol",
+            "icmp_type",
+            "icmp_code",
+            "tcp_flags",
+            "tcp_flags_match",
             "log_matches",
             "log_options",
         ):

@@ -10,6 +10,8 @@ from netbox_acls.choices import (
     ACLProtocolChoices,
     ACLRuleActionChoices,
     ACLRuleLogOptionChoices,
+    ACLTCPFlagChoices,
+    ACLTCPFlagMatchChoices,
     ACLTypeChoices,
 )
 from utilities.testing import APIViewTestCases
@@ -17,7 +19,24 @@ from utilities.testing import APIViewTestCases
 from ...models import AccessList, ACLAddressGroup, ACLExtendedRule, ACLStandardRule
 
 
-class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
+class GraphQLQueryMixin:
+    """Run GraphQL queries through the API test client."""
+
+    def _post_graphql_query(self, query):
+        """Return the data payload of a successful GraphQL query."""
+        response = self.client.post(
+            reverse("graphql"),
+            data={"query": query},
+            format="json",
+            **self.header,
+        )
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertNotIn("errors", payload)
+        return payload["data"]
+
+
+class ACLStandardRuleAPIViewTestCase(GraphQLQueryMixin, APIViewTestCases.APIViewTestCase):
     """
     API view test case for ACLStandardRule.
     """
@@ -267,19 +286,6 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         rule.refresh_from_db()
         self.assertEqual(rule.log_options, ["cisco-log-input", "syslog"])
 
-    def _post_graphql_query(self, query):
-        """Return the data payload of a successful GraphQL query."""
-        response = self.client.post(
-            reverse("graphql"),
-            data={"query": query},
-            format="json",
-            **self.header,
-        )
-        self.assertHttpStatus(response, status.HTTP_200_OK)
-        payload = response.json()
-        self.assertNotIn("errors", payload)
-        return payload["data"]
-
     @override_settings(LOGIN_REQUIRED=True)
     def test_graphql_filters_narrow_by_logging_state(self):
         """Test that each logging filter narrows the result set on its own."""
@@ -379,7 +385,7 @@ class ACLStandardRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
         self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
 
 
-class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
+class ACLExtendedRuleAPIViewTestCase(GraphQLQueryMixin, APIViewTestCases.APIViewTestCase):
     """
     API view test case for ACLExtendedRule.
     """
@@ -410,6 +416,12 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
             family=ACLFamilyChoices.FAMILY_IPV4,
             default_action=ACLActionChoices.ACTION_PERMIT,
         )
+        access_list_dual = AccessList.objects.create(
+            name="testacl3",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_DUAL,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
 
         # Prefix
         prefix1 = Prefix.objects.create(
@@ -432,6 +444,8 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 action=ACLRuleActionChoices.ACTION_PERMIT,
                 remark="Permit prefix",
                 protocol=ACLProtocolChoices.PROTOCOL_TCP,
+                tcp_flags=[ACLTCPFlagChoices.FLAG_ACK, ACLTCPFlagChoices.FLAG_RST],
+                tcp_flags_match=ACLTCPFlagMatchChoices.MATCH_ANY,
                 source=prefix1,
                 source_port_ranges=[[1024, 65535]],
                 destination=prefix1,
@@ -449,6 +463,9 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 sequence=10,
                 description="Rule 10",
                 action=ACLRuleActionChoices.ACTION_DENY,
+                protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+                icmp_type=0,
+                icmp_code=0,
                 source=prefix2,
                 destination=prefix1,
             ),
@@ -462,6 +479,7 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 "description": "Rule 30",
                 "action": ACLRuleActionChoices.ACTION_DENY,
                 "protocol": ACLProtocolChoices.PROTOCOL_UDP,
+                "tcp_flags": [],
                 "remark": "Deny prefix",
                 "source_type": "ipam.prefix",
                 "source_id": prefix2.id,
@@ -476,6 +494,8 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 "description": "Rule 30",
                 "action": ACLRuleActionChoices.ACTION_PERMIT,
                 "protocol": ACLProtocolChoices.PROTOCOL_ICMP,
+                "icmp_type": 0,
+                "icmp_code": 0,
                 "source_type": "ipam.prefix",
                 "source_id": prefix1.id,
                 "destination_type": "ipam.prefix",
@@ -505,10 +525,21 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 "description": "Rule 50",
                 "action": ACLRuleActionChoices.ACTION_PERMIT,
                 "protocol": ACLProtocolChoices.PROTOCOL_TCP,
+                "tcp_flags": [ACLTCPFlagChoices.FLAG_RST, ACLTCPFlagChoices.FLAG_ACK],
+                "tcp_flags_match": ACLTCPFlagMatchChoices.MATCH_ANY,
                 "source_type": "netbox_acls.acladdressgroup",
                 "source_id": address_group.id,
                 "destination_type": "netbox_acls.acladdressgroup",
                 "destination_id": address_group.id,
+            },
+            {
+                "access_list": access_list_dual.id,
+                "sequence": 10,
+                "description": "Rule 10",
+                "action": ACLRuleActionChoices.ACTION_PERMIT,
+                "protocol": ACLProtocolChoices.PROTOCOL_ICMPV6,
+                "icmp_type": 128,
+                "icmp_code": 0,
             },
         ]
         cls.bulk_update_data = {
@@ -675,3 +706,219 @@ class ACLExtendedRuleAPIViewTestCase(APIViewTestCases.APIViewTestCase):
 
         rule.refresh_from_db()
         self.assertEqual(rule.log_options, ["cisco-log-input", "syslog"])
+
+    def test_create_normalizes_duplicate_and_unordered_tcp_flags(self):
+        """Test that REST create stores TCP flags canonically, as model clean does."""
+        self.add_permissions("netbox_acls.add_aclextendedrule")
+        data = {
+            **self.create_data[4],
+            "sequence": 550,
+            "tcp_flags": [
+                ACLTCPFlagChoices.FLAG_ACK,
+                ACLTCPFlagChoices.FLAG_SYN,
+                ACLTCPFlagChoices.FLAG_ACK,
+            ],
+        }
+        response = self.client.post(self._get_list_url(), data, format="json", **self.header)
+        self.assertHttpStatus(response, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["tcp_flags"], ["syn", "ack"])
+
+        rule = ACLExtendedRule.objects.get(pk=response.data["id"])
+        self.assertEqual(rule.tcp_flags, ["syn", "ack"])
+
+    def test_patch_normalizes_duplicate_and_unordered_tcp_flags(self):
+        """Test that REST update stores TCP flags canonically rather than as posted."""
+        rule = ACLExtendedRule.objects.create(
+            access_list=self.access_list_device,
+            sequence=560,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_TCP,
+            tcp_flags=[ACLTCPFlagChoices.FLAG_ACK],
+        )
+        self.add_permissions("netbox_acls.change_aclextendedrule")
+        response = self.client.patch(
+            self._get_detail_url(rule),
+            {
+                "tcp_flags": [
+                    ACLTCPFlagChoices.FLAG_ACK,
+                    ACLTCPFlagChoices.FLAG_SYN,
+                    ACLTCPFlagChoices.FLAG_ACK,
+                ]
+            },
+            format="json",
+            **self.header,
+        )
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+
+        rule.refresh_from_db()
+        self.assertEqual(rule.tcp_flags, ["syn", "ack"])
+
+    def test_patch_changing_protocol_with_retained_tcp_flags_is_rejected(self):
+        """Test that a protocol change is rejected while incompatible TCP flags remain set."""
+        rule = ACLExtendedRule.objects.create(
+            access_list=self.access_list_device,
+            sequence=570,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_TCP,
+            tcp_flags=[ACLTCPFlagChoices.FLAG_ACK, ACLTCPFlagChoices.FLAG_RST],
+            tcp_flags_match=ACLTCPFlagMatchChoices.MATCH_ANY,
+        )
+        self.add_permissions("netbox_acls.change_aclextendedrule")
+        response = self.client.patch(
+            self._get_detail_url(rule),
+            {"protocol": ACLProtocolChoices.PROTOCOL_UDP},
+            format="json",
+            **self.header,
+        )
+        self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("tcp_flags", response.data)
+
+    def test_patch_changing_protocol_and_clearing_tcp_flags_succeeds(self):
+        """Test that changing the protocol succeeds once the TCP flags are cleared."""
+        rule = ACLExtendedRule.objects.create(
+            access_list=self.access_list_device,
+            sequence=580,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_TCP,
+            tcp_flags=[ACLTCPFlagChoices.FLAG_ACK, ACLTCPFlagChoices.FLAG_RST],
+            tcp_flags_match=ACLTCPFlagMatchChoices.MATCH_ANY,
+        )
+        self.add_permissions("netbox_acls.change_aclextendedrule")
+        response = self.client.patch(
+            self._get_detail_url(rule),
+            {"protocol": ACLProtocolChoices.PROTOCOL_UDP, "tcp_flags": []},
+            format="json",
+            **self.header,
+        )
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+
+        rule.refresh_from_db()
+        self.assertEqual(rule.tcp_flags, [])
+
+    def test_patch_clearing_an_icmp_type_with_a_retained_code_is_rejected(self):
+        """Test that clearing an ICMP type is rejected while its code remains set."""
+        rule = ACLExtendedRule.objects.create(
+            access_list=self.access_list_device,
+            sequence=590,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+            icmp_type=8,
+            icmp_code=0,
+        )
+        self.add_permissions("netbox_acls.change_aclextendedrule")
+        response = self.client.patch(
+            self._get_detail_url(rule),
+            {"icmp_type": None},
+            format="json",
+            **self.header,
+        )
+        self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("icmp_code", response.data)
+
+    def test_patch_changing_protocol_to_icmpv6_in_an_ipv4_acl_is_rejected(self):
+        """Test that an IPv4 ACL rejects a rule switched to ICMPv6."""
+        rule = ACLExtendedRule.objects.create(
+            access_list=self.access_list_device,
+            sequence=600,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+        )
+        self.add_permissions("netbox_acls.change_aclextendedrule")
+        response = self.client.patch(
+            self._get_detail_url(rule),
+            {"protocol": ACLProtocolChoices.PROTOCOL_ICMPV6},
+            format="json",
+            **self.header,
+        )
+        self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("__all__", response.data)
+
+    @override_settings(LOGIN_REQUIRED=True)
+    def test_graphql_tcp_flags_filter_narrows_by_overlap(self):
+        """Test that the TCP flags filter returns the rules sharing a flag."""
+        self.add_permissions("netbox_acls.view_aclextendedrule")
+        fin_rule = ACLExtendedRule.objects.create(
+            access_list=self.access_list_device,
+            sequence=610,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_TCP,
+            tcp_flags=[ACLTCPFlagChoices.FLAG_FIN, ACLTCPFlagChoices.FLAG_SYN],
+        )
+        ACLExtendedRule.objects.create(
+            access_list=self.access_list_device,
+            sequence=620,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_TCP,
+            tcp_flags=[ACLTCPFlagChoices.FLAG_SYN],
+        )
+
+        data = self._post_graphql_query(
+            """
+            {
+                acl_extended_rule_list(filters: {tcp_flags: {overlap: ["fin", "urg"]}}) {
+                    id
+                }
+            }
+            """
+        )
+        self.assertEqual(
+            [rule["id"] for rule in data["acl_extended_rule_list"]],
+            [str(fin_rule.pk)],
+        )
+
+    @override_settings(LOGIN_REQUIRED=True)
+    def test_graphql_tcp_flags_match_filter_narrows_by_mode(self):
+        """Test that the TCP flags match filter returns the rules of one mode."""
+        self.add_permissions("netbox_acls.view_aclextendedrule")
+        any_rule = ACLExtendedRule.objects.get(access_list=self.access_list_device, sequence=10)
+        self.assertEqual(any_rule.tcp_flags_match, ACLTCPFlagMatchChoices.MATCH_ANY)
+        ACLExtendedRule.objects.create(
+            access_list=self.access_list_device,
+            sequence=630,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+            protocol=ACLProtocolChoices.PROTOCOL_TCP,
+            tcp_flags=[ACLTCPFlagChoices.FLAG_ACK],
+        )
+
+        data = self._post_graphql_query(
+            """
+            {
+                acl_extended_rule_list(filters: {tcp_flags_match: {exact: ANY}}) {
+                    id
+                }
+            }
+            """
+        )
+        self.assertEqual(
+            [rule["id"] for rule in data["acl_extended_rule_list"]],
+            [str(any_rule.pk)],
+        )
+
+    @override_settings(LOGIN_REQUIRED=True)
+    def test_graphql_icmp_type_filter_matches_zero(self):
+        """Test that the ICMP type filter treats zero as a value."""
+        self.add_permissions("netbox_acls.view_aclextendedrule")
+        zero_rule = ACLExtendedRule.objects.get(access_list__name="testacl2", sequence=10)
+        self.assertEqual(zero_rule.icmp_type, 0)
+        for sequence, icmp_type in ((640, 8), (650, None)):
+            ACLExtendedRule.objects.create(
+                access_list=self.access_list_device,
+                sequence=sequence,
+                action=ACLRuleActionChoices.ACTION_PERMIT,
+                protocol=ACLProtocolChoices.PROTOCOL_ICMP,
+                icmp_type=icmp_type,
+            )
+
+        data = self._post_graphql_query(
+            """
+            {
+                acl_extended_rule_list(filters: {icmp_type: {filter_lookup: {exact: 0}}}) {
+                    id
+                }
+            }
+            """
+        )
+        self.assertEqual(
+            [rule["id"] for rule in data["acl_extended_rule_list"]],
+            [str(zero_rule.pk)],
+        )

@@ -30,6 +30,7 @@ from .choices import (
     ACLFamilyChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
+    ACLTCPFlagMatchChoices,
     ACLTypeChoices,
 )
 from .constants import ACL_ASSIGNMENT_SITE_TRAVERSAL_PATHS
@@ -593,6 +594,16 @@ class ACLExtendedRuleFilterSet(ACLRuleFilterSetMixin, PrimaryModelFilterSet):
         label=_("Destination Port"),
     )
 
+    # TCP flags
+    tcp_flags = MultiValueCharFilter(
+        method="filter_tcp_flags",
+        label=_("TCP Flags"),
+    )
+    tcp_flags_match = django_filters.MultipleChoiceFilter(
+        choices=ACLTCPFlagMatchChoices,
+        distinct=False,
+    )
+
     class Meta:
         """
         Associates the django model ACLExtendedRule & fields with the filter set.
@@ -612,10 +623,19 @@ class ACLExtendedRuleFilterSet(ACLRuleFilterSetMixin, PrimaryModelFilterSet):
             "destination_type",
             "destination_id",
             "destination_port",
+            "icmp_type",
+            "icmp_code",
+            "tcp_flags_match",
             "log_matches",
             "description",
             "comments",
         )
+
+    def filter_tcp_flags(self, queryset, name, value):
+        """
+        Match rules carrying any of the given TCP flags.
+        """
+        return queryset.filter(tcp_flags__overlap=value)
 
 
 @register_filterset

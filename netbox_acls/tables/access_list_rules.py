@@ -8,7 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from netbox.tables import PrimaryModelTable, columns
 
 from ..models import ACLExtendedRule, ACLStandardRule
-from .columns import LogOptionsColumn, UsedAsColumn
+from .columns import BadgesColumn, UsedAsColumn
 
 __all__ = (
     "ACLExtendedRuleTable",
@@ -46,7 +46,8 @@ class ACLRuleTable(PrimaryModelTable):
     log_matches = columns.BooleanColumn(
         verbose_name=_("Log Matches"),
     )
-    log_options_list = LogOptionsColumn(
+    log_options_list = BadgesColumn(
+        accessor="log_options_badges",
         verbose_name=_("Log Options"),
     )
 
@@ -119,6 +120,13 @@ class ACLExtendedRuleTable(ACLRuleTable):
         orderable=False,
     )
 
+    # TCP flags
+    tcp_flags_list = BadgesColumn(
+        accessor="tcp_flags_badges",
+        verbose_name=_("TCP Flags"),
+    )
+    tcp_flags_match = columns.ChoiceFieldColumn()
+
     class Meta(ACLRuleTable.Meta):
         model = ACLExtendedRule
         fields = ACLRuleTable.Meta.fields + (
@@ -127,6 +135,10 @@ class ACLExtendedRuleTable(ACLRuleTable):
             "destination",
             "destination_type",
             "destination_port_ranges_list",
+            "icmp_type",
+            "icmp_code",
+            "tcp_flags_list",
+            "tcp_flags_match",
         )
         default_columns = (
             "access_list",

@@ -11,6 +11,8 @@ from ...choices import (
     ACLProtocolChoices,
     ACLRuleActionChoices,
     ACLRuleLogOptionChoices,
+    ACLTCPFlagChoices,
+    ACLTCPFlagMatchChoices,
     ACLTypeChoices,
 )
 from ...filtersets import ACLExtendedRuleFilterSet
@@ -73,6 +75,8 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin)
             comments="reviewed quarterly",
             log_matches=True,
             log_options=[ACLRuleLogOptionChoices.OPTION_SYSLOG],
+            tcp_flags=[ACLTCPFlagChoices.FLAG_ACK, ACLTCPFlagChoices.FLAG_RST],
+            tcp_flags_match=ACLTCPFlagMatchChoices.MATCH_ANY,
         )
         ACLExtendedRule.objects.create(
             access_list=cls.access_list,
@@ -91,6 +95,8 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin)
             protocol=ACLProtocolChoices.PROTOCOL_ICMP,
             source=cls.aggregate,
             destination=cls.ip_address,
+            icmp_type=0,
+            icmp_code=0,
         )
         ACLExtendedRule.objects.create(
             access_list=cls.access_list,
@@ -323,4 +329,24 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin)
 
     def test_log_options(self):
         params = {"log_options": ["syslog"]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_icmp_type(self):
+        params = {"icmp_type": ["0"]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_icmp_type_empty(self):
+        params = {"icmp_type__empty": True}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
+
+    def test_icmp_code(self):
+        params = {"icmp_code": ["0"]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_tcp_flags(self):
+        params = {"tcp_flags": ["ack", "syn"]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_tcp_flags_match(self):
+        params = {"tcp_flags_match": [ACLTCPFlagMatchChoices.MATCH_ANY]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)

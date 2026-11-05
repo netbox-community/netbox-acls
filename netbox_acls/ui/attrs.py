@@ -9,7 +9,7 @@ from ..choices import ACLTypeChoices
 
 __all__ = (
     "AssignedObjectAttr",
-    "LogOptionsAttr",
+    "BadgesAttr",
     "RuleCountAttr",
 )
 
@@ -28,18 +28,14 @@ class AssignedObjectAttr(attrs.GenericForeignKeyAttr):
         return {**super().get_context(obj, attr, value, context), "parent": parent}
 
 
-class LogOptionsAttr(attrs.ObjectAttribute):
-    """Renders each stored log option as a colored badge."""
+class BadgesAttr(attrs.ObjectAttribute):
+    """Renders each label and color pair as a colored badge."""
 
-    template_name = "netbox_acls/attrs/log_options.html"
+    template_name = "netbox_acls/attrs/badges.html"
 
     def get_value(self, obj):
         """Return None for an empty list, so render() shows the placeholder."""
         return super().get_value(obj) or None
-
-    def get_context(self, obj, attr, value, context):
-        """Return the label and color pairs the template iterates."""
-        return {"badges": value}
 
 
 class RuleCountAttr(attrs.ObjectAttribute):

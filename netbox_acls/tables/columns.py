@@ -10,18 +10,18 @@ from netbox.tables import columns
 from ..choices import ACLRuleUsageChoices
 
 __all__ = (
-    "LogOptionsColumn",
+    "BadgesColumn",
     "UsedAsColumn",
 )
 
 
-class LogOptionsColumn(columns.TemplateColumn):
+class BadgesColumn(columns.TemplateColumn):
     """
-    Display each log option as a colored badge.
+    Display each label and color pair as a colored badge.
     """
 
     template_code = """
-    {% for label, color in record.log_options_badges %}
+    {% for label, color in value %}
       {% badge label bg_color=color %}
     {% empty %}
       {{ ''|placeholder }}
@@ -33,7 +33,7 @@ class LogOptionsColumn(columns.TemplateColumn):
 
     def value(self, value):
         """Export the labels rather than the rendered badges."""
-        return ", ".join(value)
+        return ", ".join(label for label, _color in value)
 
 
 class UsedAsColumn(tables.Column):

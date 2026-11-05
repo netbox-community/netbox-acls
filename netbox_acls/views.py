@@ -685,9 +685,9 @@ class ACLStandardRuleView(generic.ObjectView):
         left_panels=[
             ui.ACLStandardRulePanel(),
             ui.ACLStandardRuleDetailsPanel(),
-            ui.ACLRuleLoggingPanel(),
         ],
         right_panels=[
+            ui.ACLRuleLoggingPanel(),
             CustomFieldsPanel(),
             TagsPanel(),
             CommentsPanel(),
@@ -840,9 +840,11 @@ class ACLExtendedRuleView(generic.ObjectView):
         left_panels=[
             ui.ACLExtendedRulePanel(),
             ui.ACLExtendedRuleDetailsPanel(),
-            ui.ACLRuleLoggingPanel(),
         ],
         right_panels=[
+            ui.ACLExtendedRuleICMPPanel(),
+            ui.ACLExtendedRuleTCPFlagsPanel(),
+            ui.ACLRuleLoggingPanel(),
             CustomFieldsPanel(),
             TagsPanel(),
             CommentsPanel(),

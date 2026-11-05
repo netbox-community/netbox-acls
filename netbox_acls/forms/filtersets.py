@@ -18,6 +18,7 @@ from utilities.forms.fields import (
     TagFilterField,
 )
 from utilities.forms.rendering import FieldSet
+from utilities.forms.widgets import NumberWithOptions
 from virtualization.models import VirtualMachine, VMInterface
 
 from ..choices import (
@@ -25,9 +26,12 @@ from ..choices import (
     ACLAddressFamilyChoices,
     ACLAssignmentDirectionChoices,
     ACLFamilyChoices,
+    ACLICMPTypeChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
     ACLRuleLogOptionChoices,
+    ACLTCPFlagChoices,
+    ACLTCPFlagMatchChoices,
     ACLTypeChoices,
 )
 from ..constants import ACL_ADDRESS_OBJECT_MODELS, ACL_ASSIGNMENT_MODELS
@@ -362,8 +366,11 @@ class ACLExtendedRuleFilterForm(ACLRuleFilterFormMixin, PrimaryModelFilterSetFor
             "sequence",
             "action",
             "remark",
-            "protocol",
             name=_("ACL Details"),
+        ),
+        FieldSet(
+            "protocol",
+            name=_("Protocol"),
         ),
         FieldSet(
             "source_address_group_id",
@@ -382,6 +389,16 @@ class ACLExtendedRuleFilterForm(ACLRuleFilterFormMixin, PrimaryModelFilterSetFor
             "destination_prefix_id",
             "destination_port",
             name=_("Destination Details"),
+        ),
+        FieldSet(
+            "icmp_type",
+            "icmp_code",
+            name=_("ICMP"),
+        ),
+        FieldSet(
+            "tcp_flags",
+            "tcp_flags_match",
+            name=_("TCP Flags"),
         ),
         FieldSet(
             "log_matches",
@@ -443,6 +460,33 @@ class ACLExtendedRuleFilterForm(ACLRuleFilterFormMixin, PrimaryModelFilterSetFor
     destination_port = forms.IntegerField(
         label=_("Destination Port"),
         required=False,
+    )
+
+    # ICMP
+    icmp_type = forms.IntegerField(
+        label=_("ICMP Type"),
+        required=False,
+        min_value=0,
+        max_value=255,
+        widget=NumberWithOptions(options=ACLICMPTypeChoices),
+    )
+    icmp_code = forms.IntegerField(
+        label=_("ICMP Code"),
+        required=False,
+        min_value=0,
+        max_value=255,
+    )
+
+    # TCP flags
+    tcp_flags = forms.MultipleChoiceField(
+        choices=ACLTCPFlagChoices,
+        required=False,
+        label=_("TCP Flags"),
+    )
+    tcp_flags_match = forms.MultipleChoiceField(
+        choices=ACLTCPFlagMatchChoices,
+        required=False,
+        label=_("TCP Flags Match"),
     )
 
     # Tag selector

@@ -18,7 +18,7 @@ from utilities.forms.fields import (
 from utilities.forms.mixins import GenericObjectFormMixin
 from utilities.forms.rendering import FieldSet
 from utilities.forms.utils import add_blank_choice
-from utilities.forms.widgets import BulkEditNullBooleanSelect
+from utilities.forms.widgets import BulkEditNullBooleanSelect, NumberWithOptions
 from virtualization.models import VMInterface
 
 from ..choices import (
@@ -26,9 +26,12 @@ from ..choices import (
     ACLAddressFamilyChoices,
     ACLAssignmentDirectionUIChoices,
     ACLFamilyChoices,
+    ACLICMPTypeChoices,
     ACLProtocolChoices,
     ACLRuleActionChoices,
     ACLRuleLogOptionChoices,
+    ACLTCPFlagChoices,
+    ACLTCPFlagMatchChoices,
     ACLTypeChoices,
 )
 from ..constants import ACL_ADDRESS_OBJECT_MODELS, ACL_ASSIGNMENT_MODELS, ACL_RULE_SOURCE_DESTINATION_MODELS
@@ -287,6 +290,7 @@ class ACLExtendedRuleBulkEditForm(GenericObjectFormMixin, ACLRuleLoggingBulkEdit
         choices=add_blank_choice(ACLProtocolChoices),
         required=False,
         label=_("Protocol"),
+        help_text=_("ICMP follows the ACL or address family. ICMPv4 and ICMPv6 select the family explicitly."),
     )
 
     # Source
@@ -313,6 +317,39 @@ class ACLExtendedRuleBulkEditForm(GenericObjectFormMixin, ACLRuleLoggingBulkEdit
     destination_port_ranges = NumericRangeArrayField(
         required=False,
         label=_("Destination Port Ranges"),
+    )
+
+    # ICMP
+    icmp_type = forms.IntegerField(
+        min_value=0,
+        max_value=255,
+        required=False,
+        label=_("ICMP Type"),
+        widget=NumberWithOptions(options=ACLICMPTypeChoices),
+    )
+    icmp_code = forms.IntegerField(
+        min_value=0,
+        max_value=255,
+        required=False,
+        label=_("ICMP Code"),
+    )
+
+    # TCP flags
+    tcp_flags = forms.MultipleChoiceField(
+        choices=ACLTCPFlagChoices,
+        required=False,
+        label=_("TCP Flags"),
+        help_text=_("Unselected flags are ignored. ACK and RST with Any is the stateless established match."),
+    )
+    clear_tcp_flags = forms.BooleanField(
+        required=False,
+        label=_("Clear TCP flags"),
+        help_text=_("Remove every TCP flag while leaving TCP Flags Match as it is."),
+    )
+    tcp_flags_match = forms.ChoiceField(
+        choices=add_blank_choice(ACLTCPFlagMatchChoices),
+        required=False,
+        label=_("TCP Flags Match"),
     )
 
     model = ACLExtendedRule
@@ -345,6 +382,17 @@ class ACLExtendedRuleBulkEditForm(GenericObjectFormMixin, ACLRuleLoggingBulkEdit
             name=_("Destination Definition"),
         ),
         FieldSet(
+            "icmp_type",
+            "icmp_code",
+            name=_("ICMP"),
+        ),
+        FieldSet(
+            "tcp_flags",
+            "clear_tcp_flags",
+            "tcp_flags_match",
+            name=_("TCP Flags"),
+        ),
+        FieldSet(
             "log_matches",
             "log_options",
             "clear_log_options",
@@ -355,9 +403,29 @@ class ACLExtendedRuleBulkEditForm(GenericObjectFormMixin, ACLRuleLoggingBulkEdit
         "remark",
         "source",
         "destination",
+        "icmp_type",
+        "icmp_code",
         "description",
         "comments",
     )
+
+    def clean(self):
+        """
+        Apply the TCP flags clear control.
+        """
+        cleaned_data = super().clean()
+
+        if cleaned_data.get("tcp_flags") and cleaned_data.get("clear_tcp_flags"):
+            raise forms.ValidationError(
+                {"clear_tcp_flags": _("Clear TCP flags cannot be combined with a TCP flag selection.")},
+            )
+
+        if cleaned_data.get("clear_tcp_flags"):
+            cleaned_data["tcp_flags"] = []
+            if "tcp_flags" not in self.changed_data:
+                self.changed_data.append("tcp_flags")
+
+        return cleaned_data
 
 
 class ACLAddressGroupBulkEditForm(PrimaryModelBulkEditForm):

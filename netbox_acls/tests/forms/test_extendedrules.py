@@ -352,6 +352,26 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
                 self.assertNotIn(field_name, form.fields)
         self.assertIn("remark", form.fields)
 
+    def test_cleared_action_removes_the_match_criteria(self):
+        """Test that an edited rule's form offers no match criteria once its action is cleared."""
+        form = self._bound_form(instance=self._rule(10), action="")
+        for field_name in (
+            "source",
+            "source_port_ranges",
+            "destination",
+            "destination_port_ranges",
+            "protocol",
+            "icmp_type",
+            "icmp_code",
+            "tcp_flags",
+            "tcp_flags_match",
+            "log_matches",
+            "log_options",
+        ):
+            with self.subTest(field_name=field_name):
+                self.assertNotIn(field_name, form.fields)
+        self.assertIn("remark", form.fields)
+
     def test_deny_action_keeps_the_match_criteria(self):
         """Test that a deny rule's form offers every match criterion."""
         form = self._bound_form(action=ACLRuleActionChoices.ACTION_DENY)
@@ -503,6 +523,15 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
             with self.subTest(field_name=field_name):
                 self.assertNotIn(field_name, form.fields)
 
+    def test_blank_protocol_saves_as_an_empty_string(self):
+        """Test that a rule saved without a protocol stores an empty string."""
+        form = self._bound_form(protocol="")
+        self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+
+        rule = form.save()
+        rule.refresh_from_db()
+        self.assertEqual(rule.protocol, "")
+
     def test_unbound_form_follows_the_stored_protocol(self):
         """Test that the edit form of a stored UDP rule offers both port fields."""
         form = ACLExtendedRuleForm(instance=self._rule(10, protocol=ACLProtocolChoices.PROTOCOL_UDP))
@@ -527,6 +556,22 @@ class ACLExtendedRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
             destination_port_ranges=[NumericRange(443, 444)],
         )
         form = self._bound_form(instance=rule, protocol=ACLProtocolChoices.PROTOCOL_ICMP)
+        self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+
+        form.save()
+        rule.refresh_from_db()
+        self.assertEqual(rule.source_port_ranges, [])
+        self.assertEqual(rule.destination_port_ranges, [])
+
+    def test_switching_to_no_protocol_clears_the_stored_ports(self):
+        """Test that saving a TCP rule without a protocol clears its stored ports."""
+        rule = self._rule(
+            10,
+            protocol=ACLProtocolChoices.PROTOCOL_TCP,
+            source_port_ranges=[NumericRange(22, 23)],
+            destination_port_ranges=[NumericRange(443, 444)],
+        )
+        form = self._bound_form(instance=rule, protocol="")
         self.assertTrue(form.is_valid(), msg=form.errors.as_text())
 
         form.save()

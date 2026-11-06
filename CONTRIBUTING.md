@@ -103,7 +103,6 @@ Development with this plugin leverages:
 * NetBox-Docker
 * Docker-Compose
 * Makefile for spin up of testing NetBox setup
-* Dependabot for dependency version management
 
 ### Cutting Releases
 

@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from dcim.choices import InterfaceTypeChoices
@@ -119,6 +120,16 @@ class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTes
                 form = self._bound_form(model, obj)
                 self.assertFalse(form.fields["direction"].disabled)
                 self.assertTrue(form.fields["direction"].required)
+
+    def test_interface_assignment_without_a_direction_reports_one_error(self):
+        """Test that an interface assignment posted without a direction reports only the required error."""
+        for model, obj in ((Interface, self.interface), (VMInterface, self.vminterface)):
+            with self.subTest(model=model._meta.label_lower):
+                form = self._bound_form(model, obj, direction="")
+                self.assertFalse(form.is_valid())
+                self.assertEqual(set(form.errors), {"direction"})
+                self.assertTrue(form.has_error("direction", code="required"))
+                self.assertEqual(len(form.errors["direction"]), 1)
 
     def test_interface_direction_omits_the_host_value(self):
         """Test that an interface assignment's direction offers no N/A choice."""
@@ -580,6 +591,39 @@ class ACLAssignmentImportFormTestCase(TestCase):
 
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.save().assigned_object, self.device1)
+
+    def test_update_of_an_interface_row_without_a_direction_fails_on_save(self):
+        """Test that an update omitting the direction of a stored blank interface row fails on save."""
+        ACLAssignment.objects.bulk_create(
+            [
+                ACLAssignment(
+                    access_list=self.acl,
+                    assigned_object_type=ContentType.objects.get_for_model(Interface),
+                    assigned_object_id=self.spare.pk,
+                    direction="",
+                    family=self.acl.family,
+                ),
+            ],
+        )
+        form = ACLAssignmentImportForm(data={"comments": "updated"}, instance=ACLAssignment.objects.get())
+        # BulkImportView deletes every field the record omits.
+        for name in (
+            "access_list",
+            "assigned_object_type",
+            "assigned_object",
+            "assigned_object_parent",
+            "assigned_object_id",
+            "direction",
+        ):
+            del form.fields[name]
+
+        self.assertTrue(form.is_valid(), form.errors)
+        with self.assertRaises(ValidationError) as context:
+            form.save()
+        self.assertEqual(
+            context.exception.message_dict,
+            {"direction": ["Interface assignments require an ingress or egress direction."]},
+        )
 
     def test_update_by_id_alone_moves_the_target(self):
         """Test that an update carrying only an ID moves the target within the stored type."""

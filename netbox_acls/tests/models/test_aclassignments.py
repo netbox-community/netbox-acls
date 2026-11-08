@@ -219,6 +219,45 @@ class TestACLAssignment(BaseTestCase):
 
         self.assertIsNone(assignment.pk)
 
+    def test_interface_assignment_rejects_a_missing_direction_on_save(self):
+        """
+        Test that an interface assignment saved without a direction fails for a caller skipping full_clean().
+        """
+        for assigned_object in (self.device_interface1, self.vm_interface1):
+            with self.subTest(assigned_object=assigned_object._meta.label_lower):
+                assignment = ACLAssignment(
+                    access_list=self.acl_standard1,
+                    assigned_object=assigned_object,
+                )
+
+                with self.assertRaises(ValidationError) as context:
+                    assignment.save()
+
+                self.assertEqual(
+                    context.exception.message_dict,
+                    {"direction": ["Interface assignments require an ingress or egress direction."]},
+                )
+                self.assertIsNone(assignment.pk)
+
+    def test_interface_assignment_rejects_an_unknown_direction_on_save(self):
+        """
+        Test that an interface assignment saved with an unknown direction fails for a caller skipping full_clean().
+        """
+        assignment = ACLAssignment(
+            access_list=self.acl_standard1,
+            direction="both",
+            assigned_object=self.device_interface1,
+        )
+
+        with self.assertRaises(ValidationError) as context:
+            assignment.save()
+
+        self.assertEqual(
+            context.exception.message_dict,
+            {"direction": ["Interface assignments require an ingress or egress direction."]},
+        )
+        self.assertIsNone(assignment.pk)
+
     def test_partial_save_excluding_direction_skips_the_interface_guard(self):
         """
         Test that a comments-only save is not rejected for an unwritten direction.
@@ -287,6 +326,21 @@ class TestACLAssignment(BaseTestCase):
         assignment.refresh_from_db()
 
         self.assertEqual(assignment.direction, ACLAssignmentDirectionChoices.DIRECTION_NONE)
+
+    def test_host_assignment_saved_without_a_direction_stores_none(self):
+        """
+        Test that a host assignment saved without a direction stores "none".
+        """
+        for assigned_object in (self.device1, self.virtual_chassis1, self.virtual_machine1):
+            with self.subTest(assigned_object=assigned_object._meta.label_lower):
+                assignment = ACLAssignment(
+                    access_list=self.acl_standard1,
+                    assigned_object=assigned_object,
+                )
+                assignment.save()
+                assignment.refresh_from_db()
+
+                self.assertEqual(assignment.direction, ACLAssignmentDirectionChoices.DIRECTION_NONE)
 
     def test_acl_assignment_with_duplicate_name_per_device_fail(self):
         """

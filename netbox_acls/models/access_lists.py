@@ -420,15 +420,19 @@ class ACLAssignment(OwnerMixin, NetBoxModel):
             self.direction = ACLAssignmentDirectionChoices.DIRECTION_NONE
             self._validate_unique_acl_name_per_assigned_object()
         elif self.assigned_object_type_id:
-            self._validate_interface_direction()
+            if self.direction == ACLAssignmentDirectionChoices.DIRECTION_NONE:
+                self._validate_interface_direction()
             if self.access_list_id:
                 self._validate_unique_acl_assignment_per_assigned_interface()
 
     def _validate_interface_direction(self) -> None:
         """
-        Validates that an interface assignment carries a real direction.
+        Validates that an interface assignment has an ingress or egress direction.
         """
-        if self.direction == ACLAssignmentDirectionChoices.DIRECTION_NONE:
+        if self.direction not in [
+            ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+            ACLAssignmentDirectionChoices.DIRECTION_EGRESS,
+        ]:
             raise ValidationError(
                 {
                     "direction": _("Interface assignments require an ingress or egress direction."),

@@ -1,6 +1,7 @@
 from itertools import cycle
 
 from django.core.exceptions import ValidationError
+from django.db.models import Prefetch
 
 from dcim.models import Interface
 
@@ -50,6 +51,20 @@ class TestAccessList(BaseTestCase):
             name="Interface 2",
             device=cls.device1,
             type=interface_type,
+        )
+
+        # Access Lists
+        cls.standard_acl = AccessList.objects.create(
+            name="STANDARD_ACL",
+            type=ACLTypeChoices.TYPE_STANDARD,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        cls.extended_acl = AccessList.objects.create(
+            name="EXTENDED_ACL",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
         )
 
     def test_accesslist_standard_creation(self):
@@ -208,6 +223,164 @@ class TestAccessList(BaseTestCase):
         acl.family = ACLFamilyChoices.FAMILY_IPV4
         with self.assertRaises(ValidationError):
             acl.full_clean()
+
+    def test_type_guard_reads_standard_rule_past_a_prefetched_relation_in_clean(self):
+        """
+        Test that the type guard in clean() sees a standard rule added after the relation was prefetched.
+        """
+        stale = AccessList.objects.prefetch_related("aclstandardrules").get(pk=self.standard_acl.pk)
+        self.assertFalse(stale.aclstandardrules.exists())
+        ACLStandardRule.objects.create(
+            access_list=self.standard_acl,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+        )
+        stale.type = ACLTypeChoices.TYPE_EXTENDED
+        with self.assertRaises(ValidationError):
+            stale.full_clean()
+
+    def test_type_guard_reads_standard_rule_past_a_prefetched_relation_in_save(self):
+        """
+        Test that the type guard in save() sees a standard rule added after the relation was prefetched.
+        """
+        stale = AccessList.objects.prefetch_related("aclstandardrules").get(pk=self.standard_acl.pk)
+        self.assertFalse(stale.aclstandardrules.exists())
+        ACLStandardRule.objects.create(
+            access_list=self.standard_acl,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+        )
+        stale.type = ACLTypeChoices.TYPE_EXTENDED
+        with self.assertRaises(ValidationError):
+            stale.save()
+
+    def test_type_guard_reads_extended_rule_past_a_prefetched_relation_in_clean(self):
+        """
+        Test that the type guard in clean() sees an extended rule added after the relation was prefetched.
+        """
+        stale = AccessList.objects.prefetch_related("aclextendedrules").get(pk=self.extended_acl.pk)
+        self.assertFalse(stale.aclextendedrules.exists())
+        ACLExtendedRule.objects.create(
+            access_list=self.extended_acl,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+        )
+        stale.type = ACLTypeChoices.TYPE_STANDARD
+        with self.assertRaises(ValidationError):
+            stale.full_clean()
+
+    def test_type_guard_reads_extended_rule_past_a_prefetched_relation_in_save(self):
+        """
+        Test that the type guard in save() sees an extended rule added after the relation was prefetched.
+        """
+        stale = AccessList.objects.prefetch_related("aclextendedrules").get(pk=self.extended_acl.pk)
+        self.assertFalse(stale.aclextendedrules.exists())
+        ACLExtendedRule.objects.create(
+            access_list=self.extended_acl,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+        )
+        stale.type = ACLTypeChoices.TYPE_STANDARD
+        with self.assertRaises(ValidationError):
+            stale.save()
+
+    def test_family_guard_reads_standard_rule_past_a_prefetched_relation_in_clean(self):
+        """
+        Test that the family guard in clean() sees a standard rule added after the relation was prefetched.
+        """
+        stale = AccessList.objects.prefetch_related("aclstandardrules").get(pk=self.standard_acl.pk)
+        self.assertFalse(stale.aclstandardrules.exists())
+        ACLStandardRule.objects.create(
+            access_list=self.standard_acl,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+        )
+        stale.family = ACLFamilyChoices.FAMILY_IPV6
+        with self.assertRaises(ValidationError):
+            stale.full_clean()
+
+    def test_family_guard_reads_standard_rule_past_a_prefetched_relation_in_save(self):
+        """
+        Test that the family guard in save() sees a standard rule added after the relation was prefetched.
+        """
+        stale = AccessList.objects.prefetch_related("aclstandardrules").get(pk=self.standard_acl.pk)
+        self.assertFalse(stale.aclstandardrules.exists())
+        ACLStandardRule.objects.create(
+            access_list=self.standard_acl,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+        )
+        stale.family = ACLFamilyChoices.FAMILY_IPV6
+        with self.assertRaises(ValidationError):
+            stale.save()
+
+    def test_family_guard_reads_extended_rule_past_a_prefetched_relation_in_clean(self):
+        """
+        Test that the family guard in clean() sees an extended rule added after the relation was prefetched.
+        """
+        stale = AccessList.objects.prefetch_related("aclextendedrules").get(pk=self.extended_acl.pk)
+        self.assertFalse(stale.aclextendedrules.exists())
+        ACLExtendedRule.objects.create(
+            access_list=self.extended_acl,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+        )
+        stale.family = ACLFamilyChoices.FAMILY_IPV6
+        with self.assertRaises(ValidationError):
+            stale.full_clean()
+
+    def test_family_guard_reads_extended_rule_past_a_prefetched_relation_in_save(self):
+        """
+        Test that the family guard in save() sees an extended rule added after the relation was prefetched.
+        """
+        stale = AccessList.objects.prefetch_related("aclextendedrules").get(pk=self.extended_acl.pk)
+        self.assertFalse(stale.aclextendedrules.exists())
+        ACLExtendedRule.objects.create(
+            access_list=self.extended_acl,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+        )
+        stale.family = ACLFamilyChoices.FAMILY_IPV6
+        with self.assertRaises(ValidationError):
+            stale.save()
+
+    def test_type_guard_reads_standard_rule_past_a_filtered_prefetch_in_clean(self):
+        """
+        Test that the type guard in clean() sees a standard rule a filtered prefetch left out.
+        """
+        ACLStandardRule.objects.create(
+            access_list=self.standard_acl,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+        )
+        filtered = AccessList.objects.prefetch_related(
+            Prefetch(
+                "aclstandardrules",
+                queryset=ACLStandardRule.objects.filter(action=ACLRuleActionChoices.ACTION_DENY),
+            ),
+        ).get(pk=self.standard_acl.pk)
+        self.assertFalse(filtered.aclstandardrules.exists())
+        filtered.type = ACLTypeChoices.TYPE_EXTENDED
+        with self.assertRaises(ValidationError):
+            filtered.full_clean()
+
+    def test_type_guard_ignores_deleted_standard_rules_past_a_prefetched_relation_in_save(self):
+        """
+        Test that the type guard in save() ignores standard rules deleted after the relation was prefetched.
+        """
+        ACLStandardRule.objects.create(
+            access_list=self.standard_acl,
+            sequence=10,
+            action=ACLRuleActionChoices.ACTION_PERMIT,
+        )
+        stale = AccessList.objects.prefetch_related("aclstandardrules").get(pk=self.standard_acl.pk)
+        self.assertTrue(stale.aclstandardrules.exists())
+        ACLStandardRule.objects.filter(access_list=self.standard_acl).delete()
+        stale.type = ACLTypeChoices.TYPE_EXTENDED
+        stale.save()
+
+        self.standard_acl.refresh_from_db()
+        self.assertEqual(self.standard_acl.type, ACLTypeChoices.TYPE_EXTENDED)
 
     def test_acl_family_change_updates_assignments_when_allowed_host_only(self):
         """

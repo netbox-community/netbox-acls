@@ -3,6 +3,12 @@
 A [NetBox](https://github.com/netbox-community/netbox) plugin for managing
 Access Lists.
 
+## Documentation
+
+The [documentation](https://netbox-community.github.io/netbox-acls/) covers
+installation, configuration, day-to-day use, the REST and GraphQL reference, and
+contributing.
+
 ## Features
 
 - **Access Lists** (Standard and Extended)

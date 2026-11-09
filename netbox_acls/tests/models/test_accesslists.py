@@ -647,6 +647,30 @@ class TestAccessList(BaseTestCase):
             ACLFamilyChoices.FAMILY_IPV6,
         )
 
+    def test_accesslist_save_one_shot_update_fields_syncs_saved_family(self):
+        """
+        Test that a family change named by a one-shot update_fields iterator re-syncs the assignments.
+        """
+        acl = AccessList.objects.create(
+            name="ACL1",
+            type=ACLTypeChoices.TYPE_EXTENDED,
+            family=ACLFamilyChoices.FAMILY_IPV4,
+            default_action=ACLActionChoices.ACTION_DENY,
+        )
+        assignment = ACLAssignment.objects.create(
+            access_list=acl,
+            assigned_object=self.device1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+
+        acl.family = ACLFamilyChoices.FAMILY_IPV6
+        acl.save(update_fields=iter(["family"]))
+
+        acl.refresh_from_db()
+        assignment.refresh_from_db()
+        self.assertEqual(acl.family, ACLFamilyChoices.FAMILY_IPV6)
+        self.assertEqual(assignment.family, ACLFamilyChoices.FAMILY_IPV6)
+
     def test_accesslist_clean_tolerates_missing_row_for_pk(self):
         """
         Test that clean() skips the change guards when the pk is set but the row is gone.

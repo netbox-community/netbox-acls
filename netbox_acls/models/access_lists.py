@@ -163,7 +163,11 @@ class AccessList(PrimaryModel):
         """
         Returns whether this ACL has rules.
         """
-        return self.aclstandardrules.exists() or self.aclextendedrules.exists()
+        # Relation managers answer from a prefetch cache when one exists.
+        return any(
+            type(self).objects.filter(pk=self.pk, **{f"{relation}__isnull": False}).exists()
+            for relation in ("aclstandardrules", "aclextendedrules")
+        )
 
     def _get_persisted_values(self, fields=("name", "type", "family")) -> dict:
         """

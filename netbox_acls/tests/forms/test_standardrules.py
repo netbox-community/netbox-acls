@@ -200,7 +200,7 @@ class ACLStandardRuleFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetT
         form = ACLStandardRuleFilterForm()
         for name in ("protocol", "source_port", "destination_port"):
             self.assertNotIn(name, form.fields)
-        for model_name in ("address_group", "aggregate", "ipaddress", "iprange", "prefix"):
+        for model_name in ("acladdressgroup", "aggregate", "ipaddress", "iprange", "prefix"):
             self.assertNotIn(f"destination_{model_name}_id", form.fields)
 
     def test_filterform_access_list_filtered_to_standard(self):

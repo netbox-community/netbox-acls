@@ -270,7 +270,7 @@ class ACLRuleFilterFormMixin(forms.Form):
     )
 
     # Source selectors
-    source_address_group_id = DynamicModelMultipleChoiceField(
+    source_acladdressgroup_id = DynamicModelMultipleChoiceField(
         queryset=ACLAddressGroup.objects.all(),
         required=False,
         label=_("Source Address Group"),
@@ -317,7 +317,7 @@ class ACLStandardRuleFilterForm(ACLRuleFilterFormMixin, PrimaryModelFilterSetFor
             name=_("ACL Details"),
         ),
         FieldSet(
-            "source_address_group_id",
+            "source_acladdressgroup_id",
             "source_aggregate_id",
             "source_ipaddress_id",
             "source_iprange_id",
@@ -373,7 +373,7 @@ class ACLExtendedRuleFilterForm(ACLRuleFilterFormMixin, PrimaryModelFilterSetFor
             name=_("Protocol"),
         ),
         FieldSet(
-            "source_address_group_id",
+            "source_acladdressgroup_id",
             "source_aggregate_id",
             "source_ipaddress_id",
             "source_iprange_id",
@@ -382,7 +382,7 @@ class ACLExtendedRuleFilterForm(ACLRuleFilterFormMixin, PrimaryModelFilterSetFor
             name=_("Source Details"),
         ),
         FieldSet(
-            "destination_address_group_id",
+            "destination_acladdressgroup_id",
             "destination_aggregate_id",
             "destination_ipaddress_id",
             "destination_iprange_id",
@@ -432,7 +432,7 @@ class ACLExtendedRuleFilterForm(ACLRuleFilterFormMixin, PrimaryModelFilterSetFor
     )
 
     # Destination selectors
-    destination_address_group_id = DynamicModelMultipleChoiceField(
+    destination_acladdressgroup_id = DynamicModelMultipleChoiceField(
         queryset=ACLAddressGroup.objects.all(),
         required=False,
         label=_("Destination Address Group"),

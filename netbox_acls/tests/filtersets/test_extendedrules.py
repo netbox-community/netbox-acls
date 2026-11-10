@@ -27,14 +27,17 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin)
     filterset = ACLExtendedRuleFilterSet
     # Reverse GenericRel accessors are not filterable fields, and the shared
     # test_missing_filters check skips GenericForeignKey and GenericRelation but not
-    # GenericRel. These four are named differently from the filters that cover them,
-    # source_ipaddress, source_iprange, destination_ipaddress and destination_iprange.
+    # GenericRel. These six are named differently from the filters that cover them,
+    # source_acladdressgroup, source_ipaddress, source_iprange,
+    # destination_acladdressgroup, destination_ipaddress and destination_iprange.
     # The port range columns are covered by the source_port and destination_port
     # filters, which ask whether any stored range contains a given port. That is the
     # useful question, so there is deliberately no filter named after the raw column.
     ignore_fields = (
+        "source_address_group",
         "source_ip_address",
         "source_ip_range",
+        "destination_address_group",
         "destination_ip_address",
         "destination_ip_range",
         "source_port_ranges",
@@ -207,7 +210,7 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin)
         params = {"source_aggregate": [self.aggregate.prefix]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
 
-    def test_source_address_group(self):
+    def test_source_acladdressgroup(self):
         address_group = ACLAddressGroup.objects.create(name="address-group-1")
         ACLExtendedRule.objects.create(
             access_list=self.access_list,
@@ -215,9 +218,9 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin)
             action=ACLRuleActionChoices.ACTION_PERMIT,
             source=address_group,
         )
-        params = {"source_address_group_id": [address_group.pk]}
+        params = {"source_acladdressgroup_id": [address_group.pk]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
-        params = {"source_address_group": [address_group.name]}
+        params = {"source_acladdressgroup": [address_group.name]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
 
     def test_destination_type(self):
@@ -260,7 +263,7 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin)
         params = {"destination_aggregate": [self.aggregate.prefix]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
 
-    def test_destination_address_group(self):
+    def test_destination_acladdressgroup(self):
         address_group = ACLAddressGroup.objects.create(name="address-group-1")
         ACLExtendedRule.objects.create(
             access_list=self.access_list,
@@ -268,9 +271,9 @@ class ACLExtendedRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin)
             action=ACLRuleActionChoices.ACTION_PERMIT,
             destination=address_group,
         )
-        params = {"destination_address_group_id": [address_group.pk]}
+        params = {"destination_acladdressgroup_id": [address_group.pk]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
-        params = {"destination_address_group": [address_group.name]}
+        params = {"destination_acladdressgroup": [address_group.name]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
 
     # comments is a TextField, which django-filter maps to a single-valued CharFilter

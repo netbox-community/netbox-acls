@@ -27,7 +27,7 @@ object-type filter: the same numeric ID can exist in several object types.
 
 For either rule type, filter an exact source with `source_prefix_id`,
 `source_aggregate_id`, `source_ipaddress_id`, `source_iprange_id`, or
-`source_address_group_id`. Extended rules offer matching `destination_…` filters.
+`source_acladdressgroup_id`. Extended rules offer matching `destination_…` filters.
 
 The variants without `_id` use a prefix, address, IP range start address, or group
 name, as appropriate. These identify referenced objects. They do not calculate
@@ -37,7 +37,7 @@ For example:
 
 ```text
 /api/plugins/access-lists/extended-acl-rules/?access_list_id=10&protocol=tcp&destination_port=443
-/api/plugins/access-lists/standard-acl-rules/?source_address_group_id=20
+/api/plugins/access-lists/standard-acl-rules/?source_acladdressgroup_id=20
 /api/plugins/access-lists/address-group-members/?member_type=ipam.prefix&member_id=30
 ```
 

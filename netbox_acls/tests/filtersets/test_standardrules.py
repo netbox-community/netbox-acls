@@ -22,9 +22,10 @@ class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin)
     filterset = ACLStandardRuleFilterSet
     # Reverse GenericRel accessors are not filterable fields, and the shared
     # test_missing_filters check skips GenericForeignKey and GenericRelation but not
-    # GenericRel. These two are named differently from the filters that cover them,
-    # source_ipaddress and source_iprange, so they surface as false positives.
-    ignore_fields = ("source_ip_address", "source_ip_range")
+    # GenericRel. These three are named differently from the filters that cover them,
+    # source_acladdressgroup, source_ipaddress and source_iprange, so they surface as
+    # false positives.
+    ignore_fields = ("source_address_group", "source_ip_address", "source_ip_range")
 
     @classmethod
     def setUpTestData(cls):
@@ -178,7 +179,7 @@ class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin)
         params = {"source_aggregate": [self.aggregate.prefix]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
 
-    def test_source_address_group(self):
+    def test_source_acladdressgroup(self):
         address_group = ACLAddressGroup.objects.create(name="address-group-1")
         ACLStandardRule.objects.create(
             access_list=self.access_list,
@@ -186,9 +187,9 @@ class ACLStandardRuleFilterSetTestCase(TestCase, ChangeLoggedFilterSetTestMixin)
             action=ACLRuleActionChoices.ACTION_PERMIT,
             source=address_group,
         )
-        params = {"source_address_group_id": [address_group.pk]}
+        params = {"source_acladdressgroup_id": [address_group.pk]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
-        params = {"source_address_group": [address_group.name]}
+        params = {"source_acladdressgroup": [address_group.name]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
 
     # comments is a TextField, which django-filter maps to a single-valued CharFilter

@@ -381,13 +381,13 @@ class ACLRuleFilterSetMixin(django_filters.FilterSet):
     source_type = ContentTypeFilter(
         label=_("Source Type"),
     )
-    source_address_group = django_filters.ModelMultipleChoiceFilter(
+    source_acladdressgroup = django_filters.ModelMultipleChoiceFilter(
         field_name="_source_acladdressgroup__name",
         queryset=ACLAddressGroup.objects.all(),
         to_field_name="name",
         label=_("Source Address Group (name)"),
     )
-    source_address_group_id = django_filters.ModelMultipleChoiceFilter(
+    source_acladdressgroup_id = django_filters.ModelMultipleChoiceFilter(
         field_name="_source_acladdressgroup",
         queryset=ACLAddressGroup.objects.all(),
         to_field_name="id",
@@ -528,13 +528,13 @@ class ACLExtendedRuleFilterSet(ACLRuleFilterSetMixin, PrimaryModelFilterSet):
     destination_type = ContentTypeFilter(
         label=_("Destination Type"),
     )
-    destination_address_group = django_filters.ModelMultipleChoiceFilter(
+    destination_acladdressgroup = django_filters.ModelMultipleChoiceFilter(
         field_name="_destination_acladdressgroup__name",
         queryset=ACLAddressGroup.objects.all(),
         to_field_name="name",
         label=_("Destination Address Group (name)"),
     )
-    destination_address_group_id = django_filters.ModelMultipleChoiceFilter(
+    destination_acladdressgroup_id = django_filters.ModelMultipleChoiceFilter(
         field_name="_destination_acladdressgroup",
         queryset=ACLAddressGroup.objects.all(),
         to_field_name="id",

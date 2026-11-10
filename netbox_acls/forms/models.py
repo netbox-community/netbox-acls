@@ -7,7 +7,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
-from dcim.models import Interface
 from netbox.forms import NetBoxModelForm, PrimaryModelForm
 from netbox.forms.mixins import OwnerMixin
 from utilities.forms.fields import (
@@ -22,12 +21,11 @@ from utilities.forms.mixins import GenericObjectFormMixin
 from utilities.forms.rendering import FieldSet
 from utilities.forms.utils import add_blank_choice
 from utilities.forms.widgets import HTMXSelect, NumberWithOptions
-from virtualization.models import VMInterface
 
 from ..choices import (
     ACLActionChoices,
     ACLAddressFamilyChoices,
-    ACLAssignmentDirectionUIChoices,
+    ACLAssignmentInterfaceDirectionChoices,
     ACLFamilyChoices,
     ACLICMPTypeChoices,
     ACLICMPv4TypeChoices,
@@ -143,7 +141,7 @@ class ACLAssignmentForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelForm):
         hx_target_id="acl-assignment",
     )
     direction = ChoiceField(
-        choices=add_blank_choice(ACLAssignmentDirectionUIChoices),
+        choices=add_blank_choice(ACLAssignmentInterfaceDirectionChoices),
         label=_("Direction"),
         help_text=_(
             "Only one ACL per address family can be assigned to the same interface and direction, "
@@ -182,7 +180,7 @@ class ACLAssignmentForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelForm):
         """
         super().__init__(*args, **kwargs)
 
-        if self.fields["assigned_object"].selected_model not in (Interface, VMInterface):
+        if self.fields["assigned_object"].selected_model not in ACLAssignment.interface_models:
             del self.fields["direction"]
 
     def clean(self):

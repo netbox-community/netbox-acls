@@ -306,5 +306,5 @@ class ACLAssignmentAPIViewTestCase(APIViewTestCases.APIViewTestCase):
                 self.assertEqual(list(response.data), ["direction"])
                 self.assertEqual(
                     response.data["direction"],
-                    ["Interface assignments require an ingress or egress direction."],
+                    ["Interface assignments require one of these directions: ingress, egress."],
                 )

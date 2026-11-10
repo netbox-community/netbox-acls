@@ -9,9 +9,11 @@ from virtualization.models import VirtualMachine, VMInterface
 from ...choices import (
     ACLActionChoices,
     ACLAssignmentDirectionChoices,
+    ACLAssignmentInterfaceDirectionChoices,
     ACLFamilyChoices,
     ACLTypeChoices,
 )
+from ...constants import ACL_ASSIGNMENT_MODELS
 from ...models import AccessList, ACLAssignment
 from .base import BaseTestCase
 
@@ -186,6 +188,16 @@ class TestACLAssignment(BaseTestCase):
         self.assertEqual(virtual_machine_interface_assignment.assigned_object, self.vm_interface1)
         self.assertEqual(virtual_machine_interface_assignment.direction, "ingress")
 
+    def test_host_and_interface_models_partition_the_assignable_types(self):
+        """
+        Test that the host and interface models do not overlap and together are the types ACL_ASSIGNMENT_MODELS selects.
+        """
+        self.assertEqual(set(ACLAssignment.host_models) & set(ACLAssignment.interface_models), set())
+        self.assertEqual(
+            set(ACLAssignment.host_models) | set(ACLAssignment.interface_models),
+            {object_type.model_class() for object_type in ContentType.objects.filter(ACL_ASSIGNMENT_MODELS)},
+        )
+
     def test_interface_assignment_rejects_direction_none(self):
         """
         Test that an interface assignment cannot store a direction of "none".
@@ -203,7 +215,7 @@ class TestACLAssignment(BaseTestCase):
 
                 self.assertEqual(
                     context.exception.message_dict,
-                    {"direction": ["Interface assignments require an ingress or egress direction."]},
+                    {"direction": ["Interface assignments require one of these directions: ingress, egress."]},
                 )
 
     def test_interface_assignment_rejects_direction_none_on_save(self):
@@ -237,7 +249,7 @@ class TestACLAssignment(BaseTestCase):
 
                 self.assertEqual(
                     context.exception.message_dict,
-                    {"direction": ["Interface assignments require an ingress or egress direction."]},
+                    {"direction": ["Interface assignments require one of these directions: ingress, egress."]},
                 )
                 self.assertIsNone(assignment.pk)
 
@@ -256,9 +268,28 @@ class TestACLAssignment(BaseTestCase):
 
         self.assertEqual(
             context.exception.message_dict,
-            {"direction": ["Interface assignments require an ingress or egress direction."]},
+            {"direction": ["Interface assignments require one of these directions: ingress, egress."]},
         )
         self.assertIsNone(assignment.pk)
+
+    def test_interface_assignment_saves_every_interface_direction(self):
+        """
+        Test that an interface assignment saves with every direction the forms offer.
+        """
+        directions = ACLAssignmentInterfaceDirectionChoices.values()
+        self.assertIn(ACLAssignmentDirectionChoices.DIRECTION_INGRESS, directions)
+
+        for direction in directions:
+            with self.subTest(direction=direction):
+                assignment = ACLAssignment(
+                    access_list=self.acl_standard1,
+                    direction=direction,
+                    assigned_object=self.device_interface1,
+                )
+                assignment.save()
+                assignment.refresh_from_db()
+
+                self.assertEqual(assignment.direction, direction)
 
     def test_partial_save_excluding_direction_skips_the_interface_guard(self):
         """
@@ -346,7 +377,7 @@ class TestACLAssignment(BaseTestCase):
 
         self.assertEqual(
             context.exception.message_dict,
-            {"direction": ["Interface assignments require an ingress or egress direction."]},
+            {"direction": ["Interface assignments require one of these directions: ingress, egress."]},
         )
         assignment.refresh_from_db()
         self.assertEqual(assignment.assigned_object, self.device1)

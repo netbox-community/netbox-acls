@@ -16,6 +16,7 @@ Published releases link to their GitHub release. Dates are publication dates in 
 ### Changed
 
 - **Forms show applicable fields.** Individual rule forms show match criteria and logging for Permit and Deny, and port fields for TCP and UDP. Assignment forms show direction only for interfaces and VM interfaces. Changing a selection refreshes the form without saving, and saving a rule clears criteria that no longer apply. ([#438](https://github.com/netbox-community/netbox-acls/issues/438), [#439](https://github.com/netbox-community/netbox-acls/pull/439))
+- **Direction choices for interface assignments.** Validation errors for an interface or VM interface assignment list the accepted directions. Plugin code importing `ACLAssignmentDirectionUIChoices` uses `ACLAssignmentInterfaceDirectionChoices` for the choices and `ACLAssignmentDirectionChoices` for the `DIRECTION_*` constants. ([#450](https://github.com/netbox-community/netbox-acls/issues/450))
 
 ### Fixed
 

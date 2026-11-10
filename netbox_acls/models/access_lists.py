@@ -18,6 +18,7 @@ from virtualization.models import VirtualMachine, VMInterface
 from ..choices import (
     ACLActionChoices,
     ACLAssignmentDirectionChoices,
+    ACLAssignmentInterfaceDirectionChoices,
     ACLFamilyChoices,
     ACLTypeChoices,
 )
@@ -346,6 +347,10 @@ class ACLAssignment(OwnerMixin, NetBoxModel):
     clone_fields = ("access_list", "assigned_object")
     prerequisite_models = ("netbox_acls.AccessList",)
 
+    # Host and interface targets partition the types selected by ACL_ASSIGNMENT_MODELS.
+    host_models = (Device, VirtualChassis, VirtualMachine)
+    interface_models = (Interface, VMInterface)
+
     class Meta:
         constraints = [
             # Prevent the *same ACL* from being assigned twice to the same object+direction
@@ -378,14 +383,12 @@ class ACLAssignment(OwnerMixin, NetBoxModel):
         """
         return f"{self.access_list}: Object {self.assigned_object}"
 
-    @staticmethod
-    def _is_host_assignment_type(assigned_object_type_id: int | None) -> bool:
+    @classmethod
+    def _is_host_assignment_type(cls, assigned_object_type_id: int | None) -> bool:
         """
         Returns whether the assigned object type carries no directional semantics.
         """
-        host_assigned_object_type_ids = {
-            ContentType.objects.get_for_model(model).pk for model in (Device, VirtualChassis, VirtualMachine)
-        }
+        host_assigned_object_type_ids = {ContentType.objects.get_for_model(model).pk for model in cls.host_models}
         return assigned_object_type_id in host_assigned_object_type_ids
 
     def clean(self) -> None:
@@ -425,15 +428,14 @@ class ACLAssignment(OwnerMixin, NetBoxModel):
     @staticmethod
     def _validate_interface_direction(direction: str) -> None:
         """
-        Validates that an interface assignment has an ingress or egress direction.
+        Validates the direction of an interface assignment.
         """
-        if direction not in [
-            ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
-            ACLAssignmentDirectionChoices.DIRECTION_EGRESS,
-        ]:
+        if direction not in ACLAssignmentInterfaceDirectionChoices.values():
             raise ValidationError(
                 {
-                    "direction": _("Interface assignments require an ingress or egress direction."),
+                    "direction": _("Interface assignments require one of these directions: {directions}.").format(
+                        directions=", ".join(ACLAssignmentInterfaceDirectionChoices.values()),
+                    ),
                 },
             )
 

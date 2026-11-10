@@ -10,7 +10,7 @@ from virtualization.models import Cluster, ClusterType, VirtualMachine, VMInterf
 from ...choices import (
     ACLActionChoices,
     ACLAssignmentDirectionChoices,
-    ACLAssignmentDirectionUIChoices,
+    ACLAssignmentInterfaceDirectionChoices,
     ACLFamilyChoices,
     ACLTypeChoices,
 )
@@ -139,15 +139,18 @@ class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTes
             dict(form.fields["direction"].choices),
         )
 
-    def test_ui_direction_choices_mirror_the_model_set(self):
-        """Test the narrowed GUI choices stay the model set without the host-only value."""
+    def test_interface_direction_choices_mirror_the_model_set(self):
+        """Test that the interface choices are the model set without none, in order with colors and descriptions."""
         self.assertEqual(
-            set(ACLAssignmentDirectionUIChoices),
-            {
-                choice
+            [
+                (choice.value, choice.label, choice.color, choice.description)
+                for choice in ACLAssignmentInterfaceDirectionChoices
+            ],
+            [
+                (choice.value, choice.label, choice.color, choice.description)
                 for choice in ACLAssignmentDirectionChoices
-                if choice[0] != ACLAssignmentDirectionChoices.DIRECTION_NONE
-            },
+                if choice.value != ACLAssignmentDirectionChoices.DIRECTION_NONE
+            ],
         )
 
     def test_host_types_remove_the_direction(self):
@@ -323,6 +326,16 @@ class ACLAssignmentFormTestCase(BulkEditFieldsetTestMixin, FilterFormFieldsetTes
         form = ACLAssignmentBulkEditForm(data={})
         self.assertIsNone(form.fields["assigned_object"].selected_model)
         self.assertFalse(form.fields["direction"].disabled)
+
+    def test_bulkedit_direction_enabled_for_interface_types(self):
+        """Test that the bulk-edit direction stays enabled for both interface types."""
+        for model in (Interface, VMInterface):
+            with self.subTest(model=model._meta.label_lower):
+                form = ACLAssignmentBulkEditForm(
+                    data={"assigned_object_content_type": ContentType.objects.get_for_model(model).pk},
+                )
+                self.assertIs(form.fields["assigned_object"].selected_model, model)
+                self.assertFalse(form.fields["direction"].disabled)
 
     def test_bulkedit_direction_disabled_for_host_types(self):
         """Test that the bulk-edit direction is disabled for host assignments."""
@@ -570,7 +583,7 @@ class ACLAssignmentImportFormTestCase(TestCase):
         self.assertEqual(set(form.errors), {"direction"})
         self.assertEqual(
             list(form.errors["direction"]),
-            ["Interface assignments require an ingress or egress direction."],
+            ["Interface assignments require one of these directions: ingress, egress."],
         )
 
     def test_update_without_object_columns_keeps_the_target(self):
@@ -622,7 +635,7 @@ class ACLAssignmentImportFormTestCase(TestCase):
             form.save()
         self.assertEqual(
             context.exception.message_dict,
-            {"direction": ["Interface assignments require an ingress or egress direction."]},
+            {"direction": ["Interface assignments require one of these directions: ingress, egress."]},
         )
 
     def test_update_by_id_alone_moves_the_target(self):

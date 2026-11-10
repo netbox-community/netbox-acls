@@ -122,11 +122,11 @@ stateless ACK and RST pattern.
 
 ### Direction
 
-| Value | Label |
-|---|---|
-| `ingress` | Ingress |
-| `egress` | Egress |
-| `none` | N/A |
+| Value | Label | Description |
+|---|---|---|
+| `ingress` | Ingress | Traffic entering the interface |
+| `egress` | Egress | Traffic leaving the interface |
+| `none` | N/A | |
 
 `ingress` and `egress` apply to interfaces and VM interfaces. `none` applies to
 devices, virtual chassis, and virtual machines. An assignment's family follows

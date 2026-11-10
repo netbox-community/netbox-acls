@@ -6,7 +6,6 @@ from django import forms
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 
-from dcim.models import Interface
 from netbox.forms import NetBoxModelBulkEditForm, PrimaryModelBulkEditForm
 from netbox.forms.mixins import OwnerMixin
 from utilities.forms.fields import (
@@ -21,12 +20,11 @@ from utilities.forms.mixins import GenericObjectFormMixin
 from utilities.forms.rendering import FieldSet
 from utilities.forms.utils import add_blank_choice
 from utilities.forms.widgets import BulkEditNullBooleanSelect, NumberWithOptions
-from virtualization.models import VMInterface
 
 from ..choices import (
     ACLActionChoices,
     ACLAddressFamilyChoices,
-    ACLAssignmentDirectionUIChoices,
+    ACLAssignmentInterfaceDirectionChoices,
     ACLFamilyChoices,
     ACLICMPTypeChoices,
     ACLProtocolChoices,
@@ -105,7 +103,7 @@ class ACLAssignmentBulkEditForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelB
         hx_method="post",
     )
     direction = ChoiceField(
-        choices=add_blank_choice(ACLAssignmentDirectionUIChoices),
+        choices=add_blank_choice(ACLAssignmentInterfaceDirectionChoices),
         required=False,
         label=_("Direction"),
     )
@@ -133,7 +131,7 @@ class ACLAssignmentBulkEditForm(GenericObjectFormMixin, OwnerMixin, NetBoxModelB
 
         # Direction is declared enabled here, so with no type chosen a bulk edit can still change it alone.
         model = self.fields["assigned_object"].selected_model
-        if model is not None and model not in (Interface, VMInterface):
+        if model is not None and model not in ACLAssignment.interface_models:
             self.fields["direction"].disabled = True
             self.fields["direction"].widget.attrs["value"] = "None"
 

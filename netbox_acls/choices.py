@@ -11,7 +11,7 @@ __all__ = (
     "ACLActionChoices",
     "ACLAddressFamilyChoices",
     "ACLAssignmentDirectionChoices",
-    "ACLAssignmentDirectionUIChoices",
+    "ACLAssignmentInterfaceDirectionChoices",
     "ACLFamilyChoices",
     "ACLICMPTypeChoices",
     "ACLICMPv4TypeChoices",
@@ -159,23 +159,9 @@ class ACLRuleUsageChoices(ChoiceSet):
     ]
 
 
-class ACLAssignmentDirectionUIChoices(ChoiceSet):
-    """
-    Defines the application direction of the ACL on an associated interface (UI version).
-    """
-
-    DIRECTION_INGRESS = "ingress"
-    DIRECTION_EGRESS = "egress"
-
-    CHOICES = [
-        Choice(DIRECTION_INGRESS, _("Ingress"), color="blue", description=_("Traffic entering the interface")),
-        Choice(DIRECTION_EGRESS, _("Egress"), color="purple", description=_("Traffic leaving the interface")),
-    ]
-
-
 class ACLAssignmentDirectionChoices(ChoiceSet):
     """
-    Defines the application direction of the ACL on an associated interface.
+    Defines the application direction of an ACL assignment.
     """
 
     DIRECTION_INGRESS = "ingress"
@@ -183,9 +169,21 @@ class ACLAssignmentDirectionChoices(ChoiceSet):
     DIRECTION_NONE = "none"
 
     CHOICES = [
-        (DIRECTION_INGRESS, _("Ingress"), "blue"),
-        (DIRECTION_EGRESS, _("Egress"), "purple"),
-        (DIRECTION_NONE, _("N/A"), "darkgray"),
+        Choice(DIRECTION_INGRESS, _("Ingress"), color="blue", description=_("Traffic entering the interface")),
+        Choice(DIRECTION_EGRESS, _("Egress"), color="purple", description=_("Traffic leaving the interface")),
+        Choice(DIRECTION_NONE, _("N/A"), color="darkgray"),
+    ]
+
+
+class ACLAssignmentInterfaceDirectionChoices(ChoiceSet):
+    """
+    Directions available for interface assignments.
+    """
+
+    CHOICES = [
+        choice
+        for choice in ACLAssignmentDirectionChoices.CHOICES
+        if choice.value != ACLAssignmentDirectionChoices.DIRECTION_NONE
     ]
 
 

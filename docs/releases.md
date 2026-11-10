@@ -2,21 +2,21 @@
 
 Published releases link to their GitHub release. Dates are publication dates in UTC, and each entry lists the NetBox versions it supports.
 
-## 2.2.0 (unreleased)
+## 2.2.0 (2026-11-10)
 
-**Compatibility:** NetBox 4.7.x.
+**Compatibility:** NetBox 4.7.x. [Published release](https://github.com/netbox-community/netbox-acls/releases/tag/2.2.0).
 
 ### Added
 
 - **Reusable address groups.** Combine Aggregates, Prefixes, IP Addresses, and IP Ranges in an IPv4 or IPv6 group. Use groups as sources in Standard Rules, or as sources and destinations in Extended Rules. Groups and members support the UI, REST API, GraphQL, filtering, bulk import, and bulk edit. Members must match the group's address family, and duplicate memberships are rejected. Existing references to individual IPAM objects remain supported. ([#56](https://github.com/netbox-community/netbox-acls/issues/56), [#435](https://github.com/netbox-community/netbox-acls/pull/435))
 - **ICMP types, ICMP codes, and TCP flags.** Extended Rules can match a specific ICMP type and code, with common type presets and explicit ICMPv4 and ICMPv6 protocols. TCP flags support **All** or **Any** matching. These criteria are available in forms, filters, rule details, optional table columns, CSV import, REST, and GraphQL. Existing generic `icmp` values remain valid, and the new criteria are optional. See [ICMP and TCP flags](user-guide/protocol-matching.md). ([#136](https://github.com/netbox-community/netbox-acls/issues/136), [#443](https://github.com/netbox-community/netbox-acls/pull/443))
 - **Choice descriptions.** Create, edit, and bulk-edit forms show a short description beside choices such as the ACL type, protocol, and TCP flags. Filter forms keep plain choices. ([#440](https://github.com/netbox-community/netbox-acls/issues/440), [#445](https://github.com/netbox-community/netbox-acls/pull/445))
-- **Documentation site.** Guides for users, administrators, and contributors, with the model, REST API, and GraphQL reference. ([#442](https://github.com/netbox-community/netbox-acls/issues/442))
+- **Documentation site.** Guides for users, administrators, and contributors, with the model, REST API, and GraphQL reference. ([#442](https://github.com/netbox-community/netbox-acls/issues/442), [#455](https://github.com/netbox-community/netbox-acls/pull/455))
 
 ### Changed
 
 - **Forms show applicable fields.** Individual rule forms show match criteria and logging for Permit and Deny, and port fields for TCP and UDP. Assignment forms show direction only for interfaces and VM interfaces. Changing a selection refreshes the form without saving, and saving a rule clears criteria that no longer apply. ([#438](https://github.com/netbox-community/netbox-acls/issues/438), [#439](https://github.com/netbox-community/netbox-acls/pull/439))
-- **Direction choices for interface assignments.** Validation errors for an interface or VM interface assignment list the accepted directions. Plugin code importing `ACLAssignmentDirectionUIChoices` uses `ACLAssignmentInterfaceDirectionChoices` for the choices and `ACLAssignmentDirectionChoices` for the `DIRECTION_*` constants. ([#450](https://github.com/netbox-community/netbox-acls/issues/450))
+- **Direction choices for interface assignments.** Validation errors for an interface or VM interface assignment list the accepted directions. Plugin code importing `ACLAssignmentDirectionUIChoices` uses `ACLAssignmentInterfaceDirectionChoices` for the choices and `ACLAssignmentDirectionChoices` for the `DIRECTION_*` constants. ([#450](https://github.com/netbox-community/netbox-acls/issues/450), [#456](https://github.com/netbox-community/netbox-acls/pull/456))
 
 ### Fixed
 

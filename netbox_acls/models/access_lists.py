@@ -12,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from dcim.models import Device, Interface, VirtualChassis
 from netbox.models import NetBoxModel, PrimaryModel
 from netbox.models.mixins import OwnerMixin
+from utilities.data import normalize_update_fields
 from virtualization.models import VirtualMachine, VMInterface
 
 from ..choices import (
@@ -116,11 +117,7 @@ class AccessList(PrimaryModel):
         """
         Override the model's save method for custom validation.
         """
-        # update_fields may be any iterable, including a one-shot generator
-        update_fields = kwargs.get("update_fields")
-        if update_fields is not None:
-            update_fields = frozenset(update_fields)
-            kwargs["update_fields"] = update_fields
+        update_fields = normalize_update_fields(kwargs)
 
         # Repeat the critical guards for callers that skip full_clean(), and
         # if family changes without rules, update assignment families atomically.
@@ -381,15 +378,15 @@ class ACLAssignment(OwnerMixin, NetBoxModel):
         """
         return f"{self.access_list}: Object {self.assigned_object}"
 
-    @property
-    def _is_host_assignment(self) -> bool:
+    @staticmethod
+    def _is_host_assignment_type(assigned_object_type_id: int | None) -> bool:
         """
         Returns whether the assigned object type carries no directional semantics.
         """
         host_assigned_object_type_ids = {
             ContentType.objects.get_for_model(model).pk for model in (Device, VirtualChassis, VirtualMachine)
         }
-        return self.assigned_object_type_id in host_assigned_object_type_ids
+        return assigned_object_type_id in host_assigned_object_type_ids
 
     def clean(self) -> None:
         """
@@ -416,20 +413,21 @@ class ACLAssignment(OwnerMixin, NetBoxModel):
             self.family = self.access_list.family
 
         # Host types carry no directional semantics, so direction is forced to "none".
-        if self._is_host_assignment:
+        if self._is_host_assignment_type(self.assigned_object_type_id):
             self.direction = ACLAssignmentDirectionChoices.DIRECTION_NONE
             self._validate_unique_acl_name_per_assigned_object()
         elif self.assigned_object_type_id:
             if self.direction == ACLAssignmentDirectionChoices.DIRECTION_NONE:
-                self._validate_interface_direction()
+                self._validate_interface_direction(self.direction)
             if self.access_list_id:
                 self._validate_unique_acl_assignment_per_assigned_interface()
 
-    def _validate_interface_direction(self) -> None:
+    @staticmethod
+    def _validate_interface_direction(direction: str) -> None:
         """
         Validates that an interface assignment has an ingress or egress direction.
         """
-        if self.direction not in [
+        if direction not in [
             ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
             ACLAssignmentDirectionChoices.DIRECTION_EGRESS,
         ]:
@@ -507,20 +505,33 @@ class ACLAssignment(OwnerMixin, NetBoxModel):
         """
         self.family = self.access_list.family
 
-        # family is a denormalized copy of access_list.family, so persist them together.
-        # direction is derived only for host targets, so it is never promoted here.
-        update_fields = kwargs.get("update_fields")
+        update_fields = normalize_update_fields(kwargs)
+        type_written = update_fields is None or bool(
+            update_fields & {"assigned_object_type", "assigned_object_type_id"}
+        )
+        direction_written = update_fields is None or "direction" in update_fields
+
+        if type_written or direction_written:
+            type_id, direction = self.assigned_object_type_id, self.direction
+            if self.pk and not (type_written and direction_written):
+                stored = type(self).objects.values("assigned_object_type_id", "direction").get(pk=self.pk)
+                if not type_written:
+                    type_id = stored["assigned_object_type_id"]
+                if not direction_written:
+                    direction = stored["direction"]
+            # Host types carry no directional semantics, so direction is forced to "none".
+            if self._is_host_assignment_type(type_id):
+                self.direction = ACLAssignmentDirectionChoices.DIRECTION_NONE
+                if update_fields is not None and direction != ACLAssignmentDirectionChoices.DIRECTION_NONE:
+                    update_fields |= {"direction"}
+            elif type_id:
+                self._validate_interface_direction(direction)
+
         if update_fields is not None:
-            update_fields = frozenset(update_fields)
+            # family is a denormalized copy of access_list.family, so persist them together.
             if update_fields & {"access_list", "access_list_id"}:
                 update_fields |= {"family"}
             kwargs["update_fields"] = update_fields
-
-        # Host types carry no directional semantics, so direction is forced to "none".
-        if self._is_host_assignment:
-            self.direction = ACLAssignmentDirectionChoices.DIRECTION_NONE
-        elif self.assigned_object_type_id and (update_fields is None or "direction" in update_fields):
-            self._validate_interface_direction()
 
         super().save(*args, **kwargs)
 

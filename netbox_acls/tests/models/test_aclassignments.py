@@ -1,5 +1,7 @@
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 from dcim.models import Device, Interface, VirtualChassis
 from virtualization.models import VirtualMachine, VMInterface
@@ -291,6 +293,243 @@ class TestACLAssignment(BaseTestCase):
 
         assignment.refresh_from_db()
         self.assertEqual(assignment.direction, ACLAssignmentDirectionChoices.DIRECTION_INGRESS)
+
+    def test_partial_save_naming_direction_ignores_an_unsaved_host_target(self):
+        """
+        Test that a direction-only save classifies the stored interface, not an unsaved host target.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        assignment.assigned_object = self.device1
+        assignment.save(update_fields={"direction"})
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.assigned_object, self.device_interface1)
+        self.assertEqual(assignment.direction, ACLAssignmentDirectionChoices.DIRECTION_INGRESS)
+
+    def test_partial_save_naming_direction_normalizes_a_stored_host(self):
+        """
+        Test that a direction-only save on a stored host stores "none" despite an unsaved interface target.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+
+        assignment.assigned_object = self.device_interface1
+        assignment.direction = ACLAssignmentDirectionChoices.DIRECTION_EGRESS
+        assignment.save(update_fields={"direction"})
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.assigned_object, self.device1)
+        self.assertEqual(assignment.direction, ACLAssignmentDirectionChoices.DIRECTION_NONE)
+
+    def test_partial_save_naming_the_target_checks_the_stored_direction(self):
+        """
+        Test that moving a host assignment to an interface validates the stored direction.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+
+        assignment.assigned_object = self.device_interface1
+        assignment.direction = ACLAssignmentDirectionChoices.DIRECTION_INGRESS
+        with self.assertRaises(ValidationError) as context:
+            assignment.save(update_fields={"assigned_object_type", "assigned_object_id"})
+
+        self.assertEqual(
+            context.exception.message_dict,
+            {"direction": ["Interface assignments require an ingress or egress direction."]},
+        )
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.assigned_object, self.device1)
+        self.assertEqual(assignment.direction, ACLAssignmentDirectionChoices.DIRECTION_NONE)
+
+    def test_partial_save_naming_the_target_keeps_the_stored_interface_direction(self):
+        """
+        Test that moving an interface assignment to another interface keeps the stored direction.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        assignment.assigned_object = self.device_interface2
+        assignment.direction = ACLAssignmentDirectionChoices.DIRECTION_NONE
+        assignment.save(update_fields={"assigned_object_type", "assigned_object_id"})
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.assigned_object, self.device_interface2)
+        self.assertEqual(assignment.direction, ACLAssignmentDirectionChoices.DIRECTION_INGRESS)
+
+    def test_partial_save_naming_the_target_and_direction_moves_a_host_to_an_interface(self):
+        """
+        Test that a host assignment moves to an interface when the save also writes a valid direction.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_NONE,
+        )
+
+        assignment.assigned_object = self.device_interface1
+        assignment.direction = ACLAssignmentDirectionChoices.DIRECTION_EGRESS
+        assignment.save(update_fields={"assigned_object_type", "assigned_object_id", "direction"})
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.assigned_object, self.device_interface1)
+        self.assertEqual(assignment.direction, ACLAssignmentDirectionChoices.DIRECTION_EGRESS)
+
+    def test_partial_save_of_the_target_retargets_interface_to_device(self):
+        """
+        Test that a target-only save moving an interface assignment to a device stores a "none" direction.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_EGRESS,
+        )
+
+        assignment.assigned_object = self.device1
+        assignment.save(update_fields={"assigned_object_type", "assigned_object_id"})
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.assigned_object, self.device1)
+        self.assertEqual(assignment.direction, ACLAssignmentDirectionChoices.DIRECTION_NONE)
+
+    def test_partial_save_of_the_target_retargets_interface_to_virtual_chassis(self):
+        """
+        Test that a target-only save moving an interface assignment to a virtual chassis stores a "none" direction.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device_interface2,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_EGRESS,
+        )
+
+        assignment.assigned_object = self.virtual_chassis1
+        assignment.save(update_fields={"assigned_object_type", "assigned_object_id"})
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.assigned_object, self.virtual_chassis1)
+        self.assertEqual(assignment.direction, ACLAssignmentDirectionChoices.DIRECTION_NONE)
+
+    def test_partial_save_of_the_target_attname_retargets_vm_interface_to_virtual_machine(self):
+        """
+        Test that a target-only save through assigned_object_type_id stores a "none" direction on a virtual machine.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.vm_interface2,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_EGRESS,
+        )
+
+        assignment.assigned_object = self.virtual_machine1
+        assignment.save(update_fields={"assigned_object_type_id", "assigned_object_id"})
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.assigned_object, self.virtual_machine1)
+        self.assertEqual(assignment.direction, ACLAssignmentDirectionChoices.DIRECTION_NONE)
+
+    def test_partial_save_of_a_one_shot_target_retargets_interface_to_device(self):
+        """
+        Test that a one-shot update_fields naming the target stores a "none" direction on a device.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_EGRESS,
+        )
+
+        assignment.assigned_object = self.device1
+        assignment.save(update_fields=iter(["assigned_object_type", "assigned_object_id"]))
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.assigned_object, self.device1)
+        self.assertEqual(assignment.direction, ACLAssignmentDirectionChoices.DIRECTION_NONE)
+
+    def test_partial_save_of_assigned_object_id_ignores_an_unsaved_host_type(self):
+        """
+        Test that saving assigned_object_id alone ignores an unsaved host type.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_EGRESS,
+        )
+
+        assignment.assigned_object = self.device1
+        assignment.save(update_fields={"assigned_object_id"})
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.assigned_object_type, ContentType.objects.get_for_model(Interface))
+        self.assertEqual(assignment.direction, ACLAssignmentDirectionChoices.DIRECTION_EGRESS)
+
+    def test_partial_save_of_assigned_object_type_retargets_interface_to_device(self):
+        """
+        Test that saving assigned_object_type alone as a device type stores a "none" direction.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_EGRESS,
+        )
+
+        assignment.assigned_object = self.device1
+        assignment.save(update_fields={"assigned_object_type"})
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.assigned_object_type, ContentType.objects.get_for_model(Device))
+        self.assertEqual(assignment.direction, ACLAssignmentDirectionChoices.DIRECTION_NONE)
+
+    def test_save_does_not_read_the_stored_assignment(self):
+        """
+        Test that a full save does not read the stored assignment.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        with CaptureQueriesContext(connection) as context:
+            assignment.save()
+
+        stored_reads = [
+            query["sql"]
+            for query in context.captured_queries
+            if query["sql"].startswith("SELECT") and 'FROM "netbox_acls_aclassignment"' in query["sql"]
+        ]
+        self.assertEqual(stored_reads, [])
+
+    def test_partial_save_of_comments_does_not_read_the_stored_assignment(self):
+        """
+        Test that a comments-only save does not read the stored assignment.
+        """
+        assignment = ACLAssignment.objects.create(
+            access_list=self.acl_standard1,
+            assigned_object=self.device_interface1,
+            direction=ACLAssignmentDirectionChoices.DIRECTION_INGRESS,
+        )
+
+        assignment.comments = "Updated"
+        with CaptureQueriesContext(connection) as context:
+            assignment.save(update_fields={"comments"})
+
+        stored_reads = [
+            query["sql"]
+            for query in context.captured_queries
+            if query["sql"].startswith("SELECT") and 'FROM "netbox_acls_aclassignment"' in query["sql"]
+        ]
+        self.assertEqual(stored_reads, [])
 
     def test_a_stored_interface_row_with_direction_none_fails_revalidation(self):
         """

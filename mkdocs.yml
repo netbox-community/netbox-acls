@@ -1,0 +1,83 @@
+---
+site_name: "NetBox ACLs"
+site_description: >-
+  Document access lists, rules, address groups, and assignments in NetBox.
+site_url: https://netbox-community.github.io/netbox-acls/
+repo_url: https://github.com/netbox-community/netbox-acls
+repo_name: "netbox-community/netbox-acls"
+
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - navigation.top
+    - navigation.tracking
+  palette:
+    - scheme: default
+      primary: blue
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - footnotes
+  - pymdownx.emoji
+  - pymdownx.snippets:
+      base_path: ['.']
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Overview:
+      - Introduction: index.md
+      - Features and limitations: features.md
+      - Release notes: releases.md
+  - User guide:
+      - Getting started: user-guide/getting-started.md
+      - Access lists: user-guide/access-lists.md
+      - Rules: user-guide/rules.md
+      - ICMP and TCP flags: user-guide/protocol-matching.md
+      - Address groups: user-guide/address-groups.md
+      - Assignments: user-guide/assignments.md
+      - Bulk operations: user-guide/bulk-operations.md
+  - Administration:
+      - Installation: administration/installation.md
+      - Configuration: administration/configuration.md
+      - Permissions: administration/permissions.md
+      - Upgrading: administration/upgrading.md
+      - Troubleshooting: administration/troubleshooting.md
+  - Reference:
+      - Data model: reference/data-model.md
+      - Address references: reference/addressing.md
+      - Field choices: reference/choices.md
+      - REST API: reference/rest-api.md
+      - GraphQL: reference/graphql.md
+      - Filtering: reference/filtering.md
+      - Models:
+          - Access List: reference/models/accesslist.md
+          - ACL Standard Rule: reference/models/aclstandardrule.md
+          - ACL Extended Rule: reference/models/aclextendedrule.md
+          - ACL Assignment: reference/models/aclassignment.md
+          - ACL Address Group: reference/models/acladdressgroup.md
+          - ACL Address Group Member: reference/models/acladdressgroupmember.md
+  - Development:
+      - Contributing: development/contributing.md
+      - Conventions: development/conventions.md
+      - Releasing: development/releasing.md
+      - NetBox internals: development/netbox-internals.md
